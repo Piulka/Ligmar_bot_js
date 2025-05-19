@@ -5,6 +5,8 @@ let selectedLocation = 'Зеленые топи'; // Локация по умо�
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let isRandomMode = false; // По умолчанию "Не рандом"
+let selectedClass = 'Воин'; // Класс по умолчанию
+
 
 // Функция для создания кнопки "Настройки"
 async function createSettingsButton() {
@@ -147,9 +149,44 @@ async function createSettingsWindow() {
         isRandomMode = event.target.value === 'Рандом';
         console.log(`Режим выбора гексагона: ${isRandomMode ? 'Рандом' : 'Не рандом'}`);
     });
-
+    
     settingsContainer.appendChild(randomModeSelect);
+    // Выпадающее меню для выбора класса
+    const classLabel = document.createElement('label');
+    classLabel.textContent = 'Выбор класса:';
+    classLabel.style.display = 'block';
+    classLabel.style.marginTop = '10px';
+    classLabel.style.marginBottom = '5px';
+    settingsContainer.appendChild(classLabel);
 
+    const classSelect = document.createElement('select');
+    classSelect.id = 'class-select';
+    classSelect.style.width = '100%';
+    classSelect.style.padding = '5px';
+    classSelect.style.border = '1px solid var(--black-light)';
+    classSelect.style.borderRadius = '5px';
+    classSelect.style.backgroundColor = 'var(--black-light)';
+    classSelect.style.color = 'var(--white)';
+
+    // Добавляем опции
+    const classes = ['Воин', 'Убийца'];
+    classes.forEach(cls => {
+        const option = document.createElement('option');
+        option.value = cls;
+        option.textContent = cls;
+        classSelect.appendChild(option);
+    });
+
+    // Устанавливаем значение по умолчанию
+    classSelect.value = selectedClass;
+
+    // Обработчик изменения
+    classSelect.addEventListener('change', (event) => {
+        selectedClass = event.target.value; // Обновляем глобальную переменную
+        console.log(`Выбран класс: ${selectedClass}`);
+    });
+
+    settingsContainer.appendChild(classSelect);
     document.body.appendChild(settingsContainer);
 }
 
@@ -584,9 +621,12 @@ async function isSpecialHexagon() {
 }
 
 // Функция использования навыков
-async function useSkills(skillOrder, activationTimes) {
-    for (let i = 0; i < skillOrder.length; i++) {
-        const skill = skillOrder[i];
+async function useSkills() {
+    const skills = selectedClass === 'Воин' 
+        ? [SKILLS.KICK, SKILLS.TAUNTING_STRIKE] 
+        : ['assets/images/icons/attack.webp']; // Для убийцы
+    
+    for(const skill of skills) {
         await useSkill(skill);
         await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -607,23 +647,23 @@ const priorities = [
 const SKILLS = {
     KICK: 'assets/images/skills/1421a679ae40807f87b6d8677e316a1f.webp',
     TAUNTING_STRIKE: 'assets/images/skills/1491a679ae4080468358fcce4f0dfadd.webp',
-    LIFE_LEECH: 'assets/images/skills/1491a679ae408091bc22c1b4ff900728.webp', // Жажда жизни
-    DEF_BUFF: 'assets/images/skills/1441a679ae4080e0ac0ce466631bc99e.webp'
+    LIFE_LEECH: 'assets/images/skills/1491a679ae408091bc22c1b4ff900728.webp',
+    DEF_BUFF: 'assets/images/skills/1441a679ae4080e0ac0ce466631bc99e.webp',
+    ASSASSIN_ATTACK: 'assets/images/icons/attack.webp'
 };
 
 // Функция проверки и активации DEF_BUFF
 async function checkAndActivateDefenseBuff() {
+    if(selectedClass !== 'Воин') return;
+    
     try {
-        // Ищем иконку "upDefenseWarrior.svg"
         const defenseIcon = document.querySelector('tui-icon.svg-icon[style*="upDefenseWarrior.svg"]');
-        if (!defenseIcon) {
-            await useSkill(SKILLS.DEF_BUFF); // Используем навык DEF_BUFF
-            await new Promise(resolve => setTimeout(resolve, 100));
-        } else {
+        if(!defenseIcon) {
+            await useSkill(SKILLS.DEF_BUFF);
             await new Promise(resolve => setTimeout(resolve, 100));
         }
-    } catch (error) {
-        console.error('Ошибка в функции checkAndActivateDefenseBuff:', error);
+    } catch(error) {
+        console.error('Ошибка:', error);
     }
 }
 
@@ -651,25 +691,31 @@ async function useHealthPotion() {
 
 // Функция проверки маны и здоровья
 async function checkManaAndHealth() {
-    // Проверка маны
-    const manaElement = document.querySelector('app-general-stat.profile-mana .stats-line-mana');
-    if (manaElement) {
-        const manaPercentage = parseFloat(manaElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
-        if (manaPercentage <= -50) { // Если мана <= 50%
-            await useManaPotion();
-            await new Promise(resolve => setTimeout(resolve, 100));
+    // Проверка маны только для Воина
+    if (selectedClass === 'Воин') {
+        const manaElement = document.querySelector('app-general-stat.profile-mana .stats-line-mana');
+        if (manaElement) {
+            const manaPercentage = parseFloat(manaElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
+            if (manaPercentage <= -50) {
+                await useManaPotion();
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         }
     }
 
-    // Проверка здоровья
+    // Проверка здоровья для всех классов
     const healthElement = document.querySelector('app-general-stat.profile-health .stats-line');
     if (healthElement) {
         const healthPercentage = parseFloat(healthElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
-        if (healthPercentage <= -20) { // Если здоровье <= 50%
+        if (healthPercentage <= -20) {
             await useHealthPotion();
             await new Promise(resolve => setTimeout(resolve, 100));
-            await useSkill(SKILLS.LIFE_LEECH); // Жажда жизни
-            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Скилл лечения только для Воина
+            if (selectedClass === 'Воин') {
+                await useSkill(SKILLS.LIFE_LEECH);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         }
     }
 }
