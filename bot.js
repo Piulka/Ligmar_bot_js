@@ -1050,32 +1050,43 @@ function checkAncientItem(dialog) {
 
 // Функция проверки, является ли предмет эпическим и имеет 3 стата из списка
 function checkEpicItemWithStats(dialog) {
-    const stats = dialog.querySelector('.item-stats');
-    const quality = dialog.querySelector('.item-quality');
-
-    if (!stats || !quality) return false;
+    // Ищем элемент с качеством предмета
+    const qualityElement = dialog.querySelector('.item-quality');
+    if (!qualityElement) {
+        return false;
+    }
 
     // Проверяем, что предмет эпический
-    const isEpic = quality.textContent.trim() === 'Эпический';
-    if (!isEpic) return false;
+    const isEpic = qualityElement.textContent.trim() === 'Эпический';
+    if (!isEpic) {
+        return false;
+    }
+
+    // Ищем статы предмета
+    const statsElements = dialog.querySelectorAll('.magic-prop-name');
+    if (!statsElements.length) {
+        return false;
+    }
 
     // Список статов для проверки
     const requiredStats = [
         'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
         'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье', 'Восст. здоровья'
+        'Сопротивление', 'Интеллект', 'Здоровье'
     ];
 
     // Подсчитываем количество совпадающих статов
     let matchingStatsCount = 0;
-    requiredStats.forEach(stat => {
-        if (stats.textContent.includes(stat)) {
+    statsElements.forEach(statElement => {
+        const statName = statElement.textContent.trim();
+        if (requiredStats.includes(statName)) {
             matchingStatsCount++;
         }
     });
 
     // Возвращаем true, если предмет эпический и имеет 3 или более совпадающих стата
-    return matchingStatsCount >= 3;
+    const isMatching = matchingStatsCount >= 3;
+    return isMatching;
 }
 
 // Проверка, имеет ли предмет ПМА или ВА
