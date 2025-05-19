@@ -4,7 +4,7 @@ let selectedLocation = 'Зеленые топи'; // Локация по умо�
 // Переменная для хранения времени, когда скрипт был запущен
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
-
+let isRandomMode = false; // По умолчанию "Не рандом"
 
 // Функция для создания кнопки "Настройки"
 async function createSettingsButton() {
@@ -115,6 +115,41 @@ async function createSettingsWindow() {
     });
 
     settingsContainer.appendChild(locationSelect);
+
+    // Выпадающее меню для выбора режима (Рандом/Не рандом)
+    const randomModeLabel = document.createElement('label');
+    randomModeLabel.textContent = 'Режим выбора гексагона:';
+    randomModeLabel.style.display = 'block';
+    randomModeLabel.style.marginTop = '10px';
+    randomModeLabel.style.marginBottom = '5px';
+    settingsContainer.appendChild(randomModeLabel);
+
+    const randomModeSelect = document.createElement('select');
+    randomModeSelect.id = 'random-mode-select';
+    randomModeSelect.style.width = '100%';
+    randomModeSelect.style.padding = '5px';
+    randomModeSelect.style.border = '1px solid var(--black-light)';
+    randomModeSelect.style.borderRadius = '5px';
+    randomModeSelect.style.backgroundColor = 'var(--black-light)';
+    randomModeSelect.style.color = 'var(--white)';
+
+    // Добавляем опции в выпадающее меню
+    const randomModes = ['Не рандом', 'Рандом'];
+    randomModes.forEach(mode => {
+        const option = document.createElement('option');
+        option.value = mode;
+        option.textContent = mode;
+        randomModeSelect.appendChild(option);
+    });
+
+    // Устанавливаем обработчик изменения режима
+    randomModeSelect.addEventListener('change', (event) => {
+        isRandomMode = event.target.value === 'Рандом';
+        console.log(`Режим выбора гексагона: ${isRandomMode ? 'Рандом' : 'Не рандом'}`);
+    });
+
+    settingsContainer.appendChild(randomModeSelect);
+
     document.body.appendChild(settingsContainer);
 }
 
@@ -390,21 +425,20 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
             // Проверяем врагов
             if (priority.type === 'enemies') {
-                const hexagons = document.querySelectorAll('g.hex-box');
-                for (const hexagon of hexagons) {
-                    const currentHexText = hexagon.querySelector('div.hex-current-text.ng-star-inserted');
-                    if (currentHexText && currentHexText.textContent.trim() === 'Вы здесь') {
-                        console.log('Пропускаем гексагон с текстом "Вы здесь"');
-                        continue;
-                    }
-
+                const hexagons = Array.from(document.querySelectorAll('g.hex-box')).filter(hexagon => {
                     const textElement = hexagon.querySelector('text.enemies');
-                    if (textElement && textElement.textContent.trim() === String(priority.value)) {
-                        clickHexagon(hexagon);
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        await fightEnemies(false);
-                        return true;
-                    }
+                    return textElement && textElement.textContent.trim() === String(priority.value);
+                });
+
+                if (hexagons.length > 0) {
+                    const selectedHexagon = isRandomMode
+                        ? hexagons[Math.floor(Math.random() * hexagons.length)] // Выбираем случайный гексагон
+                        : hexagons[0]; // Берём первый гексагон, если "Не рандом"
+
+                    clickHexagon(selectedHexagon);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await fightEnemies(false);
+                    return true;
                 }
             }
         }
