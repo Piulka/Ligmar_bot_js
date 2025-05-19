@@ -591,6 +591,16 @@ async function fightEnemies() {
 
 async function navigateToSellItems() {
     try {
+        // Нажимаем на "Город"
+        const townButton = await waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
+        if (townButton) {
+            townButton.click();
+            console.log('Перешли в Город');
+        } else {
+            console.error('Кнопка "Город" не найдена');
+            return;
+        }
+
         // Нажимаем на кнопку "Строения"
         const buildingsButton = await waitForElement('div.button-content', 'Строения', 5000);
         if (buildingsButton) {
@@ -640,7 +650,6 @@ async function navigateToSellItems() {
         updateStatistics('items-sold', itemsSold);
 
         // Нажимаем на "Город"
-        const townButton = await waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
         if (townButton) {
             townButton.click();
             console.log('Перешли в Город');
