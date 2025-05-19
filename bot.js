@@ -1,6 +1,10 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 let deaths = 0; // Количество смертей
 let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
+// Переменная для хранения времени, когда скрипт был запущен
+let scriptPausedTime = 0; // Время, проведенное в паузе
+let lastStartTime = Date.now(); // Время последнего запуска скрипта
+let isRandomMode = false; // По умолчанию "Не рандом"
 
 // Функция для создания кнопки "Настройки"
 async function createSettingsButton() {
@@ -111,6 +115,41 @@ async function createSettingsWindow() {
     });
 
     settingsContainer.appendChild(locationSelect);
+
+    // Выпадающее меню для выбора режима (Рандом/Не рандом)
+    const randomModeLabel = document.createElement('label');
+    randomModeLabel.textContent = 'Режим выбора гексагона:';
+    randomModeLabel.style.display = 'block';
+    randomModeLabel.style.marginTop = '10px';
+    randomModeLabel.style.marginBottom = '5px';
+    settingsContainer.appendChild(randomModeLabel);
+
+    const randomModeSelect = document.createElement('select');
+    randomModeSelect.id = 'random-mode-select';
+    randomModeSelect.style.width = '100%';
+    randomModeSelect.style.padding = '5px';
+    randomModeSelect.style.border = '1px solid var(--black-light)';
+    randomModeSelect.style.borderRadius = '5px';
+    randomModeSelect.style.backgroundColor = 'var(--black-light)';
+    randomModeSelect.style.color = 'var(--white)';
+
+    // Добавляем опции в выпадающее меню
+    const randomModes = ['Не рандом', 'Рандом'];
+    randomModes.forEach(mode => {
+        const option = document.createElement('option');
+        option.value = mode;
+        option.textContent = mode;
+        randomModeSelect.appendChild(option);
+    });
+
+    // Устанавливаем обработчик изменения режима
+    randomModeSelect.addEventListener('change', (event) => {
+        isRandomMode = event.target.value === 'Рандом';
+        console.log(`Режим выбора гексагона: ${isRandomMode ? 'Рандом' : 'Не рандом'}`);
+    });
+
+    settingsContainer.appendChild(randomModeSelect);
+
     document.body.appendChild(settingsContainer);
 }
 
@@ -172,11 +211,13 @@ async function createControlButton() {
             button.textContent = '▶'; // Значок "Старт"
             button.style.backgroundColor = 'var(--gold-base)';
             console.log('Скрипт остановлен');
+            lastStartTime = Date.now(); // Фиксируем время остановки
         } else {
             isScriptRunning = true;
             button.textContent = '⏸'; // Значок "Стоп" (пауза)
             button.style.backgroundColor = 'var(--red-light)';
             console.log('Скрипт запущен');
+            lastStartTime = Date.now(); // Фиксируем время запуска
             await runScript();
         }
     });
@@ -384,21 +425,20 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
             // Проверяем врагов
             if (priority.type === 'enemies') {
-                const hexagons = document.querySelectorAll('g.hex-box');
-                for (const hexagon of hexagons) {
-                    const currentHexText = hexagon.querySelector('div.hex-current-text.ng-star-inserted');
-                    if (currentHexText && currentHexText.textContent.trim() === 'Вы здесь') {
-                        console.log('Пропускаем гексагон с текстом "Вы здесь"');
-                        continue;
-                    }
-
+                const hexagons = Array.from(document.querySelectorAll('g.hex-box')).filter(hexagon => {
                     const textElement = hexagon.querySelector('text.enemies');
-                    if (textElement && textElement.textContent.trim() === String(priority.value)) {
-                        clickHexagon(hexagon);
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        await fightEnemies(false);
-                        return true;
-                    }
+                    return textElement && textElement.textContent.trim() === String(priority.value);
+                });
+
+                if (hexagons.length > 0) {
+                    const selectedHexagon = isRandomMode
+                        ? hexagons[Math.floor(Math.random() * hexagons.length)] // Выбираем случайный гексагон
+                        : hexagons[0]; // Берём первый гексагон, если "Не рандом"
+
+                    clickHexagon(selectedHexagon);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await fightEnemies(false);
+                    return true;
                 }
             }
         }
@@ -406,7 +446,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
         await new Promise(resolve => setTimeout(resolve, 100)); // Задержка перед повторной проверкой
     }
 
-    console.error('Гексагон с указанными приоритетами не найден');
     return false;
 }
 
@@ -524,19 +563,23 @@ async function waitForEnemy(timeout = 7000) {
 
 // Функция проверки наличия алтаря или сундука на текущем гексагоне
 async function isSpecialHexagon() {
-    console.log('Поиск специальных сущностей...'); // Добавьте для отладки
-    
-    // Современный вариант поиска SVG use элементов
-    const specialEntities = Array.from(document.querySelectorAll('use')).find(use => {
+
+    // Находим текущий гексагон (где находится игрок)
+    const currentHexagon = document.querySelector('g.hex-box.current');
+    if (!currentHexagon) {
+        return false;
+    }
+
+    // Ищем специальные сущности (алтарь или сундук) только в текущем гексагоне
+    const specialEntities = Array.from(currentHexagon.querySelectorAll('use')).find(use => {
         const href = use.getAttribute('href') || use.getAttribute('xlink:href');
         return href && (href.includes('shrine') || href.includes('chest'));
     });
 
     if (specialEntities) {
-        console.log('Найдена специальная сущность:', specialEntities);
         return true;
     }
-    
+
     return false;
 }
 
@@ -784,9 +827,16 @@ let pmaVaItems = 0;
 let sellTrips = 0;
 let scriptStartTime = Date.now();
 
-// Функция для обновления времени работы скрипта
 function updateScriptRuntime() {
-    const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime) / 1000);
+    if (!isScriptRunning) {
+        // Если скрипт на паузе, фиксируем время паузы
+        scriptPausedTime += Date.now() - lastStartTime;
+        lastStartTime = Date.now(); // Обновляем время последней фиксации
+        return;
+    }
+
+    // Вычисляем общее время работы скрипта
+    const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime - scriptPausedTime) / 1000);
     const hours = Math.floor(runtimeInSeconds / 3600);
     const minutes = Math.floor((runtimeInSeconds % 3600) / 60);
     const seconds = runtimeInSeconds % 60;
@@ -834,6 +884,12 @@ async function fightEnemies(isChampionHexagon = false) {
     if (isChampionHexagon) {
         championsKilled++;
         updateStatistics('champions-killed', championsKilled);
+    }
+
+    // Проверяем, есть ли на гексагоне алтарь или сундук
+    const isSpecial = await isSpecialHexagon();
+    if (isSpecial) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Ожидание 5 секунд
     }
 }
 
@@ -972,43 +1028,39 @@ async function processBackpackItems() {
         const item = items[i];
         item.click();
         await new Promise(resolve => setTimeout(resolve, 100));
-
+    
         // Получаем диалоговое окно
         const dialog = document.querySelector('app-dialog-container.dialog-container-item');
         if (!dialog) {
             console.log('Диалог не открылся');
             continue;
         }
-
+    
         console.log(`Обрабатываем предмет ${i + 1}`);
-
+    
         // Проверяем параметры предмета
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
-
-        if (isAncient) {
-            ancientItemsStored++;
+    
+        if (isAncient || isPmaVa || isEpicWithStats) {
+            // Нажимаем на кнопку "В сундук"
+            const chestButton = dialog.querySelector('div.put-in-chest .button-content');
+            if (chestButton && chestButton.textContent.trim() === 'В сундук') {
+                chestButton.click();
+                console.log('Вещь отправлена в сундук');
+                itemsStoredInChest++;
+                await new Promise(resolve => setTimeout(resolve, 100)); // Задержка после клика
+            } else {
+                console.error('Кнопка "В сундук" не найдена');
+            }
         }
-
-        if (isPmaVa) {
-            pmaVaItemsStored++;
-        }
-
-        if (isEpicWithStats) {
-            epicItemsStored++;
-        }
-
+    
         // Закрываем диалог
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
             closeBtn.click();
             await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        // Если предмет подходит под одно из условий, отправляем его в сундук
-        if (isAncient || isPmaVa || isEpicWithStats) {
-            itemsStoredInChest++;
         }
     }
 
@@ -1023,8 +1075,6 @@ async function processBackpackItems() {
 
     pmaVaItems += pmaVaItemsStored; // ПМА/ВА вещи
     updateStatistics('pma-va-items', pmaVaItems);
-
-    console.log(`Эпических вещей с 3+ статами отправлено в сундук: ${epicItemsStored}`);
 
     const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest; // Проданные вещи
     itemsSold += itemsSoldNow;
