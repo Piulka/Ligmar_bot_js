@@ -254,7 +254,7 @@ async function createStatisticsElement() {
     statsContent.style.opacity = '1'; // Полностью видимое содержимое
 
     statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.4 Статистика:</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.4.2 Статистика:</div>
         <div style="display: flex; justify-content: space-between;">
             <span>Мобы:</span>
             <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
@@ -526,7 +526,7 @@ async function mainLoop() {
                 console.error('Кнопка закрытия не найдена');
                 return;
             }
-
+            await fightEnemies();
             return;
         }
 
