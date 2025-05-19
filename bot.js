@@ -338,7 +338,6 @@ async function useSkills(skillOrder, activationTimes) {
     for (let i = 0; i < skillOrder.length; i++) {
         const skill = skillOrder[i];
         await useSkill(skill);
-        await new Promise(resolve => setTimeout(resolve, activationTimes[i] * 1000));
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
