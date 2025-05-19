@@ -857,7 +857,6 @@ async function fightEnemies(isChampionHexagon = false) {
     // Проверяем, есть ли на гексагоне алтарь или сундук
     const isSpecial = await isSpecialHexagon();
     if (isSpecial) {
-        console.log('На гексагоне обнаружен алтарь или сундук. Ожидание 5 секунд...');
         await new Promise(resolve => setTimeout(resolve, 5000)); // Ожидание 5 секунд
     }
 }
@@ -1097,7 +1096,7 @@ function checkEpicItemWithStats(dialog) {
     const requiredStats = [
         'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
         'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье'
+        'Сопротивление', 'Интеллект', 'Здоровье', 'Меткость', 'Мана'
     ];
 
     // Подсчитываем количество совпадающих статов
