@@ -145,6 +145,7 @@ async function clickByLocationName(text, timeout = 500) {
 }
 
 // Функция поиска и клика по гексагону
+// Функция поиска и клика по гексагону
 async function clickHexagonWithPriority(priorities, timeout = 5000) {
     const start = Date.now();
 
@@ -162,7 +163,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
         for (const priority of priorities) {
             // Универсальный поиск для приоритетных сущностей (алтарь, сундук, чемпион, босс)
-            if (priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'champion' || priority.type === 'chest') {
+            if (priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'champion' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
                 const targetUse = Array.from(document.querySelectorAll('use')).find(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
                     return href === priority.selector.replace('use[xlink\\:href="', '').replace('"]', '');
@@ -171,6 +172,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                 if (targetUse) {
                     const hexagon = targetUse.closest('g.hex-box');
                     if (hexagon) {
+                        console.log(`Найден ${priority.type === 'shrine' ? 'алтарь' : priority.type === 'champion' ? 'чемпион' : 'сундук'}!`);
                         clickHexagon(hexagon);
                         await new Promise(resolve => setTimeout(resolve, 100));
                         return true;
@@ -190,6 +192,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
                     const textElement = hexagon.querySelector('text.enemies');
                     if (textElement && textElement.textContent.trim() === String(priority.value)) {
+                        console.log(`Найден гексагон с врагами (${priority.value})`);
                         clickHexagon(hexagon);
                         await new Promise(resolve => setTimeout(resolve, 100));
                         return true;
@@ -325,12 +328,23 @@ async function waitForEnemy(timeout = 7000) {
 
 // Функция проверки наличия алтаря или сундука на текущем гексагоне
 function isSpecialHexagon() {
-    const shrine = document.querySelector('use[xlink\\:href="#shrine"]');
-    const chestCommon = document.querySelector('use[xlink\\:href="#chest-common"]');
-    const chestRare = document.querySelector('use[xlink\\:href="#chest-rare"]');
-    const chestEpic = document.querySelector('use[xlink\\:href="#chest-epic"]');
+    // Список селекторов для поиска сущностей
+    const specialSelectors = ['#shrine', '#chest-common', '#chest-rare', '#chest-epic'];
 
-    return shrine || chestCommon || chestRare || chestEpic;
+    // Ищем элементы с указанными селекторами
+    const foundEntity = Array.from(document.querySelectorAll('use')).find(use => {
+        const href = use.getAttribute('xlink:href') || use.getAttribute('href');
+        return specialSelectors.includes(href);
+    });
+
+    // Логируем результат для отладки
+    if (foundEntity) {
+        console.log('Найдена специальная сущность:', foundEntity.getAttribute('xlink:href') || foundEntity.getAttribute('href'));
+    } else {
+        console.log('Специальные сущности не найдены');
+    }
+
+    return !!foundEntity; // Возвращаем true, если сущность найдена
 }
 
 // Функция использования навыков
@@ -348,7 +362,7 @@ const priorities = [
     { type: 'chest-epic', selector: '#chest-epic' },      // Эпик сундук
     { type: 'shrine', selector: '#shrine' },
     { type: 'chest-rare', selector: '#chest-rare' },     // Рар сундук
-    { type: 'chest-epic', selector: '#chest-epic' },      // Эпик сундук
+    { type: 'chest-epic', selector: '#chest-common' },      // Эпик сундук
     { type: 'enemies', value: '1' },
     { type: 'enemies', value: '2' }
 ];
