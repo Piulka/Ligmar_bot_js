@@ -77,8 +77,36 @@ async function createStatisticsElement() {
     statsContainer.style.color = 'var(--white)';
     statsContainer.style.fontFamily = 'Arial, sans-serif';
     statsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    statsContainer.style.transition = 'opacity 0.3s ease, visibility 0.3s ease';
+    statsContainer.style.overflow = 'hidden';
 
-    statsContainer.innerHTML = `
+    // Кнопка сворачивания
+    const toggleButton = document.createElement('button');
+    toggleButton.textContent = '-';
+    toggleButton.style.position = 'fixed';
+    toggleButton.style.top = '80px';
+    toggleButton.style.right = '20px';
+    toggleButton.style.width = '20px';
+    toggleButton.style.height = '20px';
+    toggleButton.style.backgroundColor = 'var(--gold-base)';
+    toggleButton.style.color = 'var(--black-dark)';
+    toggleButton.style.border = 'none';
+    toggleButton.style.borderRadius = '50%';
+    toggleButton.style.cursor = 'pointer';
+    toggleButton.style.fontSize = '14px';
+    toggleButton.style.fontWeight = 'bold';
+    toggleButton.style.display = 'flex';
+    toggleButton.style.alignItems = 'center';
+    toggleButton.style.justifyContent = 'center';
+    toggleButton.style.zIndex = '1001'; // Поверх окна статистики
+
+    // Содержимое статистики
+    const statsContent = document.createElement('div');
+    statsContent.id = 'statistics-content';
+    statsContent.style.transition = 'opacity 0.3s ease';
+    statsContent.style.opacity = '1'; // Полностью видимое содержимое
+
+    statsContent.innerHTML = `
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
         <div>Мобы: <span id="mobs-killed" style="color: var(--green-light);">0</span></div>
         <div>Чампы: <span id="champions-killed" style="color: var(--purple-light);">0</span></div>
@@ -91,10 +119,28 @@ async function createStatisticsElement() {
         <div>Время работы: <span id="script-runtime" style="color: var(--white-light);">0</span> сек</div>
     `;
 
+    // Логика сворачивания/разворачивания
+    let isCollapsed = false; // Флаг состояния окна
+    toggleButton.addEventListener('click', () => {
+        if (isCollapsed) {
+            // Разворачиваем окно
+            statsContainer.style.opacity = '1';
+            statsContainer.style.visibility = 'visible';
+            toggleButton.textContent = '-';
+        } else {
+            // Сворачиваем окно
+            statsContainer.style.opacity = '0';
+            statsContainer.style.visibility = 'hidden';
+            toggleButton.textContent = '+';
+        }
+        isCollapsed = !isCollapsed; // Переключаем состояние
+    });
+
+    statsContainer.appendChild(statsContent);
     document.body.appendChild(statsContainer);
+    document.body.appendChild(toggleButton); // Добавляем кнопку отдельно
     await new Promise(resolve => setTimeout(resolve, 100));
 }
-
 // Основной скрипт
 async function runScript() {
     try {
@@ -330,30 +376,21 @@ async function waitForEnemy(timeout = 7000) {
 }
 
 // Функция проверки наличия алтаря или сундука на текущем гексагоне
-function isSpecialHexagon() {
-    console.log('Вызов функции isSpecialHexagon');
-
-    // Список селекторов для поиска сущностей
-    const specialSelectors = ['#shrine', '#chest-common', '#chest-rare', '#chest-epic'];
-
-    // Ищем элементы <use> с указанными селекторами
-    const allUses = document.querySelectorAll('use');
-    console.log(`Найдено элементов <use>: ${allUses.length}`);
-
-    const foundEntity = Array.from(allUses).find(use => {
-        const href = use.getAttribute('xlink:href') || use.getAttribute('href');
-        console.log(`Проверяем href: ${href}`);
-        return specialSelectors.includes(href);
+async function isSpecialHexagon() {
+    console.log('Поиск специальных сущностей...'); // Добавьте для отладки
+    
+    // Современный вариант поиска SVG use элементов
+    const specialEntities = Array.from(document.querySelectorAll('use')).find(use => {
+        const href = use.getAttribute('href') || use.getAttribute('xlink:href');
+        return href && (href.includes('shrine') || href.includes('chest'));
     });
 
-    // Логируем результат для отладки
-    if (foundEntity) {
-        console.log('Найдена специальная сущность:', foundEntity.getAttribute('xlink:href') || foundEntity.getAttribute('href'));
-    } else {
-        console.log('Специальные сущности не найдены');
+    if (specialEntities) {
+        console.log('Найдена специальная сущность:', specialEntities);
+        return true;
     }
-
-    return !!foundEntity; // Возвращаем true, если сущность найдена
+    
+    return false;
 }
 
 // Функция использования навыков
