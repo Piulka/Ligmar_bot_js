@@ -1,5 +1,141 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 let deaths = 0; // Количество смертей
+let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
+
+// Функция для создания кнопки "Настройки"
+async function createSettingsButton() {
+    // Проверяем, существует ли уже кнопка
+    if (document.getElementById('settings-button')) {
+        console.log('Кнопка "Настройки" уже существует');
+        return;
+    }
+
+    const button = document.createElement('button');
+    button.id = 'settings-button';
+    button.style.position = 'fixed';
+    button.style.top = '80px';
+    button.style.right = '20px';
+    button.style.width = '20px'; // Увеличен размер кнопки для лучшего отображения
+    button.style.height = '20px'; // Увеличен размер кнопки для лучшего отображения
+    button.style.backgroundColor = 'var(--gold-base)';
+    button.style.color = 'var(--black-dark)';
+    button.style.border = 'none';
+    button.style.borderRadius = '50%'; // Круглая форма
+    button.style.cursor = 'pointer';
+    button.style.fontSize = '20px'; // Размер значка
+    button.style.lineHeight = '20px'; // Высота строки для выравнивания
+    button.style.fontWeight = 'bold';
+    button.style.display = 'flex'; // Используем flexbox для выравнивания
+    button.style.alignItems = 'center'; // Вертикальное выравнивание
+    button.style.justifyContent = 'center'; // Горизонтальное выравнивание
+    button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    button.style.zIndex = '1000';
+    button.textContent = '⚙'; // Значок "Настройки"
+
+    // Логика открытия/закрытия окна настроек
+    button.addEventListener('click', () => {
+        const settingsContainer = document.getElementById('settings-container');
+        if (settingsContainer.style.display === 'none') {
+            settingsContainer.style.display = 'block';
+        } else {
+            settingsContainer.style.display = 'none';
+        }
+    });
+
+    document.body.appendChild(button);
+}
+
+// Функция для создания окна настроек
+async function createSettingsWindow() {
+    // Проверяем, существует ли уже окно настроек
+    if (document.getElementById('settings-container')) {
+        console.log('Окно настроек уже существует');
+        return;
+    }
+
+    const settingsContainer = document.createElement('div');
+    settingsContainer.id = 'settings-container';
+    settingsContainer.style.position = 'fixed';
+    settingsContainer.style.top = '110px';
+    settingsContainer.style.right = '0px';
+    settingsContainer.style.width = '200px';
+    settingsContainer.style.backgroundColor = 'var(--black-dark)';
+    settingsContainer.style.color = 'var(--white)';
+    settingsContainer.style.border = '2px solid var(--black-light)';
+    settingsContainer.style.borderRadius = '10px';
+    settingsContainer.style.padding = '10px';
+    settingsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    settingsContainer.style.zIndex = '1000';
+    settingsContainer.style.display = 'none'; // Скрываем окно по умолчанию
+
+    // Заголовок окна
+    const title = document.createElement('div');
+    title.textContent = 'Настройки';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '10px';
+    settingsContainer.appendChild(title);
+
+    // Выпадающее меню для выбора локации
+    const locationLabel = document.createElement('label');
+    locationLabel.textContent = 'Выбор локации:';
+    locationLabel.style.display = 'block';
+    locationLabel.style.marginBottom = '5px';
+    settingsContainer.appendChild(locationLabel);
+
+    const locationSelect = document.createElement('select');
+    locationSelect.id = 'location-select';
+    locationSelect.style.width = '100%';
+    locationSelect.style.padding = '5px';
+    locationSelect.style.border = '1px solid var(--black-light)';
+    locationSelect.style.borderRadius = '5px';
+    locationSelect.style.backgroundColor = 'var(--black-light)';
+    locationSelect.style.color = 'var(--white)';
+
+    // Добавляем опции в выпадающее меню
+    const locations = ['Зеленые топи', 'Старые рудники'];
+    locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location;
+        option.textContent = location;
+        locationSelect.appendChild(option);
+    });
+
+    // Устанавливаем выбранную локацию
+    locationSelect.value = selectedLocation;
+
+    // Обработчик изменения локации
+    locationSelect.addEventListener('change', (event) => {
+        selectedLocation = event.target.value;
+        console.log(`Выбрана локация: ${selectedLocation}`);
+    });
+
+    settingsContainer.appendChild(locationSelect);
+    document.body.appendChild(settingsContainer);
+}
+
+// Обновляем функцию выбора локации
+async function clickByLocationName(text = selectedLocation, timeout = 500) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        const elements = document.querySelectorAll('div.location-name');
+        for (const element of elements) {
+            if (element.textContent.trim() === text) {
+                element.click();
+                await new Promise(resolve => setTimeout(resolve, 100));
+                return true;
+            }
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return false;
+}
+
+// Создаем кнопки и окно настроек при загрузке страницы
+createControlButton();
+createStatisticsElement();
+createSettingsButton();
+createSettingsWindow();
 
 // Функция для создания кнопки "Старт/Стоп"
 async function createControlButton() {
@@ -11,63 +147,49 @@ async function createControlButton() {
 
     const button = document.createElement('button');
     button.id = 'control-button';
-    button.textContent = 'Старт';
     button.style.position = 'fixed';
     button.style.top = '20px';
     button.style.right = '20px';
-    button.style.zIndex = '1000';
-    button.style.padding = '10px 20px';
-    button.style.backgroundColor = 'var(--black-light)'; // Цвет кнопки под стиль игры
-    button.style.color = 'var(--white)';
-    button.style.border = '2px solid var(--gold-base)';
-    button.style.borderRadius = '8px';
+    button.style.width = '20px'; // Размер кнопки
+    button.style.height = '20px'; // Размер кнопки
+    button.style.backgroundColor = 'var(--gold-base)';
+    button.style.color = 'var(--black-dark)';
+    button.style.border = 'none';
+    button.style.borderRadius = '50%'; // Круглая форма
     button.style.cursor = 'pointer';
-    button.style.fontSize = '16px';
-    button.style.fontFamily = 'Arial, sans-serif';
+    button.style.fontSize = '10px'; // Уменьшен значок в 2 раза
+    button.style.fontWeight = 'bold';
+    button.style.display = 'flex';
+    button.style.alignItems = 'center';
+    button.style.justifyContent = 'center';
     button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-    button.style.transition = 'background-color var(--animation-duration), transform var(--animation-duration)';
-    button.style.maxHeight = '50px'; // Ограничение высоты кнопки
-
-    button.addEventListener('mouseenter', () => {
-        button.style.backgroundColor = 'var(--gold-light)'; // Цвет при наведении
-        button.style.transform = 'scale(1.05)';
-        setTimeout(() => {}, 100);
-    });
-
-    button.addEventListener('mouseleave', () => {
-        button.style.backgroundColor = 'var(--black-light)'; // Возвращаем цвет
-        button.style.transform = 'scale(1)';
-        setTimeout(() => {}, 100);
-    });
+    button.style.zIndex = '1000';
+    button.textContent = '▶'; // Значок "Старт" (треугольник)
 
     button.addEventListener('click', async () => {
         if (isScriptRunning) {
             isScriptRunning = false;
-            button.textContent = 'Старт';
-            button.style.backgroundColor = 'var(--black-light)';
+            button.textContent = '▶'; // Значок "Старт"
+            button.style.backgroundColor = 'var(--gold-base)';
             console.log('Скрипт остановлен');
-            await new Promise(resolve => setTimeout(resolve, 100));
         } else {
             isScriptRunning = true;
-            button.textContent = 'Стоп';
+            button.textContent = '⏸'; // Значок "Стоп" (пауза)
             button.style.backgroundColor = 'var(--red-light)';
             console.log('Скрипт запущен');
-            await new Promise(resolve => setTimeout(resolve, 100));
             await runScript();
         }
     });
 
     document.body.appendChild(button);
-    await new Promise(resolve => setTimeout(resolve, 100));
 }
-
 // Функция для создания элемента статистики
 async function createStatisticsElement() {
     const statsContainer = document.createElement('div');
     statsContainer.id = 'statistics-container';
     statsContainer.style.position = 'fixed';
-    statsContainer.style.top = '80px';
-    statsContainer.style.right = '20px';
+    statsContainer.style.top = '110px';
+    statsContainer.style.right = '1px';
     statsContainer.style.zIndex = '1000';
     statsContainer.style.padding = '15px';
     statsContainer.style.backgroundColor = 'var(--black-dark)';
@@ -80,11 +202,62 @@ async function createStatisticsElement() {
     statsContainer.style.transition = 'opacity 0.3s ease, visibility 0.3s ease';
     statsContainer.style.overflow = 'hidden';
 
-    // Кнопка сворачивания
+    // Изначально окно статистики свернуто
+    statsContainer.style.opacity = '0';
+    statsContainer.style.visibility = 'hidden';
+
+    // Содержимое статистики
+    const statsContent = document.createElement('div');
+    statsContent.id = 'statistics-content';
+    statsContent.style.transition = 'opacity 0.3s ease';
+    statsContent.style.opacity = '1'; // Полностью видимое содержимое
+
+    statsContent.innerHTML = `
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Мобы:</span>
+            <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Чампы:</span>
+            <span id="champions-killed" style="color: var(--purple-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Продано:</span>
+            <span id="items-sold" style="color: var(--gold-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Оставлено:</span>
+            <span id="items-stored" style="color: var(--gold-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Древние вещи:</span>
+            <span id="ancient-items" style="color: var(--red-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>ПМА/ВА:</span>
+            <span id="pma-va-items" style="color: var(--red-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Походы в магаз:</span>
+            <span id="sell-trips" style="color: var(--white-light); font-weight: bold;">0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Смерти:</span>
+            <span id="deaths" style="color: var(--red-light); font-weight: bold;">0</span>
+        </div>
+        <div style="margin-top: 10px;">
+            <span>Время работы:</span>
+            <div id="script-runtime" style="color: var(--white-light); font-weight: bold;">0 сек</div>
+        </div>
+    `;
+
+    // Логика сворачивания/разворачивания
+    let isCollapsed = true; // Изначально свернуто
     const toggleButton = document.createElement('button');
-    toggleButton.textContent = '-';
+    toggleButton.textContent = '+';
     toggleButton.style.position = 'fixed';
-    toggleButton.style.top = '80px';
+    toggleButton.style.top = '50px';
     toggleButton.style.right = '20px';
     toggleButton.style.width = '20px';
     toggleButton.style.height = '20px';
@@ -100,40 +273,17 @@ async function createStatisticsElement() {
     toggleButton.style.justifyContent = 'center';
     toggleButton.style.zIndex = '1001'; // Поверх окна статистики
 
-    // Содержимое статистики
-    const statsContent = document.createElement('div');
-    statsContent.id = 'statistics-content';
-    statsContent.style.transition = 'opacity 0.3s ease';
-    statsContent.style.opacity = '1'; // Полностью видимое содержимое
-
-    statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
-        <div>Мобы: <span id="mobs-killed" style="color: var(--green-light);">0</span></div>
-        <div>Чампы: <span id="champions-killed" style="color: var(--purple-light);">0</span></div>
-        <div>Продано: <span id="items-sold" style="color: var(--gold-light);">0</span></div>
-        <div>Оставлено: <span id="items-stored" style="color: var(--gold-light);">0</span></div>
-        <div>Древние вещи: <span id="ancient-items" style="color: var(--red-light);">0</span></div>
-        <div>ПМА/ВА: <span id="pma-va-items" style="color: var(--red-light);">0</span></div>
-        <div>Походы в магаз: <span id="sell-trips" style="color: var(--white-light);">0</span></div>
-        <div>Смерти: <span id="deaths" style="color: var(--red-light);">0</span></div>
-        <div>Время работы: <span id="script-runtime" style="color: var(--white-light);">0</span> сек</div>
-    `;
-
-    // Логика сворачивания/разворачивания
-    let isCollapsed = false; // Флаг состояния окна
     toggleButton.addEventListener('click', () => {
         if (isCollapsed) {
-            // Разворачиваем окно
             statsContainer.style.opacity = '1';
             statsContainer.style.visibility = 'visible';
             toggleButton.textContent = '-';
         } else {
-            // Сворачиваем окно
             statsContainer.style.opacity = '0';
             statsContainer.style.visibility = 'hidden';
             toggleButton.textContent = '+';
         }
-        isCollapsed = !isCollapsed; // Переключаем состояние
+        isCollapsed = !isCollapsed;
     });
 
     statsContainer.appendChild(statsContent);
@@ -146,7 +296,7 @@ async function runScript() {
     try {
         await clickByTextContent('Сражения');
         await new Promise(resolve => setTimeout(resolve, 100));
-        await clickByLocationName('Зеленые топи');
+        await clickByLocationName(selectedLocation);
         await new Promise(resolve => setTimeout(resolve, 100));
         while (isScriptRunning) {
             await mainLoop();
@@ -341,7 +491,6 @@ async function mainLoop() {
             return;
         }
 
-        console.error('Не удалось определить текущий гексагон, продолжаем поиск');
         return;
     }
 
@@ -604,7 +753,7 @@ async function checkAndReturnToCity() {
                 // Выполняем переход в "Сражения" и "Зеленые топи"
                 await clickByTextContent('Сражения');
                 await new Promise(resolve => setTimeout(resolve, 100));
-                await clickByLocationName('Зеленые топи');
+                await clickByLocationName(selectedLocation);
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
 
@@ -809,6 +958,7 @@ async function processBackpackItems() {
     let itemsStoredInChest = 0; // Количество вещей, положенных в сундук
     let ancientItemsStored = 0; // Количество древних вещей, положенных в сундук
     let pmaVaItemsStored = 0;   // Количество ПМА/ВА вещей, положенных в сундук
+    let epicItemsStored = 0;    // Количество эпических вещей с 3+ статами, положенных в сундук
 
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     if (!items.length) {
@@ -835,6 +985,7 @@ async function processBackpackItems() {
         // Проверяем параметры предмета
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
+        const isEpicWithStats = checkEpicItemWithStats(dialog);
 
         if (isAncient) {
             ancientItemsStored++;
@@ -844,6 +995,10 @@ async function processBackpackItems() {
             pmaVaItemsStored++;
         }
 
+        if (isEpicWithStats) {
+            epicItemsStored++;
+        }
+
         // Закрываем диалог
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
@@ -851,7 +1006,10 @@ async function processBackpackItems() {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        itemsStoredInChest++;
+        // Если предмет подходит под одно из условий, отправляем его в сундук
+        if (isAncient || isPmaVa || isEpicWithStats) {
+            itemsStoredInChest++;
+        }
     }
 
     console.log('Обработка завершена');
@@ -865,6 +1023,8 @@ async function processBackpackItems() {
 
     pmaVaItems += pmaVaItemsStored; // ПМА/ВА вещи
     updateStatistics('pma-va-items', pmaVaItems);
+
+    console.log(`Эпических вещей с 3+ статами отправлено в сундук: ${epicItemsStored}`);
 
     const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest; // Проданные вещи
     itemsSold += itemsSoldNow;
@@ -888,6 +1048,36 @@ function checkAncientItem(dialog) {
     return false;
 }
 
+// Функция проверки, является ли предмет эпическим и имеет 3 стата из списка
+function checkEpicItemWithStats(dialog) {
+    const stats = dialog.querySelector('.item-stats');
+    const quality = dialog.querySelector('.item-quality');
+
+    if (!stats || !quality) return false;
+
+    // Проверяем, что предмет эпический
+    const isEpic = quality.textContent.trim() === 'Эпический';
+    if (!isEpic) return false;
+
+    // Список статов для проверки
+    const requiredStats = [
+        'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
+        'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
+        'Сопротивление', 'Интеллект', 'Здоровье', 'Восст. здоровья'
+    ];
+
+    // Подсчитываем количество совпадающих статов
+    let matchingStatsCount = 0;
+    requiredStats.forEach(stat => {
+        if (stats.textContent.includes(stat)) {
+            matchingStatsCount++;
+        }
+    });
+
+    // Возвращаем true, если предмет эпический и имеет 3 или более совпадающих стата
+    return matchingStatsCount >= 3;
+}
+
 // Проверка, имеет ли предмет ПМА или ВА
 function checkPmaVaItem(dialog) {
     const stats = dialog.querySelector('.item-stats');
@@ -898,10 +1088,6 @@ function checkPmaVaItem(dialog) {
     setTimeout(() => {}, 100);
     return false;
 }
-
-// Создаем кнопку и статистику при загрузке страницы
-createControlButton();
-createStatisticsElement();
 
 // Обновляем время работы скрипта каждые 5 секунд
 setInterval(updateScriptRuntime, 5000);
