@@ -1,6 +1,10 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 let deaths = 0; // Количество смертей
 let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
+// Переменная для хранения времени, когда скрипт был запущен
+let scriptPausedTime = 0; // Время, проведенное в паузе
+let lastStartTime = Date.now(); // Время последнего запуска скрипта
+
 
 // Функция для создания кнопки "Настройки"
 async function createSettingsButton() {
@@ -172,11 +176,13 @@ async function createControlButton() {
             button.textContent = '▶'; // Значок "Старт"
             button.style.backgroundColor = 'var(--gold-base)';
             console.log('Скрипт остановлен');
+            lastStartTime = Date.now(); // Фиксируем время остановки
         } else {
             isScriptRunning = true;
             button.textContent = '⏸'; // Значок "Стоп" (пауза)
             button.style.backgroundColor = 'var(--red-light)';
             console.log('Скрипт запущен');
+            lastStartTime = Date.now(); // Фиксируем время запуска
             await runScript();
         }
     });
@@ -524,19 +530,24 @@ async function waitForEnemy(timeout = 7000) {
 
 // Функция проверки наличия алтаря или сундука на текущем гексагоне
 async function isSpecialHexagon() {
-    console.log('Поиск специальных сущностей...'); // Добавьте для отладки
-    
-    // Современный вариант поиска SVG use элементов
-    const specialEntities = Array.from(document.querySelectorAll('use')).find(use => {
+
+    // Находим текущий гексагон (где находится игрок)
+    const currentHexagon = document.querySelector('g.hex-box.current');
+    if (!currentHexagon) {
+        console.log('Текущий гексагон не найден');
+        return false;
+    }
+
+    // Ищем специальные сущности (алтарь или сундук) только в текущем гексагоне
+    const specialEntities = Array.from(currentHexagon.querySelectorAll('use')).find(use => {
         const href = use.getAttribute('href') || use.getAttribute('xlink:href');
         return href && (href.includes('shrine') || href.includes('chest'));
     });
 
     if (specialEntities) {
-        console.log('Найдена специальная сущность:', specialEntities);
         return true;
     }
-    
+
     return false;
 }
 
@@ -784,9 +795,16 @@ let pmaVaItems = 0;
 let sellTrips = 0;
 let scriptStartTime = Date.now();
 
-// Функция для обновления времени работы скрипта
 function updateScriptRuntime() {
-    const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime) / 1000);
+    if (!isScriptRunning) {
+        // Если скрипт на паузе, фиксируем время паузы
+        scriptPausedTime += Date.now() - lastStartTime;
+        lastStartTime = Date.now(); // Обновляем время последней фиксации
+        return;
+    }
+
+    // Вычисляем общее время работы скрипта
+    const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime - scriptPausedTime) / 1000);
     const hours = Math.floor(runtimeInSeconds / 3600);
     const minutes = Math.floor((runtimeInSeconds % 3600) / 60);
     const seconds = runtimeInSeconds % 60;
@@ -834,6 +852,13 @@ async function fightEnemies(isChampionHexagon = false) {
     if (isChampionHexagon) {
         championsKilled++;
         updateStatistics('champions-killed', championsKilled);
+    }
+
+    // Проверяем, есть ли на гексагоне алтарь или сундук
+    const isSpecial = await isSpecialHexagon();
+    if (isSpecial) {
+        console.log('На гексагоне обнаружен алтарь или сундук. Ожидание 5 секунд...');
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Ожидание 5 секунд
     }
 }
 
