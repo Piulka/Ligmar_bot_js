@@ -1,4 +1,5 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
+let deaths = 0; // Количество смертей
 
 // Функция для создания кнопки "Старт/Стоп"
 async function createControlButton() {
@@ -86,6 +87,7 @@ async function createStatisticsElement() {
         <div>Древние вещи: <span id="ancient-items" style="color: var(--red-light);">0</span></div>
         <div>ПМА/ВА: <span id="pma-va-items" style="color: var(--red-light);">0</span></div>
         <div>Походы в магаз: <span id="sell-trips" style="color: var(--white-light);">0</span></div>
+        <div>Смерти: <span id="deaths" style="color: var(--red-light);">0</span></div>
         <div>Время работы: <span id="script-runtime" style="color: var(--white-light);">0</span> сек</div>
     `;
 
@@ -135,7 +137,6 @@ async function clickByLocationName(text, timeout = 500) {
             if (element.textContent.trim() === text) {
                 element.click();
                 await new Promise(resolve => setTimeout(resolve, 100));
-                console.log(`Клик по локации: "${text}"`);
                 return true;
             }
         }
@@ -144,7 +145,6 @@ async function clickByLocationName(text, timeout = 500) {
     return false;
 }
 
-// Функция поиска и клика по гексагону
 // Функция поиска и клика по гексагону
 async function clickHexagonWithPriority(priorities, timeout = 5000) {
     const start = Date.now();
@@ -157,13 +157,11 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
         if (aimIcon) {
             aimIcon.click();
             await new Promise(resolve => setTimeout(resolve, 100)); // Задержка после нажатия
-        } else {
-            console.error('Иконка "aim.svg" не найдена');
         }
 
         for (const priority of priorities) {
             // Универсальный поиск для приоритетных сущностей (алтарь, сундук, чемпион, босс)
-            if (priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'champion' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
+            if (priority.type === 'champion' || priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
                 const targetUse = Array.from(document.querySelectorAll('use')).find(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
                     return href === priority.selector.replace('use[xlink\\:href="', '').replace('"]', '');
@@ -172,9 +170,17 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                 if (targetUse) {
                     const hexagon = targetUse.closest('g.hex-box');
                     if (hexagon) {
-                        console.log(`Найден ${priority.type === 'shrine' ? 'алтарь' : priority.type === 'champion' ? 'чемпион' : 'сундук'}!`);
+                        console.log(`Найден ${priority.type === 'champion' ? 'чемпион' : priority.type === 'shrine' ? 'алтарь' : 'сундук'}!`);
                         clickHexagon(hexagon);
                         await new Promise(resolve => setTimeout(resolve, 100));
+
+                        // Если это чемпион, передаем флаг в fightEnemies
+                        if (priority.type === 'champion') {
+                            await fightEnemies(true);
+                        } else {
+                            await fightEnemies(false);
+                        }
+
                         return true;
                     }
                 }
@@ -192,9 +198,9 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
                     const textElement = hexagon.querySelector('text.enemies');
                     if (textElement && textElement.textContent.trim() === String(priority.value)) {
-                        console.log(`Найден гексагон с врагами (${priority.value})`);
                         clickHexagon(hexagon);
                         await new Promise(resolve => setTimeout(resolve, 100));
+                        await fightEnemies(false);
                         return true;
                     }
                 }
@@ -274,21 +280,18 @@ async function mainLoop() {
         // Проверяем, находится ли мы в текущем гексагоне
         const currentHexText = document.querySelector('div.hex-footer div.hex-current-text.ng-star-inserted');
         if (currentHexText && currentHexText.textContent.trim() === 'Вы здесь') {
-            console.log('Находимся в текущем гексагоне, нажимаем на кнопку закрытия и начинаем бой');
 
             // Нажимаем на кнопку закрытия
             const closeButton = document.querySelector('tui-icon.svg-icon[style*="close.svg"]');
             if (closeButton) {
                 closeButton.click();
                 await new Promise(resolve => setTimeout(resolve, 100));
+                await fightEnemies();
             } else {
                 console.error('Кнопка закрытия не найдена');
                 return;
             }
 
-            // Начинаем бой
-            await fightEnemies();
-            await new Promise(resolve => setTimeout(resolve, 100));
             return;
         }
 
@@ -328,12 +331,18 @@ async function waitForEnemy(timeout = 7000) {
 
 // Функция проверки наличия алтаря или сундука на текущем гексагоне
 function isSpecialHexagon() {
+    console.log('Вызов функции isSpecialHexagon');
+
     // Список селекторов для поиска сущностей
     const specialSelectors = ['#shrine', '#chest-common', '#chest-rare', '#chest-epic'];
 
-    // Ищем элементы с указанными селекторами
-    const foundEntity = Array.from(document.querySelectorAll('use')).find(use => {
+    // Ищем элементы <use> с указанными селекторами
+    const allUses = document.querySelectorAll('use');
+    console.log(`Найдено элементов <use>: ${allUses.length}`);
+
+    const foundEntity = Array.from(allUses).find(use => {
         const href = use.getAttribute('xlink:href') || use.getAttribute('href');
+        console.log(`Проверяем href: ${href}`);
         return specialSelectors.includes(href);
     });
 
@@ -420,7 +429,6 @@ async function checkManaAndHealth() {
     if (manaElement) {
         const manaPercentage = parseFloat(manaElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
         if (manaPercentage <= -50) { // Если мана <= 50%
-            console.log('Мана ниже 50%, используем Зелье маны');
             await useManaPotion();
             await new Promise(resolve => setTimeout(resolve, 100));
         }
@@ -553,6 +561,11 @@ async function checkAndReturnToCity() {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await delay(1000);
 
+                // Увеличиваем счетчик смертей
+                deaths++;
+                updateStatistics('deaths', deaths);
+                console.log(`Смерть зафиксирована. Всего смертей: ${deaths}`);
+
                 // Выполняем переход в "Сражения" и "Зеленые топи"
                 await clickByTextContent('Сражения');
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -590,11 +603,23 @@ let scriptStartTime = Date.now();
 // Функция для обновления времени работы скрипта
 function updateScriptRuntime() {
     const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime) / 1000);
-    updateStatistics('script-runtime', runtimeInSeconds);
-    setTimeout(() => {}, 100);
+    const hours = Math.floor(runtimeInSeconds / 3600);
+    const minutes = Math.floor((runtimeInSeconds % 3600) / 60);
+    const seconds = runtimeInSeconds % 60;
+
+    const formattedTime = `${hours}ч ${minutes}м ${seconds}с`;
+    updateStatistics('script-runtime', formattedTime);
 }
 
-async function fightEnemies() {
+async function fightEnemies(isChampionHexagon = false) {
+    let initialEnemyCount = 0;
+
+    // Получаем количество врагов перед боем
+    const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
+    if (enemiesCountElement) {
+        initialEnemyCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
+    }
+
     while (isScriptRunning) {
         const enemyIcon = document.querySelector('app-icon.profile-class tui-icon[style*="mob-class-"]');
         if (!enemyIcon) break;
@@ -615,36 +640,24 @@ async function fightEnemies() {
         // Используем навыки
         await useSkills([SKILLS.KICK, SKILLS.TAUNTING_STRIKE], [1.1, 1.3]);
         await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Проверяем, был ли убит чемпион
-        const championIcon = document.querySelector('app-icon.profile-class tui-icon[style*="champion-class-"]');
-        if (championIcon) {
-            // Если чемпион найден, увеличиваем счетчик чемпионов
-            championsKilled++;
-            updateStatistics('champions-killed', championsKilled);
-            console.log('Чемпион убит!');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        } else {
-            // Если чемпион не найден, увеличиваем счетчик мобов
-            mobsKilled++;
-            updateStatistics('mobs-killed', mobsKilled);
-            console.log('Моб убит!');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        // Ждем перед следующей проверкой
-        await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Если текущий гексагон содержит алтарь или сундук, ждем 5 секунд
-    if (isSpecialHexagon()) {
-        console.log('На гексагоне найден алтарь или сундук. Ожидание 5 секунд...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
+    // Увеличиваем счетчик мобов после боя
+    mobsKilled += initialEnemyCount;
+    updateStatistics('mobs-killed', mobsKilled);
+
+    // Если это клетка с чемпионом, увеличиваем счетчик чемпионов
+    if (isChampionHexagon) {
+        championsKilled++;
+        updateStatistics('champions-killed', championsKilled);
     }
 }
 
 async function navigateToSellItems() {
     try {
+        sellTrips++; // Увеличиваем счетчик походов в магазин
+        updateStatistics('sell-trips', sellTrips);
+
         // Нажимаем на "Город"
         const townButton = await waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
         if (townButton) {
@@ -662,7 +675,6 @@ async function navigateToSellItems() {
             buildingsButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Строения"');
-            await delay(5000); // Ждем перехода
         } else {
             console.error('Кнопка "Строения" не найдена');
             return;
@@ -701,28 +713,21 @@ async function navigateToSellItems() {
             return;
         }
 
-        // Рассчитываем количество проданных вещей
-        const backpackItemsBefore = await getBackpackItemCount();
-        const itemsStoredInChest = itemsStored; // Используем глобальную переменную
-        const itemsSoldNow = backpackItemsBefore - itemsStoredInChest;
-        itemsSold += itemsSoldNow; // Обновляем общее количество проданных вещей
-        updateStatistics('items-sold', itemsSold);
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Нажимаем на "Город"
-        if (townButton) {
-            townButton.click();
+        // Нажимаем на "Город" перед возвращением в бой
+        const returnToTownButton = await waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
+        if (returnToTownButton) {
+            returnToTownButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
-            console.log('Перешли в Город');
+            console.log('Нажата кнопка "Город" перед возвращением в бой');
         } else {
-            console.error('Кнопка "Город" не найдена');
+            console.error('Кнопка "Город" не найдена перед возвращением в бой');
             return;
         }
 
-        // Нажимаем на "Вернуться в бой"
-        const returnToFightButton = await waitForElement('div.button-content', 'Вернуться в бой', 5000);
-        if (returnToFightButton) {
-            returnToFightButton.click();
+        // Нажимаем на кнопку "Вернуться в бой"
+        const returnToBattleButton = await waitForElement('div.button-content', 'Вернуться в бой', 5000);
+        if (returnToBattleButton) {
+            returnToBattleButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Вернуться в бой"');
         } else {
@@ -763,7 +768,13 @@ async function processBackpackItems() {
         return;
     }
 
-    // Получаем все предметы
+    // Получаем все предметы в рюкзаке перед обработкой
+    const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
+
+    let itemsStoredInChest = 0; // Количество вещей, положенных в сундук
+    let ancientItemsStored = 0; // Количество древних вещей, положенных в сундук
+    let pmaVaItemsStored = 0;   // Количество ПМА/ВА вещей, положенных в сундук
+
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     if (!items.length) {
         console.log('Предметы не найдены');
@@ -791,15 +802,11 @@ async function processBackpackItems() {
         const isPmaVa = checkPmaVaItem(dialog);
 
         if (isAncient) {
-            ancientItems++;
-            updateStatistics('ancient-items', ancientItems);
-            await new Promise(resolve => setTimeout(resolve, 100));
+            ancientItemsStored++;
         }
 
         if (isPmaVa) {
-            pmaVaItems++;
-            updateStatistics('pma-va-items', pmaVaItems);
-            await new Promise(resolve => setTimeout(resolve, 100));
+            pmaVaItemsStored++;
         }
 
         // Закрываем диалог
@@ -808,9 +815,27 @@ async function processBackpackItems() {
             closeBtn.click();
             await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        itemsStoredInChest++;
     }
 
     console.log('Обработка завершена');
+
+    // Обновляем статистику
+    itemsStored += itemsStoredInChest; // Оставленные вещи (в сундуке)
+    updateStatistics('items-stored', itemsStored);
+
+    ancientItems += ancientItemsStored; // Древние вещи
+    updateStatistics('ancient-items', ancientItems);
+
+    pmaVaItems += pmaVaItemsStored; // ПМА/ВА вещи
+    updateStatistics('pma-va-items', pmaVaItems);
+
+    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest; // Проданные вещи
+    itemsSold += itemsSoldNow;
+    updateStatistics('items-sold', itemsSold);
+
+    console.log(`Продано: ${itemsSoldNow}, Оставлено: ${itemsStoredInChest}`);
 
     // После обработки вещей вызываем функцию для продажи
     await navigateToSellItems();
