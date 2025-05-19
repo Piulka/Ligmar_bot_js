@@ -996,43 +996,39 @@ async function processBackpackItems() {
         const item = items[i];
         item.click();
         await new Promise(resolve => setTimeout(resolve, 100));
-
+    
         // Получаем диалоговое окно
         const dialog = document.querySelector('app-dialog-container.dialog-container-item');
         if (!dialog) {
             console.log('Диалог не открылся');
             continue;
         }
-
+    
         console.log(`Обрабатываем предмет ${i + 1}`);
-
+    
         // Проверяем параметры предмета
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
-
-        if (isAncient) {
-            ancientItemsStored++;
+    
+        if (isAncient || isPmaVa || isEpicWithStats) {
+            // Нажимаем на кнопку "В сундук"
+            const chestButton = dialog.querySelector('div.put-in-chest .button-content');
+            if (chestButton && chestButton.textContent.trim() === 'В сундук') {
+                chestButton.click();
+                console.log('Вещь отправлена в сундук');
+                itemsStoredInChest++;
+                await new Promise(resolve => setTimeout(resolve, 100)); // Задержка после клика
+            } else {
+                console.error('Кнопка "В сундук" не найдена');
+            }
         }
-
-        if (isPmaVa) {
-            pmaVaItemsStored++;
-        }
-
-        if (isEpicWithStats) {
-            epicItemsStored++;
-        }
-
+    
         // Закрываем диалог
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
             closeBtn.click();
             await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        // Если предмет подходит под одно из условий, отправляем его в сундук
-        if (isAncient || isPmaVa || isEpicWithStats) {
-            itemsStoredInChest++;
         }
     }
 
@@ -1096,7 +1092,7 @@ function checkEpicItemWithStats(dialog) {
     const requiredStats = [
         'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
         'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье', 'Меткость', 'Мана'
+        'Сопротивление', 'Интеллект', 'Здоровье', 'Меткость', 'Мана', 'Требования'
     ];
 
     // Подсчитываем количество совпадающих статов
