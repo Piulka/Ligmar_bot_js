@@ -348,7 +348,6 @@ async function mainLoop() {
     const enemyAppeared = await waitForEnemy();
     await new Promise(resolve => setTimeout(resolve, 100));
     if (!enemyAppeared) {
-        console.error('Враг не появился, продолжаем поиск');
         return;
     }
 
@@ -371,7 +370,6 @@ async function waitForEnemy(timeout = 7000) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    console.error('Враг не появился за отведенное время');
     return false;
 }
 
