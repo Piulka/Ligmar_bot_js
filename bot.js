@@ -97,7 +97,7 @@ async function createSettingsWindow() {
     locationSelect.style.color = 'var(--white)';
 
     // Добавляем опции в выпадающее меню
-    const locations = ['Зеленые топи', 'Старые рудники'];
+    const locations = ['Пригород', 'Проклятый сад', 'Окраины леса', 'Озеро Королей', 'Зеленые топи', 'Старые рудники'];
     locations.forEach(location => {
         const option = document.createElement('option');
         option.value = location;
@@ -254,7 +254,7 @@ async function createStatisticsElement() {
     statsContent.style.opacity = '1'; // Полностью видимое содержимое
 
     statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.4.2 Статистика:</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.4.3 Статистика:</div>
         <div style="display: flex; justify-content: space-between;">
             <span>Мобы:</span>
             <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
