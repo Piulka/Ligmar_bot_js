@@ -1,7 +1,7 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 
 // Функция для создания кнопки "Старт/Стоп"
-function createControlButton() {
+async function createControlButton() {
     // Проверяем, существует ли уже кнопка
     if (document.getElementById('control-button')) {
         console.log('Кнопка "Старт/Стоп" уже существует');
@@ -30,11 +30,13 @@ function createControlButton() {
     button.addEventListener('mouseenter', () => {
         button.style.backgroundColor = 'var(--gold-light)'; // Цвет при наведении
         button.style.transform = 'scale(1.05)';
+        setTimeout(() => {}, 100);
     });
 
     button.addEventListener('mouseleave', () => {
         button.style.backgroundColor = 'var(--black-light)'; // Возвращаем цвет
         button.style.transform = 'scale(1)';
+        setTimeout(() => {}, 100);
     });
 
     button.addEventListener('click', async () => {
@@ -43,20 +45,23 @@ function createControlButton() {
             button.textContent = 'Старт';
             button.style.backgroundColor = 'var(--black-light)';
             console.log('Скрипт остановлен');
+            await new Promise(resolve => setTimeout(resolve, 100));
         } else {
             isScriptRunning = true;
             button.textContent = 'Стоп';
             button.style.backgroundColor = 'var(--red-light)';
             console.log('Скрипт запущен');
+            await new Promise(resolve => setTimeout(resolve, 100));
             await runScript();
         }
     });
 
     document.body.appendChild(button);
+    await new Promise(resolve => setTimeout(resolve, 100));
 }
 
 // Функция для создания элемента статистики
-function createStatisticsElement() {
+async function createStatisticsElement() {
     const statsContainer = document.createElement('div');
     statsContainer.id = 'statistics-container';
     statsContainer.style.position = 'fixed';
@@ -85,15 +90,19 @@ function createStatisticsElement() {
     `;
 
     document.body.appendChild(statsContainer);
+    await new Promise(resolve => setTimeout(resolve, 100));
 }
 
 // Основной скрипт
 async function runScript() {
     try {
         await clickByTextContent('Сражения');
+        await new Promise(resolve => setTimeout(resolve, 100));
         await clickByLocationName('Зеленые топи');
+        await new Promise(resolve => setTimeout(resolve, 100));
         while (isScriptRunning) {
             await mainLoop();
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     } catch (error) {
         console.error('Ошибка в скрипте:', error);
@@ -108,6 +117,7 @@ async function clickByTextContent(text, timeout = 500) {
         for (const element of elements) {
             if (element.textContent.trim() === text) {
                 element.click();
+                await new Promise(resolve => setTimeout(resolve, 100));
                 return true;
             }
         }
@@ -124,6 +134,7 @@ async function clickByLocationName(text, timeout = 500) {
         for (const element of elements) {
             if (element.textContent.trim() === text) {
                 element.click();
+                await new Promise(resolve => setTimeout(resolve, 100));
                 console.log(`Клик по локации: "${text}"`);
                 return true;
             }
@@ -140,12 +151,11 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
     while (Date.now() - start < timeout) {
         if (!isScriptRunning) return false;
 
-
         // Нажимаем на иконку "aim.svg" перед поиском гексагона
         const aimIcon = document.querySelector('tui-icon.svg-icon[style*="aim.svg"]');
         if (aimIcon) {
             aimIcon.click();
-            await new Promise(resolve => setTimeout(resolve, 500)); // Задержка после нажатия
+            await new Promise(resolve => setTimeout(resolve, 100)); // Задержка после нажатия
         } else {
             console.error('Иконка "aim.svg" не найдена');
         }
@@ -162,6 +172,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                     const hexagon = targetUse.closest('g.hex-box');
                     if (hexagon) {
                         clickHexagon(hexagon);
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         return true;
                     }
                 }
@@ -180,6 +191,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                     const textElement = hexagon.querySelector('text.enemies');
                     if (textElement && textElement.textContent.trim() === String(priority.value)) {
                         clickHexagon(hexagon);
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         return true;
                     }
                 }
@@ -224,7 +236,7 @@ function clickHexagon(hexagon) {
     hexagon.dispatchEvent(mousedownEvent);
     hexagon.dispatchEvent(mouseupEvent);
     hexagon.dispatchEvent(clickEvent);
-
+    setTimeout(() => {}, 100);
 }
 
 // Функция клика по полигону
@@ -238,21 +250,24 @@ function clickPolygon(polygon) {
         clientY: rect.top + rect.height / 2
     });
     polygon.dispatchEvent(clickEvent);
+    setTimeout(() => {}, 100);
 }
 
 // Основной цикл
 async function mainLoop() {
     // Проверяем и возвращаемся в город, если нужно
     checkAndReturnToCity();
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Обрабатываем переполненный рюкзак
     await handleFullBackpack();
+    await new Promise(resolve => setTimeout(resolve, 100));
     const hexagonFound = await clickHexagonWithPriority(priorities);
     if (!hexagonFound) return;
 
     const transitionSuccess = await clickByTextContent('Перейти');
+    await new Promise(resolve => setTimeout(resolve, 100));
     if (!transitionSuccess) {
-
         // Проверяем, находится ли мы в текущем гексагоне
         const currentHexText = document.querySelector('div.hex-footer div.hex-current-text.ng-star-inserted');
         if (currentHexText && currentHexText.textContent.trim() === 'Вы здесь') {
@@ -262,6 +277,7 @@ async function mainLoop() {
             const closeButton = document.querySelector('tui-icon.svg-icon[style*="close.svg"]');
             if (closeButton) {
                 closeButton.click();
+                await new Promise(resolve => setTimeout(resolve, 100));
             } else {
                 console.error('Кнопка закрытия не найдена');
                 return;
@@ -269,6 +285,7 @@ async function mainLoop() {
 
             // Начинаем бой
             await fightEnemies();
+            await new Promise(resolve => setTimeout(resolve, 100));
             return;
         }
 
@@ -277,12 +294,14 @@ async function mainLoop() {
     }
 
     const enemyAppeared = await waitForEnemy();
+    await new Promise(resolve => setTimeout(resolve, 100));
     if (!enemyAppeared) {
         console.error('Враг не появился, продолжаем поиск');
         return;
     }
 
     await fightEnemies();
+    await new Promise(resolve => setTimeout(resolve, 100));
 }
 
 // Функция ожидания появления врага
@@ -293,6 +312,7 @@ async function waitForEnemy(timeout = 7000) {
 
         const enemyIcon = document.querySelector('app-icon.profile-class tui-icon[style*="mob-class-"]');
         if (enemyIcon) {
+            await new Promise(resolve => setTimeout(resolve, 100));
             return true;
         }
 
@@ -319,6 +339,7 @@ async function useSkills(skillOrder, activationTimes) {
         const skill = skillOrder[i];
         await useSkill(skill);
         await new Promise(resolve => setTimeout(resolve, activationTimes[i] * 1000));
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
 
@@ -331,7 +352,6 @@ const priorities = [
     { type: 'chest-epic', selector: '#chest-epic' },      // Эпик сундук
     { type: 'enemies', value: '1' },
     { type: 'enemies', value: '2' }
-
 ];
 
 // Навыки
@@ -340,7 +360,6 @@ const SKILLS = {
     TAUNTING_STRIKE: 'assets/images/skills/1491a679ae4080468358fcce4f0dfadd.webp',
     LIFE_LEECH: 'assets/images/skills/1491a679ae408091bc22c1b4ff900728.webp', // Жажда жизни
     DEF_BUFF: 'assets/images/skills/1441a679ae4080e0ac0ce466631bc99e.webp'
-
 };
 
 // Функция проверки и активации DEF_BUFF
@@ -350,7 +369,9 @@ async function checkAndActivateDefenseBuff() {
         const defenseIcon = document.querySelector('tui-icon.svg-icon[style*="upDefenseWarrior.svg"]');
         if (!defenseIcon) {
             await useSkill(SKILLS.DEF_BUFF); // Используем навык DEF_BUFF
+            await new Promise(resolve => setTimeout(resolve, 100));
         } else {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     } catch (error) {
         console.error('Ошибка в функции checkAndActivateDefenseBuff:', error);
@@ -362,7 +383,7 @@ async function useManaPotion() {
     const manaPotionButton = document.querySelector('app-action-button .action-image[style*="potion-mana-epic"]');
     if (manaPotionButton) {
         manaPotionButton.click();
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Задержка для применения
+        await new Promise(resolve => setTimeout(resolve, 100)); // Задержка для применения
     } else {
         console.error('Кнопка Зелья маны не найдена');
     }
@@ -373,7 +394,7 @@ async function useHealthPotion() {
     const healthPotionButton = document.querySelector('app-action-button .action-image[style*="potion-health-epic"]');
     if (healthPotionButton) {
         healthPotionButton.click();
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Задержка для применения
+        await new Promise(resolve => setTimeout(resolve, 100)); // Задержка для применения
     } else {
         console.error('Кнопка Зелья здоровья не найдена');
     }
@@ -388,6 +409,7 @@ async function checkManaAndHealth() {
         if (manaPercentage <= -50) { // Если мана <= 50%
             console.log('Мана ниже 50%, используем Зелье маны');
             await useManaPotion();
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 
@@ -397,7 +419,9 @@ async function checkManaAndHealth() {
         const healthPercentage = parseFloat(healthElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
         if (healthPercentage <= -20) { // Если здоровье <= 50%
             await useHealthPotion();
+            await new Promise(resolve => setTimeout(resolve, 100));
             await useSkill(SKILLS.LIFE_LEECH); // Жажда жизни
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 }
@@ -407,7 +431,7 @@ async function useSkill(skill) {
     const skillButton = document.querySelector(`div.action-image[style*="${skill}"]`);
     if (skillButton) {
         skillButton.click();
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Задержка для применения
+        await new Promise(resolve => setTimeout(resolve, 100)); // Задержка для применения
     }
 }
 
@@ -433,6 +457,7 @@ async function handleFullBackpack() {
         const portalButton = await waitForElement('app-button-icon[data-appearance="primary"] .button-icon-text', 'Портал', 5000);
         if (portalButton) {
             portalButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Кнопка "Портал" нажата');
             await delay(10000); // Ждем завершения перехода через портал
 
@@ -440,16 +465,19 @@ async function handleFullBackpack() {
             const characterButton = await waitForElement('div.footer-button-content .footer-button-text', 'Персонаж', 5000);
             if (characterButton) {
                 characterButton.click();
+                await new Promise(resolve => setTimeout(resolve, 100));
                 console.log('Кнопка "Персонаж" нажата');
 
                 // Ждем и активируем вкладку "Рюкзак"
                 const backpackTab = await waitForElement('div.tab-content', 'Рюкзак', 5000);
                 if (backpackTab) {
                     backpackTab.click();
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     console.log('Вкладка "Рюкзак" выбрана');
 
                     // Обрабатываем предметы
                     await processBackpackItems();
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 } else {
                     console.error('Вкладка "Рюкзак" не найдена');
                 }
@@ -468,6 +496,7 @@ async function handleFullBackpack() {
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
 // Вспомогательная функция для ожидания элемента с текстом
 async function waitForElement(selector, text, timeout = 10000) {
     const start = Date.now();
@@ -475,6 +504,7 @@ async function waitForElement(selector, text, timeout = 10000) {
         const elements = document.querySelectorAll(selector);
         for (const element of elements) {
             if (element.textContent.trim() === text) {
+                await new Promise(resolve => setTimeout(resolve, 100));
                 return element;
             }
         }
@@ -490,6 +520,7 @@ async function waitForElement(selector, text = null, timeout = 5000) {
         const elements = document.querySelectorAll(selector);
         for (const element of elements) {
             if (!text || element.textContent.trim() === text) {
+                await new Promise(resolve => setTimeout(resolve, 100));
                 return element;
             }
         }
@@ -506,11 +537,14 @@ async function checkAndReturnToCity() {
             if (cityButton && cityButton.textContent.trim() === 'В город') {
                 console.log('Найдена кнопка "В город", выполняем нажатие...');
                 cityButton.click();
+                await new Promise(resolve => setTimeout(resolve, 100));
                 await delay(1000);
 
                 // Выполняем переход в "Сражения" и "Зеленые топи"
                 await clickByTextContent('Сражения');
+                await new Promise(resolve => setTimeout(resolve, 100));
                 await clickByLocationName('Зеленые топи');
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             // Задержка перед повторной проверкой
@@ -526,6 +560,7 @@ function updateStatistics(stat, value) {
     const statElement = document.getElementById(stat);
     if (statElement) {
         statElement.textContent = value;
+        setTimeout(() => {}, 100);
     }
 }
 
@@ -543,6 +578,7 @@ let scriptStartTime = Date.now();
 function updateScriptRuntime() {
     const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime) / 1000);
     updateStatistics('script-runtime', runtimeInSeconds);
+    setTimeout(() => {}, 100);
 }
 
 async function fightEnemies() {
@@ -557,12 +593,15 @@ async function fightEnemies() {
 
         // Проверяем состояние маны и здоровья
         await checkManaAndHealth();
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Проверяем и активируем DEF_BUFF, если нужно
         await checkAndActivateDefenseBuff();
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Используем навыки
         await useSkills([SKILLS.KICK, SKILLS.TAUNTING_STRIKE], [1.1, 1.3]);
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Проверяем, был ли убит чемпион
         const championIcon = document.querySelector('app-icon.profile-class tui-icon[style*="champion-class-"]');
@@ -571,11 +610,13 @@ async function fightEnemies() {
             championsKilled++;
             updateStatistics('champions-killed', championsKilled);
             console.log('Чемпион убит!');
+            await new Promise(resolve => setTimeout(resolve, 100));
         } else {
             // Если чемпион не найден, увеличиваем счетчик мобов
             mobsKilled++;
             updateStatistics('mobs-killed', mobsKilled);
             console.log('Моб убит!');
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Ждем перед следующей проверкой
@@ -595,6 +636,7 @@ async function navigateToSellItems() {
         const townButton = await waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
         if (townButton) {
             townButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Перешли в Город');
         } else {
             console.error('Кнопка "Город" не найдена');
@@ -605,6 +647,7 @@ async function navigateToSellItems() {
         const buildingsButton = await waitForElement('div.button-content', 'Строения', 5000);
         if (buildingsButton) {
             buildingsButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Строения"');
             await delay(5000); // Ждем перехода
         } else {
@@ -616,6 +659,7 @@ async function navigateToSellItems() {
         const shopButton = await waitForElement('div.location-name', 'Торговая лавка', 5000);
         if (shopButton) {
             shopButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Перешли в Торговую лавку');
         } else {
             console.error('Кнопка "Торговая лавка" не найдена');
@@ -626,6 +670,7 @@ async function navigateToSellItems() {
         const sellButton = await waitForElement('div.button-content', 'Продать снаряжение', 5000);
         if (sellButton) {
             sellButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Продать снаряжение"');
         } else {
             console.error('Кнопка "Продать снаряжение" не найдена');
@@ -636,6 +681,7 @@ async function navigateToSellItems() {
         const confirmSellButton = await waitForElement('div.button-content', 'Да, продать', 5000);
         if (confirmSellButton) {
             confirmSellButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Продажа подтверждена');
         } else {
             console.error('Кнопка "Да, продать" не найдена');
@@ -648,10 +694,12 @@ async function navigateToSellItems() {
         const itemsSoldNow = backpackItemsBefore - itemsStoredInChest;
         itemsSold += itemsSoldNow; // Обновляем общее количество проданных вещей
         updateStatistics('items-sold', itemsSold);
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Нажимаем на "Город"
         if (townButton) {
             townButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Перешли в Город');
         } else {
             console.error('Кнопка "Город" не найдена');
@@ -662,6 +710,7 @@ async function navigateToSellItems() {
         const returnToFightButton = await waitForElement('div.button-content', 'Вернуться в бой', 5000);
         if (returnToFightButton) {
             returnToFightButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Вернуться в бой"');
         } else {
             console.error('Кнопка "Вернуться в бой" не найдена');
@@ -684,6 +733,7 @@ async function getBackpackItemCount() {
     }
 
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
+    await new Promise(resolve => setTimeout(resolve, 100));
     return items.length;
 }
 
@@ -712,6 +762,7 @@ async function processBackpackItems() {
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         item.click();
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Получаем диалоговое окно
         const dialog = document.querySelector('app-dialog-container.dialog-container-item');
@@ -729,17 +780,20 @@ async function processBackpackItems() {
         if (isAncient) {
             ancientItems++;
             updateStatistics('ancient-items', ancientItems);
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         if (isPmaVa) {
             pmaVaItems++;
             updateStatistics('pma-va-items', pmaVaItems);
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Закрываем диалог
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
             closeBtn.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 
@@ -747,13 +801,17 @@ async function processBackpackItems() {
 
     // После обработки вещей вызываем функцию для продажи
     await navigateToSellItems();
+    await new Promise(resolve => setTimeout(resolve, 100));
 }
+
 // Проверка, является ли предмет древним (>100%)
 function checkAncientItem(dialog) {
     const stats = dialog.querySelector('.item-stats');
     if (stats && stats.textContent.includes('>100%')) {
+        setTimeout(() => {}, 100);
         return true;
     }
+    setTimeout(() => {}, 100);
     return false;
 }
 
@@ -761,8 +819,10 @@ function checkAncientItem(dialog) {
 function checkPmaVaItem(dialog) {
     const stats = dialog.querySelector('.item-stats');
     if (stats && (stats.textContent.includes('ПМА') || stats.textContent.includes('ВА'))) {
+        setTimeout(() => {}, 100);
         return true;
     }
+    setTimeout(() => {}, 100);
     return false;
 }
 
