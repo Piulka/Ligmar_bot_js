@@ -412,7 +412,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
         await new Promise(resolve => setTimeout(resolve, 100)); // Задержка перед повторной проверкой
     }
 
-    console.error('Гексагон с указанными приоритетами не найден');
     return false;
 }
 
@@ -534,7 +533,6 @@ async function isSpecialHexagon() {
     // Находим текущий гексагон (где находится игрок)
     const currentHexagon = document.querySelector('g.hex-box.current');
     if (!currentHexagon) {
-        console.log('Текущий гексагон не найден');
         return false;
     }
 
@@ -1043,8 +1041,6 @@ async function processBackpackItems() {
 
     pmaVaItems += pmaVaItemsStored; // ПМА/ВА вещи
     updateStatistics('pma-va-items', pmaVaItems);
-
-    console.log(`Эпических вещей с 3+ статами отправлено в сундук: ${epicItemsStored}`);
 
     const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest; // Проданные вещи
     itemsSold += itemsSoldNow;
