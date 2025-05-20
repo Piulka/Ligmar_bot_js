@@ -5,7 +5,7 @@ let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Воин'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.9';
+const SCRIPT_COMMIT = '1.10';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -292,7 +292,7 @@ async function createStatisticsElement() {
     statsContent.style.opacity = '1'; // Полностью видимое содержимое
 
     statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.6 Статистика:</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
         <div style="display: flex; justify-content: space-between;">
             <span>Мобы:</span>
             <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
@@ -1068,7 +1068,6 @@ async function getBackpackItemCount() {
 
 // Обновляем статистику при добавлении вещей в сундук
 async function processBackpackItems() {
-    // Ищем вкладку "Снаряжение"
     const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
         const nameElement = group.querySelector('.items-group-name');
         return nameElement && nameElement.textContent.trim() === 'Снаряжение';
@@ -1079,13 +1078,12 @@ async function processBackpackItems() {
         return;
     }
 
-    // Получаем все предметы в рюкзаке перед обработкой
     const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
-
-    let itemsStoredInChest = 0; // Количество вещей, положенных в сундук
-    let ancientItemsStored = 0; // Количество древних вещей, положенных в сундук
-    let pmaVaItemsStored = 0;   // Количество ПМА/ВА вещей, положенных в сундук
-    let epicItemsStored = 0;    // Количество эпических вещей с 3+ статами, положенных в сундук
+    let itemsStoredInChest = 0;
+    let ancientItemsStored = 0;
+    let pmaVaItemsStored = 0;
+    let epicItemsStored = 0;
+    let epicWeaponsStored = 0;
 
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     if (!items.length) {
@@ -1098,36 +1096,37 @@ async function processBackpackItems() {
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         item.click();
-        await new Promise(resolve => setTimeout(resolve, 100));
-    
-        // Получаем диалоговое окно
+        await new Promise(resolve => setTimeout(resolve, 300)); // Увеличили задержку
+
         const dialog = document.querySelector('app-dialog-container.dialog-container-item');
         if (!dialog) {
             console.log('Диалог не открылся');
             continue;
         }
-    
+
         console.log(`Обрабатываем предмет ${i + 1}`);
-    
-        // Проверяем параметры предмета
+        
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
-    
-        if (isAncient || isPmaVa || isEpicWithStats) {
-            // Нажимаем на кнопку "В сундук"
+        const isEpicWeapon = checkEpicWeapon(dialog);
+
+        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon) {
             const chestButton = dialog.querySelector('div.put-in-chest .button-content');
             if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                 chestButton.click();
                 console.log('Вещь отправлена в сундук');
                 itemsStoredInChest++;
-                await new Promise(resolve => setTimeout(resolve, 100)); // Задержка после клика
-            } else {
-                console.error('Кнопка "В сундук" не найдена');
+                
+                if (isAncient) ancientItemsStored++;
+                if (isPmaVa) pmaVaItemsStored++;
+                if (isEpicWithStats) epicItemsStored++;
+                if (isEpicWeapon) epicWeaponsStored++;
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
         }
-    
-        // Закрываем диалог
+
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
             closeBtn.click();
@@ -1135,79 +1134,78 @@ async function processBackpackItems() {
         }
     }
 
-    console.log('Обработка завершена');
-
     // Обновляем статистику
-    itemsStored += itemsStoredInChest; // Оставленные вещи (в сундуке)
+    itemsStored += itemsStoredInChest;
+    ancientItems += ancientItemsStored;
+    pmaVaItems += pmaVaItemsStored;
+    
     updateStatistics('items-stored', itemsStored);
-
-    ancientItems += ancientItemsStored; // Древние вещи
     updateStatistics('ancient-items', ancientItems);
-
-    pmaVaItems += pmaVaItemsStored; // ПМА/ВА вещи
     updateStatistics('pma-va-items', pmaVaItems);
 
-    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest; // Проданные вещи
+    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest;
     itemsSold += itemsSoldNow;
     updateStatistics('items-sold', itemsSold);
 
     console.log(`Продано: ${itemsSoldNow}, Оставлено: ${itemsStoredInChest}`);
+    console.log(`Из них: ${epicWeaponsStored} эпических оружий`);
 
-    // После обработки вещей вызываем функцию для продажи
-    await navigateToSellItems();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    if (sellItemsSetting === 'Продавать вещи') {
+        await navigateToSellItems();
+    }
 }
 
 // Проверка, является ли предмет древним (>100%)
 function checkAncientItem(dialog) {
-    const stats = dialog.querySelector('.item-stats');
-    if (stats && stats.textContent.includes('>100%')) {
-        setTimeout(() => {}, 100);
-        return true;
+    // Проверяем несколько возможных мест, где могут быть проценты
+    const percentElements = [
+        dialog.querySelector('.item-stats'),
+        dialog.querySelector('.magic-prop-percent'),
+        dialog.querySelector('.item-percent-value')
+    ].filter(el => el); // Убираем null элементы
+    
+    for (const element of percentElements) {
+        const text = element.textContent.trim();
+        // Проверяем разные форматы процентов:
+        // (>100%), 150%, +150%, >100% и т.д.
+        if (text.match(/[>(]?\s*\d{3,}\s*%[<)]?/)) {
+            const percentValue = parseInt(text.replace(/\D/g, ''), 10);
+            if (percentValue > 100) {
+                console.log(`Найден древний предмет: ${text}`);
+                return true;
+            }
+        }
     }
-    setTimeout(() => {}, 100);
     return false;
 }
 
 // Функция проверки, является ли предмет эпическим и имеет 3 стата из списка
 function checkEpicItemWithStats(dialog) {
-    // Ищем элемент с качеством предмета
     const qualityElement = dialog.querySelector('.item-quality');
-    if (!qualityElement) {
+    if (!qualityElement || qualityElement.textContent.trim() !== 'Эпический') {
         return false;
     }
 
-    // Проверяем, что предмет эпический
-    const isEpic = qualityElement.textContent.trim() === 'Эпический';
-    if (!isEpic) {
+    // Не считаем оружие как предмет с 3+ статами
+    if (checkWeaponItem(dialog)) {
         return false;
     }
 
-    // Ищем статы предмета
     const statsElements = dialog.querySelectorAll('.magic-prop-name');
-    if (!statsElements.length) {
-        return false;
-    }
-
-    // Список статов для проверки
     const requiredStats = [
         'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
         'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье', 'Точность', 'Требования'
+        'Сопротивление', 'Интеллект', 'Здоровье', 'Точность', 'Требования', 'Мана', 'Меткость', 
     ];
 
-    // Подсчитываем количество совпадающих статов
     let matchingStatsCount = 0;
     statsElements.forEach(statElement => {
-        const statName = statElement.textContent.trim();
-        if (requiredStats.includes(statName)) {
+        if (requiredStats.includes(statElement.textContent.trim())) {
             matchingStatsCount++;
         }
     });
 
-    // Возвращаем true, если предмет эпический и имеет 3 или более совпадающих стата
-    const isMatching = matchingStatsCount >= 3;
-    return isMatching;
+    return matchingStatsCount >= 3;
 }
 
 // Проверка, имеет ли предмет ПМА или ВА
@@ -1221,5 +1219,20 @@ function checkPmaVaItem(dialog) {
     return false;
 }
 
+function checkWeaponItem(dialog) {
+    const weaponTag = dialog.querySelector('.item-tags');
+    if (weaponTag && weaponTag.textContent.trim() === 'Оружие') {
+        console.log('Найдено оружие');
+        return true;
+    }
+    return false;
+}
+
+function checkEpicWeapon(dialog) {
+    const qualityElement = dialog.querySelector('.item-quality');
+    const isEpic = qualityElement && qualityElement.textContent.trim() === 'Эпический';
+    const isWeapon = checkWeaponItem(dialog);
+    return isEpic && isWeapon;
+}
 // Обновляем время работы скрипта каждые 5 секунд
 setInterval(updateScriptRuntime, 5000);
