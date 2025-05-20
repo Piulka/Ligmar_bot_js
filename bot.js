@@ -4,7 +4,8 @@ let selectedLocation = 'Зеленые топи'; // Локация по умо�
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Воин'; // Класс по умолчанию
-const SCRIPT_COMMIT = '1.8';
+let sellItemsSetting = 'Продавать вещи'; // По умолчанию
+const SCRIPT_COMMIT = '1.9';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -19,9 +20,9 @@ const CLASS_SKILLS = {
         buff: null
     },
     'Лучник': {
-        attack: ['assets/images/icons/attack.webp'], // Замени на реальные скилы лучника
+        attack: ['assets/images/skills/1591a679ae40807a8b42fb31199a8297.webp', 'assets/images/skills/1591a679ae40808cb79ff144baf28502.webp','assets/images/skills/1591a679ae4080c297f7d036916c3c06.webp', 'assets/images/skills/1591a679ae40808790d1dda8fe2e9779.webp'], // Замени на реальные скилы лучника
         heal: 'assets/images/skills/archer_heal_skill.webp', // Замени на реальный скил
-        buff: 'assets/images/skills/archer_buff_skill.webp' // Замени на реальный скил
+        buff: null // Замени на реальный скил
     }
 };
 
@@ -61,6 +62,7 @@ async function createSettingsButton() {
     });
 
     document.body.appendChild(button);
+    
 }
 
 // Функция для создания окна настроек
@@ -105,7 +107,7 @@ async function createSettingsWindow() {
     locationSelect.style.backgroundColor = 'var(--black-light)';
     locationSelect.style.color = 'var(--white)';
 
-    const locations = ['Пригород', 'Проклятый сад', 'Окраины леса', 'Озеро Королей', 'Зеленые топи', 'Старые рудники'];
+    const locations = ['Пригород', 'Проклятый сад', 'Окраина леса', 'Озеро Королей', 'Зеленые топи', 'Старые рудники'];
     locations.forEach(location => {
         const option = document.createElement('option');
         option.value = location;
@@ -120,6 +122,39 @@ async function createSettingsWindow() {
     });
 
     settingsContainer.appendChild(locationSelect);
+    
+    // Добавляем выпадающий список для настроек продажи
+    const sellSettingLabel = document.createElement('label');
+    sellSettingLabel.textContent = 'Продажа вещей:';
+    sellSettingLabel.style.display = 'block';
+    sellSettingLabel.style.marginTop = '10px';
+    sellSettingLabel.style.marginBottom = '5px';
+    settingsContainer.appendChild(sellSettingLabel);
+
+    const sellSettingSelect = document.createElement('select');
+    sellSettingSelect.id = 'sell-setting-select';
+    sellSettingSelect.style.width = '100%';
+    sellSettingSelect.style.padding = '5px';
+    sellSettingSelect.style.border = '1px solid var(--black-light)';
+    sellSettingSelect.style.borderRadius = '5px';
+    sellSettingSelect.style.backgroundColor = 'var(--black-light)';
+    sellSettingSelect.style.color = 'var(--white)';
+
+    const sellOptions = ['Продавать вещи', 'Не продавать вещи'];
+    sellOptions.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option;
+        optElement.textContent = option;
+        sellSettingSelect.appendChild(optElement);
+    });
+
+    sellSettingSelect.value = sellItemsSetting;
+    sellSettingSelect.addEventListener('change', (event) => {
+        sellItemsSetting = event.target.value;
+        console.log(`Настройка продажи изменена: ${sellItemsSetting}`);
+    });
+
+    settingsContainer.appendChild(sellSettingSelect);
 
     // Выпадающее меню для выбора класса
     const classLabel = document.createElement('label');
@@ -603,13 +638,13 @@ async function useSkills() {
 
 // Приоритеты
 const priorities = [
-    { type: 'champion', selector: '#champion' },
     { type: 'chest-epic', selector: '#chest-epic' },
     { type: 'shrine', selector: '#shrine' },
     { type: 'chest-rare', selector: '#chest-rare' },
     { type: 'chest-epic', selector: '#chest-common' },
     { type: 'enemies', value: '1' },
-    { type: 'enemies', value: '2' }
+    { type: 'enemies', value: '2' },
+    { type: 'champion', selector: '#champion' }
 ];
 
 // Навыки
@@ -649,7 +684,6 @@ async function useHealthPotion() {
         const potionButton = document.querySelector(`app-action-button .action-image[style*="${potion}"]`);
         if (potionButton) {
             potionButton.click();
-            console.log(`Использовано зелье здоровья: ${potion}`);
             await new Promise(resolve => setTimeout(resolve, 100));
             return true;
         }
@@ -670,7 +704,6 @@ async function useManaPotion() {
         const potionButton = document.querySelector(`app-action-button .action-image[style*="${potion}"]`);
         if (potionButton) {
             potionButton.click();
-            console.log(`Использовано зелье маны: ${potion}`);
             await new Promise(resolve => setTimeout(resolve, 100));
             return true;
         }
@@ -719,19 +752,13 @@ async function useSkill(skill) {
 }
 
 async function handleFullBackpack() {
-    // Проверяем наличие иконки рюкзака в шапке
     const backpackIcon = document.querySelector('app-icon.header-backpack-icon tui-icon[style*="backpack.svg"]');
-    if (!backpackIcon) {
-        return;
-    }
+    if (!backpackIcon) return;
 
-    // Проверяем, переполнен ли инвентарь (по иконке или тексту)
     const isBackpackFull = document.querySelector('div.backpack-capacity-danger') || 
                          backpackIcon.closest('app-icon').classList.contains('backpack-full');
     
-    if (!isBackpackFull) {
-        return;
-    }
+    if (!isBackpackFull) return;
 
     console.log('Инвентарь переполнен, начинаем обработку...');
 
@@ -742,7 +769,7 @@ async function handleFullBackpack() {
             portalButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Кнопка "Портал" нажата');
-            await delay(10000); // Ждем завершения перехода через портал
+            await delay(10000);
 
             // Нажимаем на кнопку "Персонаж"
             const characterButton = await waitForElement('div.footer-button-content .footer-button-text', 'Персонаж', 5000);
@@ -758,17 +785,26 @@ async function handleFullBackpack() {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     console.log('Вкладка "Рюкзак" выбрана');
 
-                    // Обрабатываем предметы
+                    // Проверяем настройку продажи
+                    if (sellItemsSetting === 'Не продавать вещи') {
+                        console.log('Режим "Не продавать вещи" - скрипт приостановлен');
+                        
+                        // Ставим скрипт на паузу
+                        const controlButton = document.getElementById('control-button');
+                        if (controlButton) {
+                            controlButton.click(); // Эмулируем нажатие кнопки остановки
+                        }
+                        
+                        // Можно добавить уведомление
+                        alert('Рюкзак полон! Скрипт приостановлен. Режим "Не продавать вещи"');
+                        return;
+                    }
+                    
+                    // Продолжаем обычную обработку для режима "Продавать вещи"
                     await processBackpackItems();
                     await new Promise(resolve => setTimeout(resolve, 100));
-                } else {
-                    console.error('Вкладка "Рюкзак" не найдена');
                 }
-            } else {
-                console.error('Кнопка "Персонаж" не найдена');
             }
-        } else {
-            console.error('Кнопка "Портал" не найдена');
         }
     } catch (error) {
         console.error('Ошибка при обработке переполненного инвентаря:', error);
