@@ -1,12 +1,12 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 let deaths = 0; // Количество смертей
 let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
+let scriptPausedTime = 0; // Время, проведенное в паузе
+let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.12';
-let scriptStartTime = Date.now();
-let lastStartTime = Date.now();
-let scriptPausedTime = 0;
+const SCRIPT_COMMIT = '1.10';
+
 // Навыки для каждого класса
 const CLASS_SKILLS = {
     'Воин': {
@@ -277,97 +277,72 @@ async function createStatisticsElement() {
     statsContainer.id = 'statistics-container';
     statsContainer.style.position = 'fixed';
     statsContainer.style.top = '110px';
-    statsContainer.style.right = '20px';
+    statsContainer.style.right = '1px';
     statsContainer.style.zIndex = '1000';
     statsContainer.style.padding = '15px';
     statsContainer.style.backgroundColor = 'var(--black-dark)';
-    statsContainer.style.border = '2px solid var(--gold-base)';
+    statsContainer.style.border = '2px solid var(--black-light)';
     statsContainer.style.borderRadius = '10px';
     statsContainer.style.fontSize = '14px';
     statsContainer.style.color = 'var(--white)';
     statsContainer.style.fontFamily = 'Arial, sans-serif';
-    statsContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-    statsContainer.style.transition = 'all 0.3s ease';
+    statsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    statsContainer.style.transition = 'opacity 0.3s ease, visibility 0.3s ease';
     statsContainer.style.overflow = 'hidden';
-    statsContainer.style.width = '250px';
 
     // Изначально окно статистики свернуто
     statsContainer.style.opacity = '0';
     statsContainer.style.visibility = 'hidden';
-    statsContainer.style.transform = 'translateX(20px)';
 
     // Содержимое статистики
     const statsContent = document.createElement('div');
     statsContent.id = 'statistics-content';
-    statsContent.style.transition = 'all 0.3s ease';
+    statsContent.style.transition = 'opacity 0.3s ease';
+    statsContent.style.opacity = '1'; // Полностью видимое содержимое
 
     statsContent.innerHTML = `
-        <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--gold-base); text-align: center; border-bottom: 1px solid var(--gold-light); padding-bottom: 8px;">СТАТИСТИКА</div>
-        
-        <!-- Основные показатели -->
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: var(--green-light);">Мобы:</span>
-            <span id="mobs-killed" style="color: var(--white); font-weight: bold;">0</span>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Мобы:</span>
+            <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: var(--purple-light);">Чампы:</span>
-            <span id="champions-killed" style="color: var(--white); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Чампы:</span>
+            <span id="champions-killed" style="color: var(--purple-light); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: var(--red-light);">Смерти:</span>
-            <span id="deaths" style="color: var(--white); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Продано:</span>
+            <span id="items-sold" style="color: var(--gold-light); font-weight: bold;">0</span>
         </div>
-        
-        <!-- Разделитель -->
-        <div style="border-top: 1px dashed var(--gray-light); margin: 10px 0;"></div>
-        
-        <!-- Продажи -->
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: var(--gold-light);">В магаз:</span>
-            <span id="items-sold" style="color: var(--white); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Оставлено:</span>
+            <span id="items-stored" style="color: var(--gold-light); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: var(--gold-light); padding-left: 15px; font-size: 12px;">• Продажи:</span>
-            <span id="sell-trips" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Древние вещи:</span>
+            <span id="ancient-items" style="color: var(--red-light); font-weight: bold;">0</span>
         </div>
-        
-        <!-- Сундук -->
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: var(--blue-light);">В сундук:</span>
-            <span id="items-stored" style="color: var(--white); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>ПМА/ВА:</span>
+            <span id="pma-va-items" style="color: var(--red-light); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• Пухи (GS>550):</span>
-            <span id="epic-weapons" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Походы в магаз:</span>
+            <span id="sell-trips" style="color: var(--white-light); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• Древние:</span>
-            <span id="ancient-items" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
+        <div style="display: flex; justify-content: space-between;">
+            <span>Смерти:</span>
+            <span id="deaths" style="color: var(--red-light); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• ПМА/ВА:</span>
-            <span id="pma-va-items" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
+        <div style="margin-top: 10px;">
+            <span>Время работы:</span>
+            <div id="script-runtime" style="color: var(--white-light); font-weight: bold;">0 сек</div>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• 3+ статы:</span>
-            <span id="epic-items" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
-        </div>
-        
-        <!-- Разделитель -->
-        <div style="border-top: 1px dashed var(--gray-light); margin: 10px 0;"></div>
-        
-        <!-- Время работы -->
-        <div style="text-align: center; margin-top: 5px;">
-            <div style="font-size: 12px; color: var(--gray-light);">Время работы:</div>
-            <div id="script-runtime" style="color: var(--gold-light); font-weight: bold; font-size: 16px;">00:00:00</div>
-        </div>
-        
-        <!-- Версия -->
-        <div style="font-size: 10px; color: var(--gray-light); text-align: right; margin-top: 10px;">v${SCRIPT_COMMIT}</div>
+        <div style="font-size: 10px; color: var(--gray-light); text-align: right; margin-top: 5px;">${SCRIPT_COMMIT}</div>
     `;
 
     // Логика сворачивания/разворачивания
-    let isCollapsed = true;
+    let isCollapsed = true; // Изначально свернуто
     const toggleButton = document.createElement('button');
     toggleButton.textContent = '+';
     toggleButton.style.position = 'fixed';
@@ -380,49 +355,33 @@ async function createStatisticsElement() {
     toggleButton.style.border = 'none';
     toggleButton.style.borderRadius = '50%';
     toggleButton.style.cursor = 'pointer';
-    toggleButton.style.fontSize = '16px';
+    toggleButton.style.fontSize = '14px';
     toggleButton.style.fontWeight = 'bold';
     toggleButton.style.display = 'flex';
     toggleButton.style.alignItems = 'center';
     toggleButton.style.justifyContent = 'center';
-    toggleButton.style.zIndex = '1001';
-    toggleButton.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
-    toggleButton.style.transition = 'all 0.3s ease';
+    toggleButton.style.zIndex = '1001'; // Поверх окна статистики
 
     toggleButton.addEventListener('click', () => {
         if (isCollapsed) {
             statsContainer.style.opacity = '1';
             statsContainer.style.visibility = 'visible';
-            statsContainer.style.transform = 'translateX(0)';
             toggleButton.textContent = '-';
-            toggleButton.style.transform = 'rotate(180deg)';
         } else {
             statsContainer.style.opacity = '0';
             statsContainer.style.visibility = 'hidden';
-            statsContainer.style.transform = 'translateX(20px)';
             toggleButton.textContent = '+';
-            toggleButton.style.transform = 'rotate(0)';
         }
         isCollapsed = !isCollapsed;
     });
 
     statsContainer.appendChild(statsContent);
     document.body.appendChild(statsContainer);
-    document.body.appendChild(toggleButton);
-    
-    // Добавляем анимацию появления
-    setTimeout(() => {
-        toggleButton.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            toggleButton.style.transform = 'scale(1)';
-        }, 150);
-    }, 500);
+    document.body.appendChild(toggleButton); // Добавляем кнопку отдельно
+    await new Promise(resolve => setTimeout(resolve, 100));
 }
 // Основной скрипт
 async function runScript() {
-    scriptStartTime = Date.now(); // Сбрасываем время при каждом запуске
-    lastStartTime = Date.now();
-    scriptPausedTime = 0;
     try {
         await clickByTextContent('Сражения');
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -688,13 +647,13 @@ async function useSkills() {
 
 // Приоритеты
 const priorities = [
+    { type: 'champion', selector: '#champion' },
     { type: 'chest-epic', selector: '#chest-epic' },
     { type: 'shrine', selector: '#shrine' },
     { type: 'chest-rare', selector: '#chest-rare' },
     { type: 'chest-epic', selector: '#chest-common' },
     { type: 'enemies', value: '1' },
-    { type: 'enemies', value: '2' },
-    { type: 'champion', selector: '#champion' }
+    { type: 'enemies', value: '2' }
 ];
 
 // Навыки
@@ -760,7 +719,6 @@ async function useHealthPotion() {
     return false;
 }
 
-// Функция использования любого зелья маны
 async function useManaPotion() {
     const manaPotionButtons = [
         'potion-mana-epic',   // Эпическое
@@ -949,51 +907,10 @@ async function checkAndReturnToCity() {
 
 // Обновляем статистику
 function updateStatistics(stat, value) {
-    const statElements = {
-        'mobs-killed': document.getElementById('mobs-killed'),
-        'champions-killed': document.getElementById('champions-killed'),
-        'deaths': document.getElementById('deaths'),
-        'items-sold': document.getElementById('items-sold'),
-        'sell-trips': document.getElementById('sell-trips'),
-        'items-stored': document.getElementById('items-stored'),
-        'epic-weapons': document.getElementById('epic-weapons'),
-        'ancient-items': document.getElementById('ancient-items'),
-        'pma-va-items': document.getElementById('pma-va-items'),
-        'epic-items': document.getElementById('epic-items'),
-        'script-runtime': document.getElementById('script-runtime')
-    };
-
-    if (!statElements[stat]) return;
-
-    // Специальная обработка для времени
-    if (stat === 'script-runtime') {
-        // Проверяем, что value - число
-        const seconds = Number(value);
-        if (isNaN(seconds)) {
-            statElements[stat].textContent = '00:00:00';
-            return;
-        }
-
-        // Форматируем время
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-
-        statElements[stat].textContent = 
-            `${hours.toString().padStart(2, '0')}:` +
-            `${minutes.toString().padStart(2, '0')}:` +
-            `${secs.toString().padStart(2, '0')}`;
-    } else {
-        // Для остальной статистики
-        statElements[stat].textContent = value;
-        
-        // Анимация обновления
-        statElements[stat].style.transform = 'scale(1.1)';
-        statElements[stat].style.color = 'var(--gold-light)';
-        setTimeout(() => {
-            statElements[stat].style.transform = 'scale(1)';
-            statElements[stat].style.color = 'var(--white)';
-        }, 300);
+    const statElement = document.getElementById(stat);
+    if (statElement) {
+        statElement.textContent = value;
+        setTimeout(() => {}, 100);
     }
 }
 
@@ -1005,18 +922,24 @@ let itemsStored = 0;
 let ancientItems = 0;
 let pmaVaItems = 0;
 let sellTrips = 0;
-
+let scriptStartTime = Date.now();
 
 function updateScriptRuntime() {
     if (!isScriptRunning) {
+        // Если скрипт на паузе, фиксируем время паузы
         scriptPausedTime += Date.now() - lastStartTime;
-        lastStartTime = Date.now();
+        lastStartTime = Date.now(); // Обновляем время последней фиксации
         return;
     }
 
-    // Вычисляем время работы в секундах
-    const runtimeSeconds = Math.floor((Date.now() - scriptStartTime - scriptPausedTime) / 1000);
-    updateStatistics('script-runtime', runtimeSeconds);
+    // Вычисляем общее время работы скрипта
+    const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime - scriptPausedTime) / 1000);
+    const hours = Math.floor(runtimeInSeconds / 3600);
+    const minutes = Math.floor((runtimeInSeconds % 3600) / 60);
+    const seconds = runtimeInSeconds % 60;
+
+    const formattedTime = `${hours}ч ${minutes}м ${seconds}с`;
+    updateStatistics('script-runtime', formattedTime);
 }
 
 async function fightEnemies(isChampionHexagon = false) {
@@ -1171,7 +1094,6 @@ async function getBackpackItemCount() {
 
 // Обновляем статистику при добавлении вещей в сундук
 async function processBackpackItems() {
-    // Находим вкладку "Снаряжение" в рюкзаке
     const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
         const nameElement = group.querySelector('.items-group-name');
         return nameElement && nameElement.textContent.trim() === 'Снаряжение';
@@ -1182,79 +1104,55 @@ async function processBackpackItems() {
         return;
     }
 
-    // Получаем все предметы в рюкзаке
+    const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
+    let itemsStoredInChest = 0;
+    let ancientItemsStored = 0;
+    let pmaVaItemsStored = 0;
+    let epicItemsStored = 0;
+    let epicWeaponsStored = 0;
+
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     if (!items.length) {
         console.log('Предметы не найдены');
         return;
     }
 
-    console.log(`Найдено ${items.length} предметов для обработки`);
+    console.log(`Найдено ${items.length} предметов`);
 
-    // Статистика
-    let itemsStoredInChest = 0;
-    let ancientItemsStored = 0;
-    let pmaVaItemsStored = 0;
-    let epicItemsStored = 0;
-    let epicWeaponsStored = 0;
-    const itemsBeforeProcessing = items.length;
-
-    // Обрабатываем каждый предмет
     for (let i = 0; i < items.length; i++) {
-        if (!isScriptRunning) break; // Проверяем, не остановлен ли скрипт
-
         const item = items[i];
         item.click();
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 300)); // Увеличили задержку
 
-        // Ждем открытия диалога
-        const dialog = await waitForElement('app-dialog-container.dialog-container-item', null, 1000);
+        const dialog = document.querySelector('app-dialog-container.dialog-container-item');
         if (!dialog) {
-            console.log('Диалог не открылся, пропускаем предмет');
+            console.log('Диалог не открылся');
             continue;
         }
 
-        console.log(`Обрабатываем предмет ${i + 1}/${items.length}`);
-
-        // Проверяем предмет по всем критериям
+        console.log(`Обрабатываем предмет ${i + 1}`);
+        
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
         const isEpicWeapon = checkEpicWeapon(dialog);
 
-        // Если предмет соответствует хотя бы одному критерию
         if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon) {
             const chestButton = dialog.querySelector('div.put-in-chest .button-content');
             if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                 chestButton.click();
                 console.log('Вещь отправлена в сундук');
                 itemsStoredInChest++;
-
-                // Обновляем статистику по категориям
-                if (isAncient) {
-                    ancientItemsStored++;
-                    console.log('--> Древний предмет');
-                }
-                if (isPmaVa) {
-                    pmaVaItemsStored++;
-                    console.log('--> Предмет с ПМА/ВА');
-                }
-                if (isEpicWithStats) {
-                    epicItemsStored++;
-                    console.log('--> Эпик с 3+ статами');
-                }
-                if (isEpicWeapon) {
-                    epicWeaponsStored++;
-                    const gsElement = dialog.querySelector('.gear-score-value');
-                    const gs = gsElement ? gsElement.textContent.trim() : 'N/A';
-                    console.log(`--> Эпическое оружие (GS: ${gs})`);
-                }
-
+                
+                if (isAncient) ancientItemsStored++;
+                if (isPmaVa) pmaVaItemsStored++;
+                if (isEpicWithStats) epicItemsStored++;
+                if (isEpicWeapon) epicWeaponsStored++;
+                
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
         }
 
-        // Закрываем диалог
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
             closeBtn.click();
@@ -1262,7 +1160,7 @@ async function processBackpackItems() {
         }
     }
 
-    // Обновляем глобальную статистику
+    // Обновляем статистику
     itemsStored += itemsStoredInChest;
     ancientItems += ancientItemsStored;
     pmaVaItems += pmaVaItemsStored;
@@ -1271,23 +1169,14 @@ async function processBackpackItems() {
     updateStatistics('ancient-items', ancientItems);
     updateStatistics('pma-va-items', pmaVaItems);
 
-    const itemsSoldNow = itemsBeforeProcessing - (await getBackpackItemCount());
+    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest;
     itemsSold += itemsSoldNow;
     updateStatistics('items-sold', itemsSold);
 
-    console.log('================================');
-    console.log(`Обработка завершена:`);
-    console.log(`- Всего предметов: ${itemsBeforeProcessing}`);
-    console.log(`- Отправлено в сундук: ${itemsStoredInChest}`);
-    console.log(`  • Древние: ${ancientItemsStored}`);
-    console.log(`  • ПМА/ВА: ${pmaVaItemsStored}`);
-    console.log(`  • Эпики с 3+ статами: ${epicItemsStored}`);
-    console.log(`  • Эпическое оружие (GS>550): ${epicWeaponsStored}`);
-    console.log(`- Продано: ${itemsSoldNow}`);
-    console.log('================================');
+    console.log(`Продано: ${itemsSoldNow}, Оставлено: ${itemsStoredInChest}`);
+    console.log(`Из них: ${epicWeaponsStored} эпических оружий`);
 
-    // Если включена настройка продажи, идем продавать
-    if (sellItemsSetting === 'Продавать вещи' && itemsSoldNow > 0) {
+    if (sellItemsSetting === 'Продавать вещи') {
         await navigateToSellItems();
     }
 }
@@ -1323,11 +1212,6 @@ function checkEpicItemWithStats(dialog) {
         return false;
     }
 
-    // Не считаем оружие как предмет с 3+ статами
-    if (checkWeaponItem(dialog)) {
-        return false;
-    }
-
     const statsElements = dialog.querySelectorAll('.magic-prop-name');
     const requiredStats = [
         'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
@@ -1347,46 +1231,32 @@ function checkEpicItemWithStats(dialog) {
 
 // Проверка, имеет ли предмет ПМА или ВА
 function checkPmaVaItem(dialog) {
-    const stats = dialog.querySelector('.item-stats');
-    if (stats && (stats.textContent.includes('Пауза между атаками') || stats.textContent.includes('Время активации'))) {
-        setTimeout(() => {}, 100);
-        return true;
-    }
-    setTimeout(() => {}, 100);
-    return false;
-}
-
-function checkWeaponItem(dialog) {
-    const weaponTag = dialog.querySelector('.item-tags');
-    if (weaponTag && weaponTag.textContent.trim() === 'Оружие') {
-        return true;
+    const stats = dialog.querySelectorAll('.magic-prop-name');
+    for (const stat of stats) {
+        if (stat.textContent.includes('Пауза между атаками') || 
+            stat.textContent.includes('Время активации')) {
+            return true;
+        }
     }
     return false;
 }
 
 function checkEpicWeapon(dialog) {
-    // Проверяем, что предмет - оружие
     const weaponTag = dialog.querySelector('.item-tags');
-    if (!weaponTag || weaponTag.textContent.trim() !== 'Оружие') {
+    if (!weaponTag || !weaponTag.textContent.includes('Оружие')) {
         return false;
     }
 
-    // Проверяем, что качество - эпическое
     const qualityElement = dialog.querySelector('.item-quality');
-    if (!qualityElement || qualityElement.textContent.trim() !== 'Эпическое') {
+    if (!qualityElement || !qualityElement.textContent.includes('Эпич')) { // Ищем "Эпич" в начале
         return false;
     }
 
-    // Проверяем Gear Score (должен быть > 550)
     const gearScoreElement = dialog.querySelector('.gear-score-value');
     if (gearScoreElement) {
         const gearScore = parseInt(gearScoreElement.textContent.trim(), 10);
-        if (!isNaN(gearScore) && gearScore > 550) {
-            console.log(`Найдено эпическое оружие с Gear Score: ${gearScore}`);
-            return true;
-        }
+        return !isNaN(gearScore) && gearScore > 550;
     }
-
     return false;
 }
 // Обновляем время работы скрипта каждые 5 секунд
