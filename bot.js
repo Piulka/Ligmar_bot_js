@@ -4,6 +4,7 @@ let selectedLocation = 'Зеленые топи'; // Локация по умо�
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Воин'; // Класс по умолчанию
+const SCRIPT_COMMIT = '1.7';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -256,7 +257,7 @@ async function createStatisticsElement() {
     statsContent.style.opacity = '1'; // Полностью видимое содержимое
 
     statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.5.1 Статистика:</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.6 Статистика:</div>
         <div style="display: flex; justify-content: space-between;">
             <span>Мобы:</span>
             <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
@@ -293,6 +294,7 @@ async function createStatisticsElement() {
             <span>Время работы:</span>
             <div id="script-runtime" style="color: var(--white-light); font-weight: bold;">0 сек</div>
         </div>
+        <div style="font-size: 10px; color: var(--gray-light); text-align: right; margin-top: 5px;">${SCRIPT_COMMIT}</div>
     `;
 
     // Логика сворачивания/разворачивания
