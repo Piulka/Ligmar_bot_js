@@ -3,9 +3,9 @@ let deaths = 0; // Количество смертей
 let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
-let selectedClass = 'Воин'; // Класс по умолчанию
+let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.10';
+const SCRIPT_COMMIT = '1.11';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -20,9 +20,18 @@ const CLASS_SKILLS = {
         buff: null
     },
     'Лучник': {
-        attack: ['assets/images/skills/1591a679ae40807a8b42fb31199a8297.webp', 'assets/images/skills/1591a679ae40808cb79ff144baf28502.webp','assets/images/skills/1591a679ae4080c297f7d036916c3c06.webp', 'assets/images/skills/1591a679ae40808790d1dda8fe2e9779.webp'], // Замени на реальные скилы лучника
-        heal: 'assets/images/skills/archer_heal_skill.webp', // Замени на реальный скил
-        buff: null // Замени на реальный скил
+        attack: ['assets/images/skills/1591a679ae40807a8b42fb31199a8297.webp', 'assets/images/skills/1591a679ae40808cb79ff144baf28502.webp','assets/images/skills/1591a679ae4080c297f7d036916c3c06.webp', 'assets/images/skills/1591a679ae40808790d1dda8fe2e9779.webp'],
+        heal: 'assets/images/skills/archer_heal_skill.webp',
+        buff: [
+            {
+                skill: 'assets/images/skills/1591a679ae408063a77bd6ed4dd4ab05.webp',
+                effect: 'assets/icons/effects/magicGearDamageArcher.svg'
+            },
+            {
+                skill: 'assets/images/skills/1591a679ae4080eba8d2d67872073b85.webp',
+                effect: 'assets/icons/effects/upEvasionArcher.svg'
+            }
+        ]
     }
 };
 
@@ -662,16 +671,34 @@ async function checkAndActivateDefenseBuff() {
     if (!skills || !skills.buff) return;
     
     try {
-        const defenseIcon = document.querySelector('tui-icon.svg-icon[style*="upDefenseWarrior.svg"]');
-        if (!defenseIcon) {
-            await useSkill(skills.buff);
-            await new Promise(resolve => setTimeout(resolve, 100));
+        // Для лучника проверяем оба баффа
+        if (selectedClass === 'Лучник') {
+            // Проверяем первый бафф (увеличение магического урона)
+            const magicDamageBuff = document.querySelector('tui-icon.svg-icon[style*="magicGearDamageArcher.svg"]');
+            if (!magicDamageBuff && skills.buff[0]) {
+                await useSkill(skills.buff[0].skill);
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Проверяем второй бафф (увеличение уклонения)
+            const evasionBuff = document.querySelector('tui-icon.svg-icon[style*="upEvasionArcher.svg"]');
+            if (!evasionBuff && skills.buff[1]) {
+                await useSkill(skills.buff[1].skill);
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        } 
+        // Для воина оставляем старую логику
+        else if (selectedClass === 'Воин') {
+            const defenseIcon = document.querySelector('tui-icon.svg-icon[style*="upDefenseWarrior.svg"]');
+            if (!defenseIcon && skills.buff) {
+                await useSkill(skills.buff);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         }
     } catch(error) {
-        console.error('Ошибка:', error);
+        console.error('Ошибка при активации баффа:', error);
     }
 }
-
 // Функция использования любого зелья здоровья
 async function useHealthPotion() {
     const healthPotionButtons = [
@@ -1068,6 +1095,7 @@ async function getBackpackItemCount() {
 
 // Обновляем статистику при добавлении вещей в сундук
 async function processBackpackItems() {
+    // Находим вкладку "Снаряжение" в рюкзаке
     const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
         const nameElement = group.querySelector('.items-group-name');
         return nameElement && nameElement.textContent.trim() === 'Снаряжение';
@@ -1078,55 +1106,79 @@ async function processBackpackItems() {
         return;
     }
 
-    const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
-    let itemsStoredInChest = 0;
-    let ancientItemsStored = 0;
-    let pmaVaItemsStored = 0;
-    let epicItemsStored = 0;
-    let epicWeaponsStored = 0;
-
+    // Получаем все предметы в рюкзаке
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     if (!items.length) {
         console.log('Предметы не найдены');
         return;
     }
 
-    console.log(`Найдено ${items.length} предметов`);
+    console.log(`Найдено ${items.length} предметов для обработки`);
 
+    // Статистика
+    let itemsStoredInChest = 0;
+    let ancientItemsStored = 0;
+    let pmaVaItemsStored = 0;
+    let epicItemsStored = 0;
+    let epicWeaponsStored = 0;
+    const itemsBeforeProcessing = items.length;
+
+    // Обрабатываем каждый предмет
     for (let i = 0; i < items.length; i++) {
+        if (!isScriptRunning) break; // Проверяем, не остановлен ли скрипт
+
         const item = items[i];
         item.click();
-        await new Promise(resolve => setTimeout(resolve, 300)); // Увеличили задержку
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-        const dialog = document.querySelector('app-dialog-container.dialog-container-item');
+        // Ждем открытия диалога
+        const dialog = await waitForElement('app-dialog-container.dialog-container-item', null, 1000);
         if (!dialog) {
-            console.log('Диалог не открылся');
+            console.log('Диалог не открылся, пропускаем предмет');
             continue;
         }
 
-        console.log(`Обрабатываем предмет ${i + 1}`);
-        
+        console.log(`Обрабатываем предмет ${i + 1}/${items.length}`);
+
+        // Проверяем предмет по всем критериям
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
         const isEpicWeapon = checkEpicWeapon(dialog);
 
+        // Если предмет соответствует хотя бы одному критерию
         if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon) {
             const chestButton = dialog.querySelector('div.put-in-chest .button-content');
             if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                 chestButton.click();
                 console.log('Вещь отправлена в сундук');
                 itemsStoredInChest++;
-                
-                if (isAncient) ancientItemsStored++;
-                if (isPmaVa) pmaVaItemsStored++;
-                if (isEpicWithStats) epicItemsStored++;
-                if (isEpicWeapon) epicWeaponsStored++;
-                
+
+                // Обновляем статистику по категориям
+                if (isAncient) {
+                    ancientItemsStored++;
+                    console.log('--> Древний предмет');
+                }
+                if (isPmaVa) {
+                    pmaVaItemsStored++;
+                    console.log('--> Предмет с ПМА/ВА');
+                }
+                if (isEpicWithStats) {
+                    epicItemsStored++;
+                    console.log('--> Эпик с 3+ статами');
+                }
+                if (isEpicWeapon) {
+                    epicWeaponsStored++;
+                    const gsElement = dialog.querySelector('.gear-score-value');
+                    const gs = gsElement ? gsElement.textContent.trim() : 'N/A';
+                    console.log(`--> Эпическое оружие (GS: ${gs})`);
+                }
+
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
         }
 
+        // Закрываем диалог
         const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
         if (closeBtn) {
             closeBtn.click();
@@ -1134,7 +1186,7 @@ async function processBackpackItems() {
         }
     }
 
-    // Обновляем статистику
+    // Обновляем глобальную статистику
     itemsStored += itemsStoredInChest;
     ancientItems += ancientItemsStored;
     pmaVaItems += pmaVaItemsStored;
@@ -1143,14 +1195,23 @@ async function processBackpackItems() {
     updateStatistics('ancient-items', ancientItems);
     updateStatistics('pma-va-items', pmaVaItems);
 
-    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest;
+    const itemsSoldNow = itemsBeforeProcessing - (await getBackpackItemCount());
     itemsSold += itemsSoldNow;
     updateStatistics('items-sold', itemsSold);
 
-    console.log(`Продано: ${itemsSoldNow}, Оставлено: ${itemsStoredInChest}`);
-    console.log(`Из них: ${epicWeaponsStored} эпических оружий`);
+    console.log('================================');
+    console.log(`Обработка завершена:`);
+    console.log(`- Всего предметов: ${itemsBeforeProcessing}`);
+    console.log(`- Отправлено в сундук: ${itemsStoredInChest}`);
+    console.log(`  • Древние: ${ancientItemsStored}`);
+    console.log(`  • ПМА/ВА: ${pmaVaItemsStored}`);
+    console.log(`  • Эпики с 3+ статами: ${epicItemsStored}`);
+    console.log(`  • Эпическое оружие (GS>550): ${epicWeaponsStored}`);
+    console.log(`- Продано: ${itemsSoldNow}`);
+    console.log('================================');
 
-    if (sellItemsSetting === 'Продавать вещи') {
+    // Если включена настройка продажи, идем продавать
+    if (sellItemsSetting === 'Продавать вещи' && itemsSoldNow > 0) {
         await navigateToSellItems();
     }
 }
@@ -1222,17 +1283,35 @@ function checkPmaVaItem(dialog) {
 function checkWeaponItem(dialog) {
     const weaponTag = dialog.querySelector('.item-tags');
     if (weaponTag && weaponTag.textContent.trim() === 'Оружие') {
-        console.log('Найдено оружие');
         return true;
     }
     return false;
 }
 
 function checkEpicWeapon(dialog) {
+    // Проверяем, что предмет - оружие
+    const weaponTag = dialog.querySelector('.item-tags');
+    if (!weaponTag || weaponTag.textContent.trim() !== 'Оружие') {
+        return false;
+    }
+
+    // Проверяем, что качество - эпическое
     const qualityElement = dialog.querySelector('.item-quality');
-    const isEpic = qualityElement && qualityElement.textContent.trim() === 'Эпический';
-    const isWeapon = checkWeaponItem(dialog);
-    return isEpic && isWeapon;
+    if (!qualityElement || qualityElement.textContent.trim() !== 'Эпическое') {
+        return false;
+    }
+
+    // Проверяем Gear Score (должен быть > 550)
+    const gearScoreElement = dialog.querySelector('.gear-score-value');
+    if (gearScoreElement) {
+        const gearScore = parseInt(gearScoreElement.textContent.trim(), 10);
+        if (!isNaN(gearScore) && gearScore > 550) {
+            console.log(`Найдено эпическое оружие с Gear Score: ${gearScore}`);
+            return true;
+        }
+    }
+
+    return false;
 }
 // Обновляем время работы скрипта каждые 5 секунд
 setInterval(updateScriptRuntime, 5000);
