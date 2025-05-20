@@ -4,7 +4,7 @@ let selectedLocation = 'Зеленые топи'; // Локация по умо�
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Воин'; // Класс по умолчанию
-const SCRIPT_COMMIT = '1.7';
+const SCRIPT_COMMIT = '1.8';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -637,55 +637,72 @@ async function checkAndActivateDefenseBuff() {
     }
 }
 
-// Функция использования Зелья маны
-async function useManaPotion() {
-    const manaPotionButton = document.querySelector('app-action-button .action-image[style*="potion-mana-epic"]');
-    if (manaPotionButton) {
-        manaPotionButton.click();
-        await new Promise(resolve => setTimeout(resolve, 100)); // Задержка для применения
-    } else {
-        console.error('Кнопка Зелья маны не найдена');
+// Функция использования любого зелья здоровья
+async function useHealthPotion() {
+    const healthPotionButtons = [
+        'potion-health-epic',  // Эпическое
+        'potion-health-rare',  // Рарное
+        'potion-health-common' // Обычное
+    ];
+
+    for (const potion of healthPotionButtons) {
+        const potionButton = document.querySelector(`app-action-button .action-image[style*="${potion}"]`);
+        if (potionButton) {
+            potionButton.click();
+            console.log(`Использовано зелье здоровья: ${potion}`);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return true;
+        }
     }
+    console.log('Не найдено зелий здоровья');
+    return false;
 }
 
-// Функция использования Зелья здоровья
-async function useHealthPotion() {
-    const healthPotionButton = document.querySelector('app-action-button .action-image[style*="potion-health-epic"]');
-    if (healthPotionButton) {
-        healthPotionButton.click();
-        await new Promise(resolve => setTimeout(resolve, 100)); // Задержка для применения
-    } else {
-        console.error('Кнопка Зелья здоровья не найдена');
+// Функция использования любого зелья маны
+async function useManaPotion() {
+    const manaPotionButtons = [
+        'potion-mana-epic',   // Эпическое
+        'potion-mana-rare',   // Рарное
+        'potion-mana-common'  // Обычное
+    ];
+
+    for (const potion of manaPotionButtons) {
+        const potionButton = document.querySelector(`app-action-button .action-image[style*="${potion}"]`);
+        if (potionButton) {
+            potionButton.click();
+            console.log(`Использовано зелье маны: ${potion}`);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return true;
+        }
     }
+    console.log('Не найдено зелий маны');
+    return false;
 }
 
 // Функция проверки маны и здоровья
 async function checkManaAndHealth() {
-    const skills = CLASS_SKILLS[selectedClass];
-    
-    // Проверка маны для классов, у которых есть навыки, требующие маны
-    if (skills.attack || skills.heal || skills.buff) {
-        const manaElement = document.querySelector('app-general-stat.profile-mana .stats-line-mana');
-        if (manaElement) {
-            const manaPercentage = parseFloat(manaElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
-            if (manaPercentage <= -50) {
-                await useManaPotion();
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-        }
-    }
-
     // Проверка здоровья для всех классов
     const healthElement = document.querySelector('app-general-stat.profile-health .stats-line');
     if (healthElement) {
         const healthPercentage = parseFloat(healthElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
         if (healthPercentage <= -20) {
-            await useHealthPotion();
+            await useHealthPotion(); // Будет использовать любое доступное зелье
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Используем навык лечения, если он есть у класса
-            if (skills.heal) {
-                await useSkill(skills.heal);
+            if (CLASS_SKILLS[selectedClass]?.heal) {
+                await useSkill(CLASS_SKILLS[selectedClass].heal);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+    }
+
+    // Проверка маны для классов, у которых есть навыки
+    if (CLASS_SKILLS[selectedClass]?.attack || CLASS_SKILLS[selectedClass]?.heal || CLASS_SKILLS[selectedClass]?.buff) {
+        const manaElement = document.querySelector('app-general-stat.profile-mana .stats-line-mana');
+        if (manaElement) {
+            const manaPercentage = parseFloat(manaElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
+            if (manaPercentage <= -50) {
+                await useManaPotion(); // Будет использовать любое доступное зелье
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
