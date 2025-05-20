@@ -1,12 +1,12 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 let deaths = 0; // Количество смертей
 let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
-let scriptPausedTime = 0; // Время, проведенное в паузе
-let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.11';
-
+const SCRIPT_COMMIT = '1.12';
+let scriptStartTime = Date.now();
+let lastStartTime = Date.now();
+let scriptPausedTime = 0;
 // Навыки для каждого класса
 const CLASS_SKILLS = {
     'Воин': {
@@ -277,72 +277,97 @@ async function createStatisticsElement() {
     statsContainer.id = 'statistics-container';
     statsContainer.style.position = 'fixed';
     statsContainer.style.top = '110px';
-    statsContainer.style.right = '1px';
+    statsContainer.style.right = '20px';
     statsContainer.style.zIndex = '1000';
     statsContainer.style.padding = '15px';
     statsContainer.style.backgroundColor = 'var(--black-dark)';
-    statsContainer.style.border = '2px solid var(--black-light)';
+    statsContainer.style.border = '2px solid var(--gold-base)';
     statsContainer.style.borderRadius = '10px';
     statsContainer.style.fontSize = '14px';
     statsContainer.style.color = 'var(--white)';
     statsContainer.style.fontFamily = 'Arial, sans-serif';
-    statsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-    statsContainer.style.transition = 'opacity 0.3s ease, visibility 0.3s ease';
+    statsContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+    statsContainer.style.transition = 'all 0.3s ease';
     statsContainer.style.overflow = 'hidden';
+    statsContainer.style.width = '250px';
 
     // Изначально окно статистики свернуто
     statsContainer.style.opacity = '0';
     statsContainer.style.visibility = 'hidden';
+    statsContainer.style.transform = 'translateX(20px)';
 
     // Содержимое статистики
     const statsContent = document.createElement('div');
     statsContent.id = 'statistics-content';
-    statsContent.style.transition = 'opacity 0.3s ease';
-    statsContent.style.opacity = '1'; // Полностью видимое содержимое
+    statsContent.style.transition = 'all 0.3s ease';
 
     statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Мобы:</span>
-            <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
+        <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--gold-base); text-align: center; border-bottom: 1px solid var(--gold-light); padding-bottom: 8px;">СТАТИСТИКА</div>
+        
+        <!-- Основные показатели -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--green-light);">Мобы:</span>
+            <span id="mobs-killed" style="color: var(--white); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Чампы:</span>
-            <span id="champions-killed" style="color: var(--purple-light); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--purple-light);">Чампы:</span>
+            <span id="champions-killed" style="color: var(--white); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Продано:</span>
-            <span id="items-sold" style="color: var(--gold-light); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--red-light);">Смерти:</span>
+            <span id="deaths" style="color: var(--white); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Оставлено:</span>
-            <span id="items-stored" style="color: var(--gold-light); font-weight: bold;">0</span>
+        
+        <!-- Разделитель -->
+        <div style="border-top: 1px dashed var(--gray-light); margin: 10px 0;"></div>
+        
+        <!-- Продажи -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span style="color: var(--gold-light);">В магаз:</span>
+            <span id="items-sold" style="color: var(--white); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Древние вещи:</span>
-            <span id="ancient-items" style="color: var(--red-light); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span style="color: var(--gold-light); padding-left: 15px; font-size: 12px;">• Продажи:</span>
+            <span id="sell-trips" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>ПМА/ВА:</span>
-            <span id="pma-va-items" style="color: var(--red-light); font-weight: bold;">0</span>
+        
+        <!-- Сундук -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span style="color: var(--blue-light);">В сундук:</span>
+            <span id="items-stored" style="color: var(--white); font-weight: bold;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Походы в магаз:</span>
-            <span id="sell-trips" style="color: var(--white-light); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• Пухи (GS>550):</span>
+            <span id="epic-weapons" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Смерти:</span>
-            <span id="deaths" style="color: var(--red-light); font-weight: bold;">0</span>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• Древние:</span>
+            <span id="ancient-items" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
         </div>
-        <div style="margin-top: 10px;">
-            <span>Время работы:</span>
-            <div id="script-runtime" style="color: var(--white-light); font-weight: bold;">0 сек</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• ПМА/ВА:</span>
+            <span id="pma-va-items" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
         </div>
-        <div style="font-size: 10px; color: var(--gray-light); text-align: right; margin-top: 5px;">${SCRIPT_COMMIT}</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: var(--blue-light); padding-left: 15px; font-size: 12px;">• 3+ статы:</span>
+            <span id="epic-items" style="color: var(--white); font-weight: bold; font-size: 12px;">0</span>
+        </div>
+        
+        <!-- Разделитель -->
+        <div style="border-top: 1px dashed var(--gray-light); margin: 10px 0;"></div>
+        
+        <!-- Время работы -->
+        <div style="text-align: center; margin-top: 5px;">
+            <div style="font-size: 12px; color: var(--gray-light);">Время работы:</div>
+            <div id="script-runtime" style="color: var(--gold-light); font-weight: bold; font-size: 16px;">00:00:00</div>
+        </div>
+        
+        <!-- Версия -->
+        <div style="font-size: 10px; color: var(--gray-light); text-align: right; margin-top: 10px;">v${SCRIPT_COMMIT}</div>
     `;
 
     // Логика сворачивания/разворачивания
-    let isCollapsed = true; // Изначально свернуто
+    let isCollapsed = true;
     const toggleButton = document.createElement('button');
     toggleButton.textContent = '+';
     toggleButton.style.position = 'fixed';
@@ -355,33 +380,49 @@ async function createStatisticsElement() {
     toggleButton.style.border = 'none';
     toggleButton.style.borderRadius = '50%';
     toggleButton.style.cursor = 'pointer';
-    toggleButton.style.fontSize = '14px';
+    toggleButton.style.fontSize = '16px';
     toggleButton.style.fontWeight = 'bold';
     toggleButton.style.display = 'flex';
     toggleButton.style.alignItems = 'center';
     toggleButton.style.justifyContent = 'center';
-    toggleButton.style.zIndex = '1001'; // Поверх окна статистики
+    toggleButton.style.zIndex = '1001';
+    toggleButton.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
+    toggleButton.style.transition = 'all 0.3s ease';
 
     toggleButton.addEventListener('click', () => {
         if (isCollapsed) {
             statsContainer.style.opacity = '1';
             statsContainer.style.visibility = 'visible';
+            statsContainer.style.transform = 'translateX(0)';
             toggleButton.textContent = '-';
+            toggleButton.style.transform = 'rotate(180deg)';
         } else {
             statsContainer.style.opacity = '0';
             statsContainer.style.visibility = 'hidden';
+            statsContainer.style.transform = 'translateX(20px)';
             toggleButton.textContent = '+';
+            toggleButton.style.transform = 'rotate(0)';
         }
         isCollapsed = !isCollapsed;
     });
 
     statsContainer.appendChild(statsContent);
     document.body.appendChild(statsContainer);
-    document.body.appendChild(toggleButton); // Добавляем кнопку отдельно
-    await new Promise(resolve => setTimeout(resolve, 100));
+    document.body.appendChild(toggleButton);
+    
+    // Добавляем анимацию появления
+    setTimeout(() => {
+        toggleButton.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            toggleButton.style.transform = 'scale(1)';
+        }, 150);
+    }, 500);
 }
 // Основной скрипт
 async function runScript() {
+    scriptStartTime = Date.now(); // Сбрасываем время при каждом запуске
+    lastStartTime = Date.now();
+    scriptPausedTime = 0;
     try {
         await clickByTextContent('Сражения');
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -908,10 +949,51 @@ async function checkAndReturnToCity() {
 
 // Обновляем статистику
 function updateStatistics(stat, value) {
-    const statElement = document.getElementById(stat);
-    if (statElement) {
-        statElement.textContent = value;
-        setTimeout(() => {}, 100);
+    const statElements = {
+        'mobs-killed': document.getElementById('mobs-killed'),
+        'champions-killed': document.getElementById('champions-killed'),
+        'deaths': document.getElementById('deaths'),
+        'items-sold': document.getElementById('items-sold'),
+        'sell-trips': document.getElementById('sell-trips'),
+        'items-stored': document.getElementById('items-stored'),
+        'epic-weapons': document.getElementById('epic-weapons'),
+        'ancient-items': document.getElementById('ancient-items'),
+        'pma-va-items': document.getElementById('pma-va-items'),
+        'epic-items': document.getElementById('epic-items'),
+        'script-runtime': document.getElementById('script-runtime')
+    };
+
+    if (!statElements[stat]) return;
+
+    // Специальная обработка для времени
+    if (stat === 'script-runtime') {
+        // Проверяем, что value - число
+        const seconds = Number(value);
+        if (isNaN(seconds)) {
+            statElements[stat].textContent = '00:00:00';
+            return;
+        }
+
+        // Форматируем время
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        statElements[stat].textContent = 
+            `${hours.toString().padStart(2, '0')}:` +
+            `${minutes.toString().padStart(2, '0')}:` +
+            `${secs.toString().padStart(2, '0')}`;
+    } else {
+        // Для остальной статистики
+        statElements[stat].textContent = value;
+        
+        // Анимация обновления
+        statElements[stat].style.transform = 'scale(1.1)';
+        statElements[stat].style.color = 'var(--gold-light)';
+        setTimeout(() => {
+            statElements[stat].style.transform = 'scale(1)';
+            statElements[stat].style.color = 'var(--white)';
+        }, 300);
     }
 }
 
@@ -923,24 +1005,18 @@ let itemsStored = 0;
 let ancientItems = 0;
 let pmaVaItems = 0;
 let sellTrips = 0;
-let scriptStartTime = Date.now();
+
 
 function updateScriptRuntime() {
     if (!isScriptRunning) {
-        // Если скрипт на паузе, фиксируем время паузы
         scriptPausedTime += Date.now() - lastStartTime;
-        lastStartTime = Date.now(); // Обновляем время последней фиксации
+        lastStartTime = Date.now();
         return;
     }
 
-    // Вычисляем общее время работы скрипта
-    const runtimeInSeconds = Math.floor((Date.now() - scriptStartTime - scriptPausedTime) / 1000);
-    const hours = Math.floor(runtimeInSeconds / 3600);
-    const minutes = Math.floor((runtimeInSeconds % 3600) / 60);
-    const seconds = runtimeInSeconds % 60;
-
-    const formattedTime = `${hours}ч ${minutes}м ${seconds}с`;
-    updateStatistics('script-runtime', formattedTime);
+    // Вычисляем время работы в секундах
+    const runtimeSeconds = Math.floor((Date.now() - scriptStartTime - scriptPausedTime) / 1000);
+    updateStatistics('script-runtime', runtimeSeconds);
 }
 
 async function fightEnemies(isChampionHexagon = false) {
@@ -1272,7 +1348,7 @@ function checkEpicItemWithStats(dialog) {
 // Проверка, имеет ли предмет ПМА или ВА
 function checkPmaVaItem(dialog) {
     const stats = dialog.querySelector('.item-stats');
-    if (stats && (stats.textContent.includes('ПМА') || stats.textContent.includes('ВА'))) {
+    if (stats && (stats.textContent.includes('Пауза между атаками') || stats.textContent.includes('Время активации'))) {
         setTimeout(() => {}, 100);
         return true;
     }
