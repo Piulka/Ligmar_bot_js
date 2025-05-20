@@ -1,44 +1,55 @@
 let isScriptRunning = false; // Флаг для отслеживания состояния скрипта
 let deaths = 0; // Количество смертей
 let selectedLocation = 'Зеленые топи'; // Локация по умолчанию
-// Переменная для хранения времени, когда скрипт был запущен
 let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
-let isRandomMode = false; // По умолчанию "Не рандом"
 let selectedClass = 'Воин'; // Класс по умолчанию
 
+// Навыки для каждого класса
+const CLASS_SKILLS = {
+    'Воин': {
+        attack: ['assets/images/skills/1421a679ae40807f87b6d8677e316a1f.webp', 'assets/images/skills/1491a679ae4080468358fcce4f0dfadd.webp'],
+        heal: 'assets/images/skills/1491a679ae408091bc22c1b4ff900728.webp',
+        buff: 'assets/images/skills/1441a679ae4080e0ac0ce466631bc99e.webp'
+    },
+    'Убийца': {
+        attack: ['assets/images/icons/attack.webp'],
+        heal: null,
+        buff: null
+    },
+    'Лучник': {
+        attack: ['assets/images/icons/attack.webp'], // Замени на реальные скилы лучника
+        heal: 'assets/images/skills/archer_heal_skill.webp', // Замени на реальный скил
+        buff: 'assets/images/skills/archer_buff_skill.webp' // Замени на реальный скил
+    }
+};
 
 // Функция для создания кнопки "Настройки"
 async function createSettingsButton() {
-    // Проверяем, существует ли уже кнопка
-    if (document.getElementById('settings-button')) {
-        console.log('Кнопка "Настройки" уже существует');
-        return;
-    }
+    if (document.getElementById('settings-button')) return;
 
     const button = document.createElement('button');
     button.id = 'settings-button';
     button.style.position = 'fixed';
     button.style.top = '80px';
     button.style.right = '20px';
-    button.style.width = '20px'; // Увеличен размер кнопки для лучшего отображения
-    button.style.height = '20px'; // Увеличен размер кнопки для лучшего отображения
+    button.style.width = '20px';
+    button.style.height = '20px';
     button.style.backgroundColor = 'var(--gold-base)';
     button.style.color = 'var(--black-dark)';
     button.style.border = 'none';
-    button.style.borderRadius = '50%'; // Круглая форма
+    button.style.borderRadius = '50%';
     button.style.cursor = 'pointer';
-    button.style.fontSize = '20px'; // Размер значка
-    button.style.lineHeight = '20px'; // Высота строки для выравнивания
+    button.style.fontSize = '20px';
+    button.style.lineHeight = '20px';
     button.style.fontWeight = 'bold';
-    button.style.display = 'flex'; // Используем flexbox для выравнивания
-    button.style.alignItems = 'center'; // Вертикальное выравнивание
-    button.style.justifyContent = 'center'; // Горизонтальное выравнивание
+    button.style.display = 'flex';
+    button.style.alignItems = 'center';
+    button.style.justifyContent = 'center';
     button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
     button.style.zIndex = '1000';
-    button.textContent = '⚙'; // Значок "Настройки"
+    button.textContent = '⚙';
 
-    // Логика открытия/закрытия окна настроек
     button.addEventListener('click', () => {
         const settingsContainer = document.getElementById('settings-container');
         if (settingsContainer.style.display === 'none') {
@@ -53,11 +64,7 @@ async function createSettingsButton() {
 
 // Функция для создания окна настроек
 async function createSettingsWindow() {
-    // Проверяем, существует ли уже окно настроек
-    if (document.getElementById('settings-container')) {
-        console.log('Окно настроек уже существует');
-        return;
-    }
+    if (document.getElementById('settings-container')) return;
 
     const settingsContainer = document.createElement('div');
     settingsContainer.id = 'settings-container';
@@ -72,9 +79,8 @@ async function createSettingsWindow() {
     settingsContainer.style.padding = '10px';
     settingsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
     settingsContainer.style.zIndex = '1000';
-    settingsContainer.style.display = 'none'; // Скрываем окно по умолчанию
+    settingsContainer.style.display = 'none';
 
-    // Заголовок окна
     const title = document.createElement('div');
     title.textContent = 'Настройки';
     title.style.fontSize = '16px';
@@ -98,7 +104,6 @@ async function createSettingsWindow() {
     locationSelect.style.backgroundColor = 'var(--black-light)';
     locationSelect.style.color = 'var(--white)';
 
-    // Добавляем опции в выпадающее меню
     const locations = ['Пригород', 'Проклятый сад', 'Окраины леса', 'Озеро Королей', 'Зеленые топи', 'Старые рудники'];
     locations.forEach(location => {
         const option = document.createElement('option');
@@ -107,10 +112,7 @@ async function createSettingsWindow() {
         locationSelect.appendChild(option);
     });
 
-    // Устанавливаем выбранную локацию
     locationSelect.value = selectedLocation;
-
-    // Обработчик изменения локации
     locationSelect.addEventListener('change', (event) => {
         selectedLocation = event.target.value;
         console.log(`Выбрана локация: ${selectedLocation}`);
@@ -118,39 +120,6 @@ async function createSettingsWindow() {
 
     settingsContainer.appendChild(locationSelect);
 
-    // Выпадающее меню для выбора режима (Рандом/Не рандом)
-    const randomModeLabel = document.createElement('label');
-    randomModeLabel.textContent = 'Режим выбора гексагона:';
-    randomModeLabel.style.display = 'block';
-    randomModeLabel.style.marginTop = '10px';
-    randomModeLabel.style.marginBottom = '5px';
-    settingsContainer.appendChild(randomModeLabel);
-
-    const randomModeSelect = document.createElement('select');
-    randomModeSelect.id = 'random-mode-select';
-    randomModeSelect.style.width = '100%';
-    randomModeSelect.style.padding = '5px';
-    randomModeSelect.style.border = '1px solid var(--black-light)';
-    randomModeSelect.style.borderRadius = '5px';
-    randomModeSelect.style.backgroundColor = 'var(--black-light)';
-    randomModeSelect.style.color = 'var(--white)';
-
-    // Добавляем опции в выпадающее меню
-    const randomModes = ['Не рандом', 'Рандом'];
-    randomModes.forEach(mode => {
-        const option = document.createElement('option');
-        option.value = mode;
-        option.textContent = mode;
-        randomModeSelect.appendChild(option);
-    });
-
-    // Устанавливаем обработчик изменения режима
-    randomModeSelect.addEventListener('change', (event) => {
-        isRandomMode = event.target.value === 'Рандом';
-        console.log(`Режим выбора гексагона: ${isRandomMode ? 'Рандом' : 'Не рандом'}`);
-    });
-    
-    settingsContainer.appendChild(randomModeSelect);
     // Выпадающее меню для выбора класса
     const classLabel = document.createElement('label');
     classLabel.textContent = 'Выбор класса:';
@@ -168,8 +137,7 @@ async function createSettingsWindow() {
     classSelect.style.backgroundColor = 'var(--black-light)';
     classSelect.style.color = 'var(--white)';
 
-    // Добавляем опции
-    const classes = ['Воин', 'Убийца'];
+    const classes = ['Воин', 'Убийца', 'Лучник'];
     classes.forEach(cls => {
         const option = document.createElement('option');
         option.value = cls;
@@ -177,12 +145,9 @@ async function createSettingsWindow() {
         classSelect.appendChild(option);
     });
 
-    // Устанавливаем значение по умолчанию
     classSelect.value = selectedClass;
-
-    // Обработчик изменения
     classSelect.addEventListener('change', (event) => {
-        selectedClass = event.target.value; // Обновляем глобальную переменную
+        selectedClass = event.target.value;
         console.log(`Выбран класс: ${selectedClass}`);
     });
 
@@ -291,7 +256,7 @@ async function createStatisticsElement() {
     statsContent.style.opacity = '1'; // Полностью видимое содержимое
 
     statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.5 Статистика:</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">v.1.5.1 Статистика:</div>
         <div style="display: flex; justify-content: space-between;">
             <span>Мобы:</span>
             <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
@@ -426,15 +391,13 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
     while (Date.now() - start < timeout) {
         if (!isScriptRunning) return false;
 
-        // Нажимаем на иконку "aim.svg" перед поиском гексагона
         const aimIcon = document.querySelector('tui-icon.svg-icon[style*="aim.svg"]');
         if (aimIcon) {
             aimIcon.click();
-            await new Promise(resolve => setTimeout(resolve, 100)); // Задержка после нажатия
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         for (const priority of priorities) {
-            // Универсальный поиск для приоритетных сущностей (алтарь, сундук, чемпион, босс)
             if (priority.type === 'champion' || priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
                 const targetUse = Array.from(document.querySelectorAll('use')).find(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
@@ -448,7 +411,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                         clickHexagon(hexagon);
                         await new Promise(resolve => setTimeout(resolve, 100));
 
-                        // Если это чемпион, передаем флаг в fightEnemies
                         if (priority.type === 'champion') {
                             await fightEnemies(true);
                         } else {
@@ -460,7 +422,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                 }
             }
 
-            // Проверяем врагов
             if (priority.type === 'enemies') {
                 const hexagons = Array.from(document.querySelectorAll('g.hex-box')).filter(hexagon => {
                     const textElement = hexagon.querySelector('text.enemies');
@@ -468,10 +429,8 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                 });
 
                 if (hexagons.length > 0) {
-                    const selectedHexagon = isRandomMode
-                        ? hexagons[Math.floor(Math.random() * hexagons.length)] // Выбираем случайный гексагон
-                        : hexagons[0]; // Берём первый гексагон, если "Не рандом"
-
+                    // Всегда выбираем случайный гексагон
+                    const selectedHexagon = hexagons[Math.floor(Math.random() * hexagons.length)];
                     clickHexagon(selectedHexagon);
                     await new Promise(resolve => setTimeout(resolve, 100));
                     await fightEnemies(false);
@@ -480,7 +439,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, 100)); // Задержка перед повторной проверкой
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     return false;
@@ -628,23 +587,25 @@ async function isSpecialHexagon() {
 
 // Функция использования навыков
 async function useSkills() {
-    const skills = selectedClass === 'Воин' 
-        ? [SKILLS.KICK, SKILLS.TAUNTING_STRIKE] 
-        : ['assets/images/icons/attack.webp']; // Для убийцы
-    
-    for(const skill of skills) {
-        await useSkill(skill);
-        await new Promise(resolve => setTimeout(resolve, 100));
+    const skills = CLASS_SKILLS[selectedClass];
+    if (!skills) return;
+
+    // Используем атакующие навыки
+    if (skills.attack && skills.attack.length) {
+        for (const skill of skills.attack) {
+            await useSkill(skill);
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
     }
 }
 
 // Приоритеты
 const priorities = [
     { type: 'champion', selector: '#champion' },
-    { type: 'chest-epic', selector: '#chest-epic' },      // Эпик сундук
+    { type: 'chest-epic', selector: '#chest-epic' },
     { type: 'shrine', selector: '#shrine' },
-    { type: 'chest-rare', selector: '#chest-rare' },     // Рар сундук
-    { type: 'chest-epic', selector: '#chest-common' },      // Эпик сундук
+    { type: 'chest-rare', selector: '#chest-rare' },
+    { type: 'chest-epic', selector: '#chest-common' },
     { type: 'enemies', value: '1' },
     { type: 'enemies', value: '2' }
 ];
@@ -660,12 +621,13 @@ const SKILLS = {
 
 // Функция проверки и активации DEF_BUFF
 async function checkAndActivateDefenseBuff() {
-    if(selectedClass !== 'Воин') return;
+    const skills = CLASS_SKILLS[selectedClass];
+    if (!skills || !skills.buff) return;
     
     try {
         const defenseIcon = document.querySelector('tui-icon.svg-icon[style*="upDefenseWarrior.svg"]');
-        if(!defenseIcon) {
-            await useSkill(SKILLS.DEF_BUFF);
+        if (!defenseIcon) {
+            await useSkill(skills.buff);
             await new Promise(resolve => setTimeout(resolve, 100));
         }
     } catch(error) {
@@ -697,8 +659,10 @@ async function useHealthPotion() {
 
 // Функция проверки маны и здоровья
 async function checkManaAndHealth() {
-    // Проверка маны только для Воина
-    if (selectedClass === 'Воин') {
+    const skills = CLASS_SKILLS[selectedClass];
+    
+    // Проверка маны для классов, у которых есть навыки, требующие маны
+    if (skills.attack || skills.heal || skills.buff) {
         const manaElement = document.querySelector('app-general-stat.profile-mana .stats-line-mana');
         if (manaElement) {
             const manaPercentage = parseFloat(manaElement.style.transform.match(/-?\d+(\.\d+)?/)[0]);
@@ -717,9 +681,9 @@ async function checkManaAndHealth() {
             await useHealthPotion();
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Скилл лечения только для Воина
-            if (selectedClass === 'Воин') {
-                await useSkill(SKILLS.LIFE_LEECH);
+            // Используем навык лечения, если он есть у класса
+            if (skills.heal) {
+                await useSkill(skills.heal);
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
