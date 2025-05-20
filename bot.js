@@ -536,11 +536,9 @@ function clickPolygon(polygon) {
 
 // Основной цикл
 async function mainLoop() {
-    // Проверяем и возвращаемся в город, если нужно
     checkAndReturnToCity();
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Обрабатываем переполненный рюкзак
     await handleFullBackpack();
     await new Promise(resolve => setTimeout(resolve, 100));
     const hexagonFound = await clickHexagonWithPriority(priorities);
@@ -548,33 +546,41 @@ async function mainLoop() {
 
     const transitionSuccess = await clickByTextContent('Перейти');
     await new Promise(resolve => setTimeout(resolve, 100));
+    
     if (!transitionSuccess) {
-        // Проверяем, находится ли мы в текущем гексагоне
         const currentHexText = document.querySelector('div.hex-footer div.hex-current-text.ng-star-inserted');
         if (currentHexText && currentHexText.textContent.trim() === 'Вы здесь') {
-
-            // Нажимаем на кнопку закрытия
             const closeButton = document.querySelector('tui-icon.svg-icon[style*="close.svg"]');
             if (closeButton) {
                 closeButton.click();
                 await new Promise(resolve => setTimeout(resolve, 100));
-                await fightEnemies();
+                
+                // Нажимаем на иконку автоматического режима
+                const autoSwitchIcon = document.querySelector(
+                    'tui-icon.svg-icon[style*="switch-auto.svg"]'
+                );
+                
+                if (autoSwitchIcon) {
+                    autoSwitchIcon.click();
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Добавлен await
+                } else {
+                    console.error('Иконка автоматического режима не найдена');
+                    return;
+                }
+                
+                await fightEnemies(); // Добавлен await
             } else {
                 console.error('Кнопка закрытия не найдена');
                 return;
             }
-            await fightEnemies();
             return;
         }
-
         return;
     }
 
     const enemyAppeared = await waitForEnemy();
     await new Promise(resolve => setTimeout(resolve, 100));
-    if (!enemyAppeared) {
-        return;
-    }
+    if (!enemyAppeared) return;
 
     await fightEnemies();
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -1168,7 +1174,7 @@ function checkEpicItemWithStats(dialog) {
     const requiredStats = [
         'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
         'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье'
+        'Сопротивление', 'Интеллект', 'Здоровье', 'Точность', 'Требования'
     ];
 
     // Подсчитываем количество совпадающих статов
