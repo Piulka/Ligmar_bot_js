@@ -5,7 +5,7 @@ let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.16';
+const SCRIPT_COMMIT = '1.17';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -77,6 +77,8 @@ async function createSettingsButton() {
 }
 
 // Функция для создания окна настроек
+
+
 async function createSettingsWindow() {
     if (document.getElementById('settings-container')) return;
 
@@ -85,122 +87,160 @@ async function createSettingsWindow() {
     settingsContainer.style.position = 'fixed';
     settingsContainer.style.top = '110px';
     settingsContainer.style.right = '0px';
-    settingsContainer.style.width = '200px';
-    settingsContainer.style.backgroundColor = 'var(--black-dark)';
+    settingsContainer.style.width = '170px';
+    settingsContainer.style.background = 'linear-gradient(135deg, var(--black-dark) 85%, var(--gold-base) 100%)';
     settingsContainer.style.color = 'var(--white)';
-    settingsContainer.style.border = '2px solid var(--black-light)';
-    settingsContainer.style.borderRadius = '10px';
-    settingsContainer.style.padding = '10px';
-    settingsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    settingsContainer.style.border = '1.5px solid var(--gold-base)';
+    settingsContainer.style.borderRadius = '12px';
+    settingsContainer.style.padding = '10px 8px 8px 8px';
+    settingsContainer.style.boxShadow = '0 6px 24px 0 rgba(0,0,0,0.18)';
     settingsContainer.style.zIndex = '1000';
     settingsContainer.style.display = 'none';
+    settingsContainer.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    settingsContainer.style.fontSize = '11px';
+    settingsContainer.style.userSelect = 'none';
 
+    // Заголовок
     const title = document.createElement('div');
     title.textContent = 'Настройки';
-    title.style.fontSize = '16px';
+    title.style.fontSize = '13px';
     title.style.fontWeight = 'bold';
-    title.style.marginBottom = '10px';
+    title.style.color = 'var(--gold-base)';
+    title.style.marginBottom = '8px';
+    title.style.textAlign = 'center';
     settingsContainer.appendChild(title);
 
-    // Выпадающее меню для выбора локации
-    const locationLabel = document.createElement('label');
-    locationLabel.textContent = 'Выбор локации:';
-    locationLabel.style.display = 'block';
-    locationLabel.style.marginBottom = '5px';
-    settingsContainer.appendChild(locationLabel);
+    // --- Универсальный генератор группы radio-переключателей ---
+    function createRadioGroup({ label, name, options, selectedValue, onChange }) {
+        const group = document.createElement('div');
+        group.style.marginBottom = '10px';
 
-    const locationSelect = document.createElement('select');
-    locationSelect.id = 'location-select';
-    locationSelect.style.width = '100%';
-    locationSelect.style.padding = '5px';
-    locationSelect.style.border = '1px solid var(--black-light)';
-    locationSelect.style.borderRadius = '5px';
-    locationSelect.style.backgroundColor = 'var(--black-light)';
-    locationSelect.style.color = 'var(--white)';
+        const groupLabel = document.createElement('div');
+        groupLabel.textContent = label;
+        groupLabel.style.fontWeight = '600';
+        groupLabel.style.color = 'var(--gold-base)';
+        groupLabel.style.fontSize = '11px';
+        groupLabel.style.marginBottom = '3px';
+        group.appendChild(groupLabel);
 
+        const optionsContainer = document.createElement('div');
+        optionsContainer.style.display = 'flex';
+        optionsContainer.style.flexDirection = 'column';
+        optionsContainer.style.gap = '3px';
+
+        options.forEach(opt => {
+            const optionLabel = document.createElement('label');
+            optionLabel.style.display = 'flex';
+            optionLabel.style.alignItems = 'center';
+            optionLabel.style.cursor = 'pointer';
+            optionLabel.style.padding = '2px 0';
+
+            // Кастомная radio
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = name;
+            radio.value = opt;
+            radio.checked = selectedValue === opt;
+            radio.style.accentColor = 'var(--gold-base)';
+            radio.style.marginRight = '5px';
+            radio.style.width = '12px';
+            radio.style.height = '12px';
+            radio.style.cursor = 'pointer';
+
+            // Кастомный круглый чекбокс (поверх стандартного radio)
+            const customRadio = document.createElement('span');
+            customRadio.style.display = 'inline-block';
+            customRadio.style.width = '12px';
+            customRadio.style.height = '12px';
+            customRadio.style.border = '1.5px solid var(--gold-base)';
+            customRadio.style.borderRadius = '50%';
+            customRadio.style.marginRight = '5px';
+            customRadio.style.background = radio.checked ? 'var(--gold-base)' : 'transparent';
+            customRadio.style.transition = 'background 0.2s, border 0.2s';
+
+            // Скрыть стандартный radio, оставить только кастомный
+            radio.style.opacity = '0';
+            radio.style.position = 'absolute';
+
+            // Текст опции
+            const text = document.createElement('span');
+            text.textContent = opt;
+            text.style.color = radio.checked ? 'var(--gold-base)' : 'var(--white)';
+            text.style.fontWeight = radio.checked ? '700' : '400';
+            text.style.fontSize = '11px';
+
+            // Обработка клика
+            optionLabel.onclick = () => {
+                // Снимаем выделение со всех radio в группе
+                Array.from(optionsContainer.querySelectorAll('input[type="radio"]')).forEach(r => {
+                    r.checked = false;
+                    r.nextSibling.style.background = 'transparent';
+                    r.nextSibling.nextSibling.style.color = 'var(--white)';
+                    r.nextSibling.nextSibling.style.fontWeight = '400';
+                });
+                radio.checked = true;
+                customRadio.style.background = 'var(--gold-base)';
+                text.style.color = 'var(--gold-base)';
+                text.style.fontWeight = '700';
+                onChange(opt);
+            };
+
+            optionLabel.appendChild(radio);
+            optionLabel.appendChild(customRadio);
+            optionLabel.appendChild(text);
+
+            optionsContainer.appendChild(optionLabel);
+        });
+
+        group.appendChild(optionsContainer);
+        return group;
+    }
+
+    // --- Группа: Локация ---
     const locations = ['Пригород', 'Проклятый сад', 'Окраина леса', 'Озеро Королей', 'Зеленые топи', 'Старые рудники'];
-    locations.forEach(location => {
-        const option = document.createElement('option');
-        option.value = location;
-        option.textContent = location;
-        locationSelect.appendChild(option);
+    const locationGroup = createRadioGroup({
+        label: 'Выбор локации',
+        name: 'location',
+        options: locations,
+        selectedValue: selectedLocation,
+        onChange: (val) => {
+            selectedLocation = val;
+            console.log(`Выбрана локация: ${selectedLocation}`);
+        }
     });
+    settingsContainer.appendChild(locationGroup);
 
-    locationSelect.value = selectedLocation;
-    locationSelect.addEventListener('change', (event) => {
-        selectedLocation = event.target.value;
-        console.log(`Выбрана локация: ${selectedLocation}`);
-    });
-
-    settingsContainer.appendChild(locationSelect);
-    
-    // Добавляем выпадающий список для настроек продажи
-    const sellSettingLabel = document.createElement('label');
-    sellSettingLabel.textContent = 'Продажа вещей:';
-    sellSettingLabel.style.display = 'block';
-    sellSettingLabel.style.marginTop = '10px';
-    sellSettingLabel.style.marginBottom = '5px';
-    settingsContainer.appendChild(sellSettingLabel);
-
-    const sellSettingSelect = document.createElement('select');
-    sellSettingSelect.id = 'sell-setting-select';
-    sellSettingSelect.style.width = '100%';
-    sellSettingSelect.style.padding = '5px';
-    sellSettingSelect.style.border = '1px solid var(--black-light)';
-    sellSettingSelect.style.borderRadius = '5px';
-    sellSettingSelect.style.backgroundColor = 'var(--black-light)';
-    sellSettingSelect.style.color = 'var(--white)';
-
+    // --- Группа: Продажа вещей ---
     const sellOptions = ['Продавать вещи', 'Не продавать вещи'];
-    sellOptions.forEach(option => {
-        const optElement = document.createElement('option');
-        optElement.value = option;
-        optElement.textContent = option;
-        sellSettingSelect.appendChild(optElement);
+    const sellGroup = createRadioGroup({
+        label: 'Продажа вещей',
+        name: 'sell-setting',
+        options: sellOptions,
+        selectedValue: sellItemsSetting,
+        onChange: (val) => {
+            sellItemsSetting = val;
+            console.log(`Настройка продажи изменена: ${sellItemsSetting}`);
+        }
     });
+    settingsContainer.appendChild(sellGroup);
 
-    sellSettingSelect.value = sellItemsSetting;
-    sellSettingSelect.addEventListener('change', (event) => {
-        sellItemsSetting = event.target.value;
-        console.log(`Настройка продажи изменена: ${sellItemsSetting}`);
-    });
-
-    settingsContainer.appendChild(sellSettingSelect);
-
-    // Выпадающее меню для выбора класса
-    const classLabel = document.createElement('label');
-    classLabel.textContent = 'Выбор класса:';
-    classLabel.style.display = 'block';
-    classLabel.style.marginTop = '10px';
-    classLabel.style.marginBottom = '5px';
-    settingsContainer.appendChild(classLabel);
-
-    const classSelect = document.createElement('select');
-    classSelect.id = 'class-select';
-    classSelect.style.width = '100%';
-    classSelect.style.padding = '5px';
-    classSelect.style.border = '1px solid var(--black-light)';
-    classSelect.style.borderRadius = '5px';
-    classSelect.style.backgroundColor = 'var(--black-light)';
-    classSelect.style.color = 'var(--white)';
-
+    // --- Группа: Класс ---
     const classes = ['Воин', 'Убийца', 'Лучник'];
-    classes.forEach(cls => {
-        const option = document.createElement('option');
-        option.value = cls;
-        option.textContent = cls;
-        classSelect.appendChild(option);
+    const classGroup = createRadioGroup({
+        label: 'Выбор класса',
+        name: 'class',
+        options: classes,
+        selectedValue: selectedClass,
+        onChange: (val) => {
+            selectedClass = val;
+            console.log(`Выбран класс: ${selectedClass}`);
+        }
     });
+    settingsContainer.appendChild(classGroup);
 
-    classSelect.value = selectedClass;
-    classSelect.addEventListener('change', (event) => {
-        selectedClass = event.target.value;
-        console.log(`Выбран класс: ${selectedClass}`);
-    });
-
-    settingsContainer.appendChild(classSelect);
     document.body.appendChild(settingsContainer);
 }
+
 
 // Обновляем функцию выбора локации
 async function clickByLocationName(text = selectedLocation, timeout = 500) {
@@ -275,135 +315,193 @@ async function createControlButton() {
 }
 // Функция для создания элемента статистики
 
+
 async function createStatisticsElement() {
+    // Удаляем старое окно, если оно есть
+    const oldStats = document.getElementById('statistics-container');
+    if (oldStats) oldStats.remove();
+    const oldToggle = document.getElementById('statistics-toggle-btn');
+    if (oldToggle) oldToggle.remove();
+
+    // Контейнер статистики
     const statsContainer = document.createElement('div');
     statsContainer.id = 'statistics-container';
     statsContainer.style.position = 'fixed';
     statsContainer.style.top = '110px';
     statsContainer.style.right = '1px';
     statsContainer.style.zIndex = '1000';
-    statsContainer.style.padding = '15px';
-    statsContainer.style.backgroundColor = 'var(--black-dark)';
-    statsContainer.style.border = '2px solid var(--black-light)';
-    statsContainer.style.borderRadius = '10px';
-    statsContainer.style.fontSize = '14px';
+    statsContainer.style.minWidth = '200px';
+    statsContainer.style.maxWidth = '240px';
+    statsContainer.style.background = 'linear-gradient(135deg, var(--black-dark) 85%, var(--gold-base) 100%)';
+    statsContainer.style.border = '1.5px solid var(--gold-base)';
+    statsContainer.style.borderRadius = '12px';
+    statsContainer.style.boxShadow = '0 6px 24px 0 rgba(0,0,0,0.18)';
+    statsContainer.style.padding = '14px 10px 10px 10px';
+    statsContainer.style.fontFamily = 'Segoe UI, Arial, sans-serif';
     statsContainer.style.color = 'var(--white)';
-    statsContainer.style.fontFamily = 'Arial, sans-serif';
-    statsContainer.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-    statsContainer.style.transition = 'opacity 0.3s ease, visibility 0.3s ease';
-    statsContainer.style.overflow = 'hidden';
-
-    // Изначально окно статистики свернуто
+    statsContainer.style.fontSize = '13px';
+    statsContainer.style.transition = 'opacity 0.3s, visibility 0.3s';
     statsContainer.style.opacity = '0';
     statsContainer.style.visibility = 'hidden';
+    statsContainer.style.overflow = 'hidden';
+    statsContainer.style.userSelect = 'none';
 
     // Содержимое статистики
     const statsContent = document.createElement('div');
     statsContent.id = 'statistics-content';
-    statsContent.style.transition = 'opacity 0.3s ease';
-    statsContent.style.opacity = '1';
 
-    statsContent.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: var(--gold-base);">Статистика:</div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Мобы:</span>
-            <span id="mobs-killed" style="color: var(--green-light); font-weight: bold;">0</span>
+    // Заголовок
+    const header = document.createElement('div');
+    header.style.fontSize = '15px';
+    header.style.fontWeight = 'bold';
+    header.style.color = 'var(--gold-base)';
+    header.style.marginBottom = '10px';
+    header.style.textAlign = 'center';
+    header.textContent = 'Статистика';
+    statsContent.appendChild(header);
+
+    // Универсальный генератор строки-заголовка с крупным счетчиком и подчеркиванием
+    function statHeaderRow(label, id) {
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 0 0;
+            border-bottom:1px solid var(--black-light);padding-bottom:2px;">
+            <span style="font-weight:700;color:var(--gold-base);font-size:14px;">${label}</span>
+            <span id="${id}" style="
+                color:#fff;
+                font-weight:800;
+                font-size:21px;
+                margin-left:8px;
+            ">0</span>
+        </div>`;
+    }
+
+    // Универсальный генератор подпункта
+    function statSubRow(label, id) {
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;
+            padding:2px 0 2px 18px;
+            border-bottom:1px solid var(--black-light);
+            margin-bottom:2px;">
+            <span style="color:var(--gray-light);font-size:12px;margin:0;padding:0;">${label}</span>
+            <span id="${id}" style="
+                display:inline-block;
+                min-width:36px;
+                text-align:right;
+                color:#fff;
+                font-weight:700;
+                font-size:17px;
+                margin-left:8px;
+                background:none;
+                border:none;
+                border-radius:0;
+                padding:0;
+                box-shadow:none;
+                transition:none;
+            ">0</span>
+        </div>`;
+    }
+
+    // Основная статистика (как заголовки)
+    statsContent.innerHTML += statHeaderRow('Мобы', 'mobs-killed');
+    statsContent.innerHTML += statHeaderRow('Чампы', 'champions-killed');
+    statsContent.innerHTML += statHeaderRow('Смерти', 'deaths');
+
+    // Оставлено (заголовок с выделением)
+    statsContent.innerHTML += statHeaderRow('Оставлено', 'items-stored');
+    statsContent.innerHTML += `
+        <div style="margin-bottom:2px;">
+            ${statSubRow('Древние', 'ancient-items')}
+            ${statSubRow('ПМА/ВА', 'pma-va-items')}
+            ${statSubRow('3+ стата', 'epic-stats-items')}
+            ${statSubRow('Пухи', 'epic-weapons')}
+            ${statSubRow('ГС > 650', 'high-gearscore-items')}
         </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span>Чампы:</span>
-            <span id="champions-killed" style="color: var(--purple-light); font-weight: bold;">0</span>
-        </div>
-        <div style="margin-top: 10px;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                <span>Оставлено:</span>
-                <span id="items-stored" style="color: var(--gold-light);">0</span>
-            </div>
-            <div style="margin-left: 10px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--red-light);">- Древние:</span>
-                    <span id="ancient-items" style="color: var(--red-light); font-weight: bold;">0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--red-light);">- ПМА/ВА:</span>
-                    <span id="pma-va-items" style="color: var(--red-light); font-weight: bold;">0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--gold-light);">- 3+ стата:</span>
-                    <span id="epic-stats-items" style="color: var(--gold-light); font-weight: bold;">0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--purple-light);">- Пухи:</span>
-                    <span id="epic-weapons" style="color: var(--purple-light); font-weight: bold;">0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--blue-light);">- ГС > 650:</span>
-                    <span id="high-gearscore-items" style="color: var(--blue-light); font-weight: bold;">0</span>
-                </div>
-            </div>
-        </div>
-        <div style="margin-top: 10px;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                <span>Продано:</span>
-                <span id="items-sold" style="color: var(--white-light);">0</span>
-            </div>
-            <div style="margin-left: 10px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--white-light);">- Походы:</span>
-                    <span id="sell-trips" style="color: var(--white-light); font-weight: bold;">0</span>
-                </div>
-            </div>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-            <span>Смерти:</span>
-            <span id="deaths" style="color: var(--red-light); font-weight: bold;">0</span>
-        </div>
-        <div style="margin-top: 10px;">
-            <span>Время работы:</span>
-            <div id="script-runtime" style="color: var(--white-light); font-weight: bold;">0 сек</div>
-        </div>
-        <div style="font-size: 10px; color: var(--gray-light); text-align: right; margin-top: 5px;">${SCRIPT_COMMIT}</div>
     `;
 
-    // Логика сворачивания/разворачивания
+    // Продано (заголовок с выделением)
+    statsContent.innerHTML += statHeaderRow('Продано', 'items-sold');
+    statsContent.innerHTML += `
+        <div style="margin-bottom:2px;">
+            ${statSubRow('Походы', 'sell-trips')}
+        </div>
+    `;
+
+    // Время работы: подпись и таймер на новой строке в рамке
+    statsContent.innerHTML += `
+        <div style="margin-top:14px;">
+            <div style="font-weight:600;color:var(--gold-base);font-size:13px;margin-bottom:4px;">Время работы:</div>
+            <div style="
+                padding:8px 10px;
+                border:2px solid var(--gold-base);
+                border-radius:8px;
+                background:rgba(255,215,0,0.07);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">
+                <span id="script-runtime" style="
+                    color:#fff;
+                    font-weight:800;
+                    font-size:17px;
+                ">0 сек</span>
+            </div>
+        </div>
+    `;
+
+    // Версия скрипта
+    statsContent.innerHTML += `
+        <div style="font-size:10px;color:var(--gray-light);text-align:right;margin-top:6px;">${typeof SCRIPT_COMMIT !== 'undefined' ? SCRIPT_COMMIT : ''}</div>
+    `;
+
+    statsContainer.appendChild(statsContent);
+
+    // Кнопка сворачивания/разворачивания
     let isCollapsed = true;
     const toggleButton = document.createElement('button');
-    toggleButton.textContent = '+';
+    toggleButton.id = 'statistics-toggle-btn';
+    toggleButton.title = 'Показать/скрыть статистику';
+    toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">+</span>';
     toggleButton.style.position = 'fixed';
     toggleButton.style.top = '50px';
     toggleButton.style.right = '20px';
     toggleButton.style.width = '20px';
     toggleButton.style.height = '20px';
-    toggleButton.style.backgroundColor = 'var(--gold-base)';
+    toggleButton.style.background = 'var(--gold-base)';
     toggleButton.style.color = 'var(--black-dark)';
     toggleButton.style.border = 'none';
     toggleButton.style.borderRadius = '50%';
     toggleButton.style.cursor = 'pointer';
-    toggleButton.style.fontSize = '14px';
+    toggleButton.style.fontSize = '16px';
     toggleButton.style.fontWeight = 'bold';
     toggleButton.style.display = 'flex';
     toggleButton.style.alignItems = 'center';
     toggleButton.style.justifyContent = 'center';
+    toggleButton.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
     toggleButton.style.zIndex = '1001';
 
     toggleButton.addEventListener('click', () => {
         if (isCollapsed) {
             statsContainer.style.opacity = '1';
             statsContainer.style.visibility = 'visible';
-            toggleButton.textContent = '-';
+            toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">−</span>';
         } else {
             statsContainer.style.opacity = '0';
             statsContainer.style.visibility = 'hidden';
-            toggleButton.textContent = '+';
+            toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">+</span>';
         }
         isCollapsed = !isCollapsed;
     });
 
-    statsContainer.appendChild(statsContent);
     document.body.appendChild(statsContainer);
     document.body.appendChild(toggleButton);
+
+    // Свернуто по умолчанию
+    statsContainer.style.opacity = '0';
+    statsContainer.style.visibility = 'hidden';
+    toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">+</span>';
+
     await new Promise(resolve => setTimeout(resolve, 100));
 }
-
 
 
 function checkGearScore(dialog) {
