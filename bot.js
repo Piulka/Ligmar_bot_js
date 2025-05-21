@@ -5,7 +5,7 @@ let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.15';
+const SCRIPT_COMMIT = '1.16';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -274,6 +274,7 @@ async function createControlButton() {
     document.body.appendChild(button);
 }
 // Функция для создания элемента статистики
+
 async function createStatisticsElement() {
     const statsContainer = document.createElement('div');
     statsContainer.id = 'statistics-container';
@@ -333,6 +334,10 @@ async function createStatisticsElement() {
                 <div style="display: flex; justify-content: space-between;">
                     <span style="color: var(--purple-light);">- Пухи:</span>
                     <span id="epic-weapons" style="color: var(--purple-light); font-weight: bold;">0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--blue-light);">- ГС > 650:</span>
+                    <span id="high-gearscore-items" style="color: var(--blue-light); font-weight: bold;">0</span>
                 </div>
             </div>
         </div>
@@ -399,12 +404,21 @@ async function createStatisticsElement() {
     await new Promise(resolve => setTimeout(resolve, 100));
 }
 
-// Переменные для хранения статистики
-let epicStatsItems = 0;
-let epicWeapons = 0;
 
 
-// Обновляем статистику при добавлении вещей в сундук
+function checkGearScore(dialog) {
+    const gsElement = dialog.querySelector('.item-gearscore');
+    if (!gsElement) return false;
+
+    const gearScore = parseInt(gsElement.textContent.replace(/\D/g, ''), 10);
+    if (gearScore > 650) {
+        console.log(`Предмет с ГС ${gearScore} найден`);
+        return true;
+    }
+
+    return false;
+}
+
 async function processBackpackItems() {
     const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
         const nameElement = group.querySelector('.items-group-name');
@@ -420,8 +434,9 @@ async function processBackpackItems() {
     let itemsStoredInChest = 0;
     let ancientItemsStored = 0;
     let pmaVaItemsStored = 0;
-    let epicStatsItemsStored = 0;
     let epicWeaponsStored = 0;
+    let epicStatsItemsStored = 0;
+    let highGearScoreItemsStored = 0;
 
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     if (!items.length) {
@@ -442,21 +457,26 @@ async function processBackpackItems() {
             continue;
         }
 
+        console.log(`Обрабатываем предмет ${i + 1}`);
+        
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
         const isEpicWeapon = checkEpicWeapon(dialog);
+        const hasHighGearScore = checkGearScore(dialog);
 
-        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon) {
+        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon || hasHighGearScore) {
             const chestButton = dialog.querySelector('div.put-in-chest .button-content');
             if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                 chestButton.click();
+                console.log('Вещь отправлена в сундук');
                 itemsStoredInChest++;
                 
                 if (isAncient) ancientItemsStored++;
                 if (isPmaVa) pmaVaItemsStored++;
                 if (isEpicWithStats) epicStatsItemsStored++;
                 if (isEpicWeapon) epicWeaponsStored++;
+                if (hasHighGearScore) highGearScoreItemsStored++;
                 
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
@@ -469,12 +489,13 @@ async function processBackpackItems() {
         }
     }
 
-    // Обновляем все счетчики
+    // Обновляем статистику
     itemsStored += itemsStoredInChest;
     ancientItems += ancientItemsStored;
     pmaVaItems += pmaVaItemsStored;
     epicStatsItems += epicStatsItemsStored;
     epicWeapons += epicWeaponsStored;
+    highGearScoreItems += highGearScoreItemsStored;
     
     updateStatistics('items-stored', itemsStored);
     updateStatistics('ancient-items', ancientItems);
@@ -486,13 +507,14 @@ async function processBackpackItems() {
     itemsSold += itemsSoldNow;
     updateStatistics('items-sold', itemsSold);
 
-    console.log(`Оставлено: ${itemsStoredInChest} (Древние: ${ancientItemsStored}, ПМА/ВА: ${pmaVaItemsStored}, 3+ стата: ${epicStatsItemsStored}, Пухи: ${epicWeaponsStored})`);
+    console.log(`Оставлено: ${itemsStoredInChest} (Древние: ${ancientItemsStored}, ПМА/ВА: ${pmaVaItemsStored}, 3+ стата: ${epicStatsItemsStored}, Пухи: ${epicWeaponsStored}, ГС > 650: ${highGearScoreItemsStored})`);
     console.log(`Продано: ${itemsSoldNow}`);
 
     if (sellItemsSetting === 'Продавать вещи') {
         await navigateToSellItems();
     }
 }
+
 
 // Основной скрипт
 async function runScript() {
@@ -991,32 +1013,61 @@ async function waitForElement(selector, text = null, timeout = 5000) {
 // Функция для поиска и нажатия на кнопку "В город"
 async function checkAndReturnToCity() {
     try {
-        while (isScriptRunning) {
-            const cityButton = document.querySelector('div.button-content');
-            if (cityButton && cityButton.textContent.trim() === 'В город') {
-                console.log('Найдена кнопка "В город", выполняем нажатие...');
-                cityButton.click();
-                await new Promise(resolve => setTimeout(resolve, 100));
-                await delay(1000);
-
-                // Увеличиваем счетчик смертей
-                deaths++;
-                updateStatistics('deaths', deaths);
-                console.log(`Смерть зафиксирована. Всего смертей: ${deaths}`);
-
-                // Выполняем переход в "Сражения" и "Зеленые топи"
-                await clickByTextContent('Сражения');
-                await new Promise(resolve => setTimeout(resolve, 100));
-                await clickByLocationName(selectedLocation);
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-
-            // Задержка перед повторной проверкой
+        const cityButton = document.querySelector('div.button-content');
+        if (cityButton && cityButton.textContent.trim() === 'В город') {
+            console.log('Найдена кнопка "В город", выполняем нажатие...');
+            cityButton.click();
+            await new Promise(resolve => setTimeout(resolve, 100));
             await delay(1000);
+
+            // Обновляем статистику смертей
+            stats.deaths++;
+            updateStatisticsDisplay();
+            console.log(`Смерть зафиксирована. Всего смертей: ${stats.deaths}`);
+
+            // Возвращаемся к боям
+            await clickByTextContent('Сражения');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await clickByLocationName(selectedLocation);
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     } catch (error) {
         console.error('Ошибка в функции checkAndReturnToCity:', error);
     }
+}
+async function afterCombatProcessing(initialEnemyCount, isChampionHexagon = false) {
+    // Обновляем статистику убийств
+    stats.mobsKilled += initialEnemyCount;
+    if (isChampionHexagon) {
+        stats.championsKilled++;
+    }
+    updateStatisticsDisplay();
+}
+
+function initializeStatistics() {
+    // Сбрасываем все значения
+    stats = {
+        mobsKilled: 0,
+        championsKilled: 0,
+        deaths: 0,
+        items: {
+            stored: 0,
+            sold: 0,
+            categories: {
+                ancient: 0,
+                pmaVa: 0,
+                epicStats: 0,
+                epicWeapons: 0,
+                highGearScore: 0
+            }
+        },
+        sellTrips: 0,
+        scriptStartTime: Date.now(),
+        lastPauseTime: 0,
+        totalPausedTime: 0
+    };
+    
+    updateStatisticsDisplay();
 }
 
 // Обновляем статистику
@@ -1054,6 +1105,74 @@ function updateScriptRuntime() {
 
     const formattedTime = `${hours}ч ${minutes}м ${seconds}с`;
     updateStatistics('script-runtime', formattedTime);
+}
+
+let stats = {
+    mobsKilled: 0,
+    championsKilled: 0,
+    deaths: 0,
+    items: {
+        stored: 0,
+        sold: 0,
+        categories: {
+            ancient: 0,
+            pmaVa: 0,
+            epicStats: 0,
+            epicWeapons: 0,
+            highGearScore: 0
+        }
+    },
+    sellTrips: 0,
+    scriptStartTime: Date.now(),
+    lastPauseTime: 0,
+    totalPausedTime: 0
+};
+
+function updateStatisticsDisplay() {
+    // Основная статистика
+    updateStatElement('mobs-killed', stats.mobsKilled);
+    updateStatElement('champions-killed', stats.championsKilled);
+    updateStatElement('deaths', stats.deaths);
+    
+    // Статистика предметов
+    updateStatElement('items-stored', stats.items.stored);
+    updateStatElement('ancient-items', stats.items.categories.ancient);
+    updateStatElement('pma-va-items', stats.items.categories.pmaVa);
+    updateStatElement('epic-stats-items', stats.items.categories.epicStats);
+    updateStatElement('epic-weapons', stats.items.categories.epicWeapons);
+    updateStatElement('high-gearscore-items', stats.items.categories.highGearScore);
+    updateStatElement('items-sold', stats.items.sold);
+    updateStatElement('sell-trips', stats.sellTrips);
+    
+    // Время работы
+    updateRuntimeDisplay();
+}
+
+function updateRuntimeDisplay() {
+    if (!isScriptRunning) {
+        stats.lastPauseTime = Date.now();
+        return;
+    }
+
+    // Если скрипт только что возобновил работу после паузы
+    if (stats.lastPauseTime > 0) {
+        stats.totalPausedTime += Date.now() - stats.lastPauseTime;
+        stats.lastPauseTime = 0;
+    }
+
+    const runtimeInSeconds = Math.floor((Date.now() - stats.scriptStartTime - stats.totalPausedTime) / 1000);
+    const hours = Math.floor(runtimeInSeconds / 3600);
+    const minutes = Math.floor((runtimeInSeconds % 3600) / 60);
+    const seconds = runtimeInSeconds % 60;
+
+    const formattedTime = `${hours}ч ${minutes}м ${seconds}с`;
+    updateStatElement('script-runtime', formattedTime);
+}
+
+// Обновление отдельного элемента статистики
+function updateStatElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
 }
 
 async function fightEnemies(isChampionHexagon = false) {
@@ -1224,24 +1343,28 @@ async function processBackpackItems() {
     }
 
     const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
-    let itemsStoredInChest = 0;
-    let ancientItemsStored = 0;
-    let pmaVaItemsStored = 0;
-    let epicItemsStored = 0;
-    let epicWeaponsStored = 0;
-
-    const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
-    if (!items.length) {
+    if (itemsBeforeProcessing === 0) {
         console.log('Предметы не найдены');
         return;
     }
 
-    console.log(`Найдено ${items.length} предметов`);
+    console.log(`Найдено ${itemsBeforeProcessing} предметов`);
 
+    // Сбрасываем счетчики для текущей обработки
+    const currentSessionStats = {
+        stored: 0,
+        ancient: 0,
+        pmaVa: 0,
+        epicStats: 0,
+        epicWeapons: 0,
+        highGearScore: 0
+    };
+
+    const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         item.click();
-        await new Promise(resolve => setTimeout(resolve, 300)); // Увеличили задержку
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const dialog = document.querySelector('app-dialog-container.dialog-container-item');
         if (!dialog) {
@@ -1251,22 +1374,27 @@ async function processBackpackItems() {
 
         console.log(`Обрабатываем предмет ${i + 1}`);
         
+        // Проверяем категории предмета
         const isAncient = checkAncientItem(dialog);
         const isPmaVa = checkPmaVaItem(dialog);
         const isEpicWithStats = checkEpicItemWithStats(dialog);
         const isEpicWeapon = checkEpicWeapon(dialog);
+        const hasHighGearScore = checkGearScore(dialog);
 
-        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon) {
+        // Если предмет соответствует любой из категорий
+        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon || hasHighGearScore) {
             const chestButton = dialog.querySelector('div.put-in-chest .button-content');
             if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                 chestButton.click();
                 console.log('Вещь отправлена в сундук');
-                itemsStoredInChest++;
                 
-                if (isAncient) ancientItemsStored++;
-                if (isPmaVa) pmaVaItemsStored++;
-                if (isEpicWithStats) epicItemsStored++;
-                if (isEpicWeapon) epicWeaponsStored++;
+                // Обновляем статистику
+                currentSessionStats.stored++;
+                if (isAncient) currentSessionStats.ancient++;
+                if (isPmaVa) currentSessionStats.pmaVa++;
+                if (isEpicWithStats) currentSessionStats.epicStats++;
+                if (isEpicWeapon) currentSessionStats.epicWeapons++;
+                if (hasHighGearScore) currentSessionStats.highGearScore++;
                 
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
@@ -1279,27 +1407,29 @@ async function processBackpackItems() {
         }
     }
 
-    // Обновляем статистику
-    itemsStored += itemsStoredInChest;
-    ancientItems += ancientItemsStored;
-    pmaVaItems += pmaVaItemsStored;
+    // Обновляем глобальную статистику
+    stats.items.stored += currentSessionStats.stored;
+    stats.items.categories.ancient += currentSessionStats.ancient;
+    stats.items.categories.pmaVa += currentSessionStats.pmaVa;
+    stats.items.categories.epicStats += currentSessionStats.epicStats;
+    stats.items.categories.epicWeapons += currentSessionStats.epicWeapons;
+    stats.items.categories.highGearScore += currentSessionStats.highGearScore;
     
-    updateStatistics('items-stored', itemsStored);
-    updateStatistics('ancient-items', ancientItems);
-    updateStatistics('pma-va-items', pmaVaItems);
+    // Рассчитываем количество проданных предметов
+    const itemsSoldNow = itemsBeforeProcessing - currentSessionStats.stored;
+    stats.items.sold += itemsSoldNow;
+    
+    // Обновляем отображение
+    updateStatisticsDisplay();
 
-    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest;
-    itemsSold += itemsSoldNow;
-    updateStatistics('items-sold', itemsSold);
-
-    console.log(`Продано: ${itemsSoldNow}, Оставлено: ${itemsStoredInChest}`);
-    console.log(`Из них: ${epicWeaponsStored} эпических оружий`);
+    console.log(`Оставлено: ${currentSessionStats.stored} (Древние: ${currentSessionStats.ancient}, ПМА/ВА: ${currentSessionStats.pmaVa}, 3+ стата: ${currentSessionStats.epicStats}, Пухи: ${currentSessionStats.epicWeapons}, ГС > 650: ${currentSessionStats.highGearScore})`);
+    console.log(`Продано: ${itemsSoldNow}`);
 
     if (sellItemsSetting === 'Продавать вещи') {
+        stats.sellTrips++;
         await navigateToSellItems();
     }
 }
-
 // Проверка, является ли предмет древним (>100%)
 function checkAncientItem(dialog) {
     // Проверяем несколько возможных мест, где могут быть проценты
@@ -1324,28 +1454,21 @@ function checkAncientItem(dialog) {
     return false;
 }
 
-// Функция проверки, является ли предмет эпическим и имеет 3 стата из списка
-function checkEpicItemWithStats(dialog) {
+function checkEpicWeapon(dialog) {
     const qualityElement = dialog.querySelector('.item-quality');
-    if (!qualityElement || qualityElement.textContent.trim() !== 'Эпический') {
+    if (!qualityElement || !qualityElement.textContent.includes('Эпич')) {
         return false;
     }
 
-    const statsElements = dialog.querySelectorAll('.magic-prop-name');
-    const requiredStats = [
-        'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
-        'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье', 'Точность', 'Требования', 'Мана', 'Меткость', 
+    const itemTypeElement = dialog.querySelector('.item-name');
+    if (!itemTypeElement) return false;
+
+    const weaponTypes = [
+        'Меч', 'Топор', 'Посох', 'Кинжал', 'Лук', 
+        'Арбалет', 'Молот', 'Копье', 'Коса', 'Булава'
     ];
 
-    let matchingStatsCount = 0;
-    statsElements.forEach(statElement => {
-        if (requiredStats.includes(statElement.textContent.trim())) {
-            matchingStatsCount++;
-        }
-    });
-
-    return matchingStatsCount >= 3;
+    return weaponTypes.some(type => itemTypeElement.textContent.includes(type));
 }
 
 // Проверка, имеет ли предмет ПМА или ВА
@@ -1360,23 +1483,37 @@ function checkPmaVaItem(dialog) {
     return false;
 }
 
-function checkEpicWeapon(dialog) {
-    const weaponTag = dialog.querySelector('.item-tags');
-    if (!weaponTag || !weaponTag.textContent.includes('Оружие')) {
-        return false;
-    }
-
+function checkEpicItemWithStats(dialog) {
     const qualityElement = dialog.querySelector('.item-quality');
-    if (!qualityElement || !qualityElement.textContent.includes('Эпич')) { // Ищем "Эпич" в начале
+    if (!qualityElement || !qualityElement.textContent.includes('Эпич')) {
         return false;
     }
 
-    const gearScoreElement = dialog.querySelector('.gear-score-value');
-    if (gearScoreElement) {
-        const gearScore = parseInt(gearScoreElement.textContent.trim(), 10);
-        return !isNaN(gearScore) && gearScore > 550;
+    const statsElements = dialog.querySelectorAll('.magic-prop-name');
+    const requiredStats = [
+        'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
+        'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
+        'Сопротивление', 'Интеллект', 'Здоровье', 'Точность', 'Требования', 'Мана', 'Меткость'
+    ];
+
+    let matchingStatsCount = 0;
+    statsElements.forEach(statElement => {
+        const statText = statElement.textContent.trim();
+        if (requiredStats.some(required => statText.includes(required))) {
+            matchingStatsCount++;
+        }
+    });
+
+    // Добавляем логирование для отладки
+    if (matchingStatsCount >= 3) {
+        console.log(`Найден предмет с ${matchingStatsCount} подходящими статами:`, Array.from(statsElements).map(el => el.textContent.trim()));
     }
-    return false;
+
+    return matchingStatsCount >= 3;
 }
-// Обновляем время работы скрипта каждые 5 секунд
-setInterval(updateScriptRuntime, 5000);
+
+// Обновляем время работы каждые 5 секунд
+setInterval(updateRuntimeDisplay, 5000);
+
+// Инициализируем статистику при загрузке скрипта
+initializeStatistics();
