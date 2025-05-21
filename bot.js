@@ -152,7 +152,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
         for (const priority of priorities) {
             // Универсальный поиск для приоритетных сущностей (алтарь, сундук, чемпион, босс)
-            if (priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'champion' || priority.type === 'chest') {
+            if (priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'champion' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
                 const targetUse = Array.from(document.querySelectorAll('use')).find(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
                     return href === priority.selector.replace('use[xlink\\:href="', '').replace('"]', '');
@@ -567,12 +567,10 @@ async function fightEnemies() {
         // Проверяем, был ли убит чемпион
         const championIcon = document.querySelector('app-icon.profile-class tui-icon[style*="champion-class-"]');
         if (championIcon) {
-            // Если чемпион найден, увеличиваем счетчик чемпионов
             championsKilled++;
             updateStatistics('champions-killed', championsKilled);
             console.log('Чемпион убит!');
         } else {
-            // Если чемпион не найден, увеличиваем счетчик мобов
             mobsKilled++;
             updateStatistics('mobs-killed', mobsKilled);
             console.log('Моб убит!');
