@@ -34,6 +34,11 @@ const CLASS_SKILLS = {
                 effect: 'assets/icons/effects/upEvasionArcher.svg'
             }
         ]
+    },
+    'Маг': {
+        attack: ['assets/images/skills/14a1a679ae4080b4a37bedaec2d1c75e.webp', 'assets/images/skills/14b1a679ae4080b3931ccd0b9b0d7979.webp', 'assets/images/skills/14b1a679ae4080668655cfd1bbc9ce75.webp'],
+        heal: null,
+        buff: null
     }
 };
 
@@ -225,7 +230,7 @@ async function createSettingsWindow() {
     settingsContainer.appendChild(sellGroup);
 
     // --- Группа: Класс ---
-    const classes = ['Воин', 'Убийца', 'Лучник'];
+    const classes = ['Воин', 'Убийца', 'Лучник', 'Маг'];
     const classGroup = createRadioGroup({
         label: 'Выбор класса',
         name: 'class',
