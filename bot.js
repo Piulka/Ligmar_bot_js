@@ -5,7 +5,7 @@ let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.19.1';
+const SCRIPT_COMMIT = '1.20.2';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
