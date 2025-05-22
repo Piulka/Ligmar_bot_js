@@ -6,8 +6,10 @@ let lastStartTime = Date.now(); // Время последнего запуск�
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
 let attackChampionsSetting = 'Атаковать чампов'; // По умолчанию атакуем чампов
+let vipStatus = 'VIP'; // По умолчанию VIP
 
-const SCRIPT_COMMIT = '1.21';
+
+const SCRIPT_COMMIT = '1.3';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -124,10 +126,15 @@ async function createSettingsWindow() {
 
         const groupLabel = document.createElement('div');
         groupLabel.textContent = label;
-        groupLabel.style.fontWeight = '600';
+        groupLabel.style.fontWeight = '700';
         groupLabel.style.color = 'var(--gold-base)';
-        groupLabel.style.fontSize = '11px';
-        groupLabel.style.marginBottom = '3px';
+        groupLabel.style.fontSize = '15px';
+        groupLabel.style.marginBottom = '6px';
+        groupLabel.style.textAlign = 'left';
+        groupLabel.style.borderBottom = '1.5px solid var(--black-light)'; // Подчеркивание как в статистике
+        groupLabel.style.paddingBottom = '2px'; // Отступ подчеркивания
+        groupLabel.style.letterSpacing = '0.5px';
+    
         group.appendChild(groupLabel);
 
         const optionsContainer = document.createElement('div');
@@ -244,6 +251,20 @@ async function createSettingsWindow() {
         }
     });
     settingsContainer.appendChild(championAttackGroup);
+
+    // --- Группа: VIP ---
+    const vipOptions = ['VIP', 'Не VIP'];
+    const vipGroup = createRadioGroup({
+        label: 'Статус',
+        name: 'vip-status-setting',
+        options: vipOptions,
+        selectedValue: vipStatus,
+        onChange: (val) => {
+            vipStatus = val;
+            console.log(`Статус VIP: ${vipStatus}`);
+        }
+    });
+    settingsContainer.appendChild(vipGroup);
 
     // --- Группа: Класс ---
     const classes = ['Воин', 'Убийца', 'Лучник', 'Маг'];
@@ -795,18 +816,21 @@ function clickPolygon(polygon) {
 }
 
 // Основной цикл
+
 async function mainLoop() {
     checkAndReturnToCity();
     await new Promise(resolve => setTimeout(resolve, 100));
 
     await handleFullBackpack();
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 1. Всегда ищем и переходим на гексагон по приоритету
     const hexagonFound = await clickHexagonWithPriority(getPriorities());
     if (!hexagonFound) return;
 
     const transitionSuccess = await clickByTextContent('Перейти');
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     if (!transitionSuccess) {
         const currentHexText = document.querySelector('div.hex-footer div.hex-current-text.ng-star-inserted');
         if (currentHexText && currentHexText.textContent.trim() === 'Вы здесь') {
@@ -822,13 +846,13 @@ async function mainLoop() {
                 
                 if (autoSwitchIcon) {
                     autoSwitchIcon.click();
-                    await new Promise(resolve => setTimeout(resolve, 100)); // Добавлен await
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 } else {
                     console.error('Иконка автоматического режима не найдена');
                     return;
                 }
                 
-                await fightEnemies(); // Добавлен await
+                await fightEnemies();
             } else {
                 console.error('Кнопка закрытия не найдена');
                 return;
@@ -838,12 +862,64 @@ async function mainLoop() {
         return;
     }
 
-    const enemyAppeared = await waitForEnemy();
     await new Promise(resolve => setTimeout(resolve, 100));
-    if (!enemyAppeared) return;
 
-    await fightEnemies();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // 2. После перехода: логика для VIP и не-VIP
+    if (vipStatus === 'VIP') {
+        // Ждем появления врага стандартно
+        const enemyAppeared = await waitForEnemy();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (!enemyAppeared) return;
+        await fightEnemies();
+        await new Promise(resolve => setTimeout(resolve, 100));
+    } else {
+        // Не VIP: крутим switch.svg до появления любого врага, если HP врага = 0 или если враг мертв (dead.svg)
+        let enemyAppeared = false;
+        let maxTries = 50; // чтобы не зациклиться
+        while (!enemyAppeared && maxTries-- > 0 && isScriptRunning) {
+            // Проверяем наличие врага
+            const enemyCard = document.querySelector('app-profile-card.target');
+            let needSwitch = false;
+
+            if (enemyCard) {
+                // Проверяем HP врага
+                const hpText = enemyCard.querySelector('.profile-health .stats-text');
+                if (hpText) {
+                    // Пример: "0 / 1,678"
+                    const hpMatch = hpText.textContent.trim().match(/^(\d+)\s*\/\s*[\d, ]+$/);
+                    if (hpMatch && parseInt(hpMatch[1], 10) === 0) {
+                        needSwitch = true;
+                    }
+                }
+                // Проверяем статус "мертв" (dead.svg)
+                const deadIcon = enemyCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
+                if (deadIcon) {
+                    needSwitch = true;
+                }
+                if (!needSwitch) {
+                    enemyAppeared = true;
+                    break;
+                }
+            }
+
+            // Если врага нет, HP=0 или враг мертв, жмем switch.svg
+            const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
+            if (switchBtn) {
+                switchBtn.closest('div.button-icon-content').click();
+                await new Promise(resolve => setTimeout(resolve, 300));
+            } else {
+                // Если кнопка не найдена, возможно, нужно открыть меню или подождать
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        }
+        if (!enemyAppeared) {
+            console.log('Враг не найден после переключений');
+            return;
+        }
+        // После появления врага — бой
+        await fightEnemies();
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
 }
 
 // Функция ожидания появления врага
@@ -1300,6 +1376,7 @@ function updateStatElement(id, value) {
     if (element) element.textContent = value;
 }
 
+
 async function fightEnemies(isChampionHexagon = false) {
     let initialEnemyCount = 0;
 
@@ -1314,14 +1391,54 @@ async function fightEnemies(isChampionHexagon = false) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         console.log('Специальный навык против чемпиона использован');
     }
+
     while (isScriptRunning) {
+        // --- ДОБАВЛЕНО: Для не-VIP проверяем, не мертв ли враг, и если да — жмем switch.svg ---
+        if (vipStatus === 'Не VIP') {
+            // Проверяем, остались ли враги на гексагоне
+            const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
+            if (enemiesCountElement && enemiesCountElement.textContent.trim() === '0') {
+                // Врагов больше нет — выходим из боя и НЕ жмем switch.svg
+                break;
+            }
+
+            let needSwitch = false;
+            const enemyCard = document.querySelector('app-profile-card.target');
+            if (enemyCard) {
+                // Проверяем HP врага
+                const hpText = enemyCard.querySelector('.profile-health .stats-text');
+                if (hpText) {
+                    const hpMatch = hpText.textContent.trim().match(/^(\d+)\s*\/\s*[\d, ]+$/);
+                    if (hpMatch && parseInt(hpMatch[1], 10) === 0) {
+                        needSwitch = true;
+                    }
+                }
+                // Проверяем статус "мертв" (dead.svg)
+                const deadIcon = enemyCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
+                if (deadIcon) {
+                    needSwitch = true;
+                }
+            }
+            // Если враг отсутствует или мертв — жмем switch.svg
+            if ((!enemyCard || needSwitch)) {
+                const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
+                if (switchBtn) {
+                    switchBtn.closest('div.button-icon-content').click();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    continue; // Ждем появления нового врага
+                } else {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    continue;
+                }
+            }
+        }
+
         const enemyIcon = document.querySelector('app-icon.profile-class tui-icon[style*="mob-class-"]');
         await checkAndReturnToCity();
         if (!enemyIcon) break;
 
-
-        const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
-        if (enemiesCountElement && enemiesCountElement.textContent.trim() === '0') {
+        const enemiesCountElement2 = document.querySelector('div.battle-bar-enemies-value');
+        if (enemiesCountElement2 && enemiesCountElement2.textContent.trim() === '0') {
             break;
         }
 
@@ -1354,6 +1471,7 @@ async function fightEnemies(isChampionHexagon = false) {
         await new Promise(resolve => setTimeout(resolve, 5000)); // Ожидание 5 секунд
     }
 }
+
 
 async function navigateToSellItems() {
     try {
