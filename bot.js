@@ -9,7 +9,7 @@ let attackChampionsSetting = 'Атаковать чампов'; // По умол
 let vipStatus = 'VIP'; // По умолчанию VIP
 
 
-const SCRIPT_COMMIT = '1.3';
+const SCRIPT_COMMIT = '1.3.2';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
