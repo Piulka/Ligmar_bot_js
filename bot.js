@@ -36,7 +36,7 @@ const CLASS_SKILLS = {
         ]
     },
     'Маг': {
-        attack: ['assets/images/skills/14a1a679ae4080b4a37bedaec2d1c75e.webp', 'assets/images/skills/14b1a679ae4080b3931ccd0b9b0d7979.webp', 'assets/images/skills/14b1a679ae4080668655cfd1bbc9ce75.webp'],
+        attack: ['assets/images/skills/14b1a679ae4080b782ebf42072c73ab9.webp', 'assets/images/skills/14a1a679ae4080b4a37bedaec2d1c75e.webp', 'assets/images/skills/14b1a679ae4080b3931ccd0b9b0d7979.webp'],
         heal: null,
         buff: null
     }
