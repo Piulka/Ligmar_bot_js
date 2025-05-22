@@ -819,6 +819,7 @@ function clickPolygon(polygon) {
 
 async function mainLoop() {
     checkAndReturnToCity();
+    await checkBattleMembersAndClickMap();
     await new Promise(resolve => setTimeout(resolve, 100));
 
     await handleFullBackpack();
@@ -1001,6 +1002,22 @@ const SKILLS = {
     DEF_BUFF: 'assets/images/skills/1441a679ae4080e0ac0ce466631bc99e.webp',
     ASSASSIN_ATTACK: 'assets/images/icons/attack.webp'
 };
+
+async function checkBattleMembersAndClickMap() {
+    // Проверяем наличие экрана с battle-members
+    const battleMembers = document.querySelector('div.battle-members');
+    if (battleMembers && battleMembers.offsetParent !== null) {
+        // Ищем кнопку с иконкой map.svg
+        const mapBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="map.svg"]');
+        if (mapBtn) {
+            mapBtn.closest('div.button-icon-content').click();
+            await new Promise(resolve => setTimeout(resolve, 200));
+            console.log('Обнаружен экран battle-members, выполнен клик по карте');
+            return true;
+        }
+    }
+    return false;
+}
 
 // Функция проверки и активации DEF_BUFF
 async function checkAndActivateDefenseBuff() {
@@ -1379,7 +1396,7 @@ function updateStatElement(id, value) {
 
 async function fightEnemies(isChampionHexagon = false) {
     let initialEnemyCount = 0;
-
+    await checkBattleMembersAndClickMap();
     // Получаем количество врагов перед боем
     const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
     if (enemiesCountElement) {
