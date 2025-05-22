@@ -5,7 +5,7 @@ let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.17';
+const SCRIPT_COMMIT = '1.19.1';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -678,12 +678,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
         }
 
         for (const priority of priorities) {
-<<<<<<< HEAD
-            // Универсальный поиск для приоритетных сущностей (алтарь, сундук, чемпион, босс)
-            if (priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'champion' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
-=======
             if (priority.type === 'champion' || priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
->>>>>>> 143b801db492fca9b798b240df173554bc96952a
                 const targetUse = Array.from(document.querySelectorAll('use')).find(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
                     return href === priority.selector.replace('use[xlink\\:href="', '').replace('"]', '');
@@ -1294,7 +1289,9 @@ async function fightEnemies(isChampionHexagon = false) {
     }
     while (isScriptRunning) {
         const enemyIcon = document.querySelector('app-icon.profile-class tui-icon[style*="mob-class-"]');
+        await checkAndReturnToCity();
         if (!enemyIcon) break;
+
 
         const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
         if (enemiesCountElement && enemiesCountElement.textContent.trim() === '0') {
@@ -1311,25 +1308,7 @@ async function fightEnemies(isChampionHexagon = false) {
 
         // Используем навыки
         await useSkills([SKILLS.KICK, SKILLS.TAUNTING_STRIKE], [1.1, 1.3]);
-<<<<<<< HEAD
-
-        // Проверяем, был ли убит чемпион
-        const championIcon = document.querySelector('app-icon.profile-class tui-icon[style*="champion-class-"]');
-        if (championIcon) {
-            championsKilled++;
-            updateStatistics('champions-killed', championsKilled);
-            console.log('Чемпион убит!');
-        } else {
-            mobsKilled++;
-            updateStatistics('mobs-killed', mobsKilled);
-            console.log('Моб убит!');
-        }
-
-        // Ждем перед следующей проверкой
-        await new Promise(resolve => setTimeout(resolve, 500));
-=======
         await new Promise(resolve => setTimeout(resolve, 100));
->>>>>>> 143b801db492fca9b798b240df173554bc96952a
     }
 
     // Увеличиваем счетчик мобов после боя
@@ -1635,6 +1614,3 @@ function checkEpicItemWithStats(dialog) {
 
 // Обновляем время работы каждые 5 секунд
 setInterval(updateRuntimeDisplay, 5000);
-
-// Инициализируем статистику при загрузке скрипта
-initializeStatistics();
