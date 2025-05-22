@@ -5,7 +5,9 @@ let scriptPausedTime = 0; // Время, проведенное в паузе
 let lastStartTime = Date.now(); // Время последнего запуска скрипта
 let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
-const SCRIPT_COMMIT = '1.20.2';
+let attackChampionsSetting = 'Атаковать чампов'; // По умолчанию атакуем чампов
+
+const SCRIPT_COMMIT = '1.21';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -228,6 +230,20 @@ async function createSettingsWindow() {
         }
     });
     settingsContainer.appendChild(sellGroup);
+    
+    // --- Группа: Атаковать чампов ---
+    const championAttackOptions = ['Атаковать чампов', 'Игнорировать чампов'];
+    const championAttackGroup = createRadioGroup({
+        label: 'Чампы',
+        name: 'champion-attack-setting',
+        options: championAttackOptions,
+        selectedValue: attackChampionsSetting,
+        onChange: (val) => {
+            attackChampionsSetting = val;
+            console.log(`Настройка атаки чампов: ${attackChampionsSetting}`);
+        }
+    });
+    settingsContainer.appendChild(championAttackGroup);
 
     // --- Группа: Класс ---
     const classes = ['Воин', 'Убийца', 'Лучник', 'Маг'];
@@ -785,7 +801,7 @@ async function mainLoop() {
 
     await handleFullBackpack();
     await new Promise(resolve => setTimeout(resolve, 100));
-    const hexagonFound = await clickHexagonWithPriority(priorities);
+    const hexagonFound = await clickHexagonWithPriority(getPriorities());
     if (!hexagonFound) return;
 
     const transitionSuccess = await clickByTextContent('Перейти');
@@ -884,16 +900,22 @@ async function useSkills() {
     }
 }
 
-// Приоритеты
-const priorities = [
-    { type: 'champion', selector: '#champion' },
-    { type: 'chest-epic', selector: '#chest-epic' },
-    { type: 'shrine', selector: '#shrine' },
-    { type: 'chest-rare', selector: '#chest-rare' },
-    { type: 'chest-epic', selector: '#chest-common' },
-    { type: 'enemies', value: '1' },
-    { type: 'enemies', value: '2' }
-];
+function getPriorities() {
+    // Если выбрано "Игнорировать чампов", не включаем champion в приоритеты
+    const basePriorities = [
+        { type: 'chest-epic', selector: '#chest-epic' },
+        { type: 'shrine', selector: '#shrine' },
+        { type: 'chest-rare', selector: '#chest-rare' },
+        { type: 'chest-epic', selector: '#chest-common' },
+        { type: 'enemies', value: '1' },
+        { type: 'enemies', value: '2' }
+    ];
+    if (attackChampionsSetting === 'Атаковать чампов') {
+        // Champion в самом начале
+        return [{ type: 'champion', selector: '#champion' }, ...basePriorities];
+    }
+    return basePriorities;
+}
 
 // Навыки
 const SKILLS = {
