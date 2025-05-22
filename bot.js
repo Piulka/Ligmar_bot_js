@@ -9,7 +9,7 @@ let attackChampionsSetting = 'Атаковать чампов'; // По умол
 let vipStatus = 'VIP'; // По умолчанию VIP
 
 
-const SCRIPT_COMMIT = '1.3.2';
+const SCRIPT_COMMIT = '1.3.3';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -707,6 +707,7 @@ async function clickByLocationName(text, timeout = 500) {
 }
 
 // Функция поиска и клика по гексагону
+
 async function clickHexagonWithPriority(priorities, timeout = 5000) {
     const start = Date.now();
 
@@ -719,17 +720,42 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
+        // Собираем все гексагоны с чемпионом (для фильтрации)
+        let championHexes = [];
+        if (attackChampionsSetting === 'Игнорировать чампов') {
+            championHexes = Array.from(document.querySelectorAll('g.hex-box')).filter(hex => {
+                // Чемпион определяется по наличию use с #champion
+                return !!hex.querySelector('use[href="#champion"], use[xlink\\:href="#champion"]');
+            });
+        }
+
         for (const priority of priorities) {
-            if (priority.type === 'champion' || priority.type === 'shrine' || priority.type === 'boss' || priority.type === 'chest-epic' || priority.type === 'chest-rare' || priority.type === 'chest-common') {
-                const targetUse = Array.from(document.querySelectorAll('use')).find(use => {
+            // Для сундуков, алтарей, врагов и т.д.
+            if (
+                priority.type === 'champion' ||
+                priority.type === 'shrine' ||
+                priority.type === 'boss' ||
+                priority.type === 'chest-epic' ||
+                priority.type === 'chest-rare' ||
+                priority.type === 'chest-common'
+            ) {
+                // Находим все use с нужным селектором
+                const targetUses = Array.from(document.querySelectorAll('use')).filter(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
                     return href === priority.selector.replace('use[xlink\\:href="', '').replace('"]', '');
                 });
 
-                if (targetUse) {
+                for (const targetUse of targetUses) {
                     const hexagon = targetUse.closest('g.hex-box');
+                    // Если настройка "Игнорировать чампов" и этот гекс содержит чемпиона — пропускаем
+                    if (
+                        attackChampionsSetting === 'Игнорировать чампов' &&
+                        championHexes.includes(hexagon)
+                    ) {
+                        continue;
+                    }
                     if (hexagon) {
-                        console.log(`Найден ${priority.type === 'champion' ? 'чемпион' : priority.type === 'shrine' ? 'алтарь' : 'сундук'}!`);
+                        console.log(`Найден гексагон по приоритету: ${priority.type}`);
                         clickHexagon(hexagon);
                         await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -745,10 +771,16 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
             }
 
             if (priority.type === 'enemies') {
-                const hexagons = Array.from(document.querySelectorAll('g.hex-box')).filter(hexagon => {
+                // Находим все гексагоны с нужным количеством врагов
+                let hexagons = Array.from(document.querySelectorAll('g.hex-box')).filter(hexagon => {
                     const textElement = hexagon.querySelector('text.enemies');
                     return textElement && textElement.textContent.trim() === String(priority.value);
                 });
+
+                // Если настройка "Игнорировать чампов" — фильтруем гексагоны с чемпионом
+                if (attackChampionsSetting === 'Игнорировать чампов' && championHexes.length > 0) {
+                    hexagons = hexagons.filter(hex => !championHexes.includes(hex));
+                }
 
                 if (hexagons.length > 0) {
                     // Всегда выбираем случайный гексагон
@@ -766,6 +798,7 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
     return false;
 }
+
 
 // Универсальная функция клика по гексагону
 function clickHexagon(hexagon) {
