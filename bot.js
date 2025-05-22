@@ -9,7 +9,7 @@ let attackChampionsSetting = 'Атаковать чампов'; // По умол
 let vipStatus = 'VIP'; // По умолчанию VIP
 
 
-const SCRIPT_COMMIT = '1.3.3';
+const SCRIPT_COMMIT = '1.4';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -86,8 +86,6 @@ async function createSettingsButton() {
 }
 
 // Функция для создания окна настроек
-
-
 async function createSettingsWindow() {
     if (document.getElementById('settings-container')) return;
 
@@ -1270,6 +1268,7 @@ async function checkAndReturnToCity() {
             cityButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             await delay(1000);
+            await claimRewardButton();
 
             // Обновляем статистику смертей
             stats.deaths++;
@@ -1294,6 +1293,24 @@ async function afterCombatProcessing(initialEnemyCount, isChampionHexagon = fals
     }
     updateStatisticsDisplay();
 }
+
+async function claimRewardButton(timeout = 5000) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        // Ищем кнопку по тексту
+        const rewardBtn = Array.from(document.querySelectorAll('div.button-content'))
+            .find(btn => btn.textContent.trim() === 'Забрать награду');
+        if (rewardBtn && rewardBtn.offsetParent !== null) {
+            rewardBtn.click();
+            await new Promise(resolve => setTimeout(resolve, 200));
+            console.log('Кнопка "Забрать награду" нажата');
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    return false;
+}
+
 
 function initializeStatistics() {
     // Сбрасываем все значения
@@ -1534,6 +1551,8 @@ async function navigateToSellItems() {
             townButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Перешли в Город');
+            await claimRewardButton();
+
         } else {
             console.error('Кнопка "Город" не найдена');
             return;
