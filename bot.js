@@ -68,31 +68,81 @@ const CLASS_SKILLS = {
 async function createSettingsButton() {
     if (document.getElementById('settings-button')) return;
 
+    // Ждем появления системного хедера
+    let header = document.querySelector('app-system-header .header-relative');
+    for (let i = 0; i < 30 && !header; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        header = document.querySelector('app-system-header .header-relative');
+    }
+    if (!header) return;
+
+    // Находим или создаем контейнер для кнопок по центру
+    let centerContainer = header.querySelector('.header-center-controls');
+    if (!centerContainer) {
+        centerContainer = document.createElement('div');
+        centerContainer.className = 'header-center-controls';
+        centerContainer.style.display = 'flex';
+        centerContainer.style.justifyContent = 'center';
+        centerContainer.style.alignItems = 'center';
+        centerContainer.style.gap = '10px';
+        centerContainer.style.position = 'absolute';
+        centerContainer.style.left = '50%';
+        centerContainer.style.top = '0';
+        centerContainer.style.transform = 'translateX(-50%)';
+        centerContainer.style.height = '100%';
+        centerContainer.style.zIndex = '1001';
+        header.appendChild(centerContainer);
+    }
+
+    // --- Кнопка Настройки ---
+    const baseWidth = 90;
+    const baseHeight = 26;
     const button = document.createElement('button');
     button.id = 'settings-button';
-    button.style.position = 'fixed';
-    button.style.top = '80px';
-    button.style.right = '20px';
-    button.style.width = '20px';
-    button.style.height = '20px';
-    button.style.backgroundColor = 'var(--gold-base)';
-    button.style.color = 'var(--black-dark)';
-    button.style.border = 'none';
-    button.style.borderRadius = '50%';
+    button.style.width = (baseWidth * 1.1) + 'px';   // +10%
+    button.style.height = (baseHeight * 0.8) + 'px'; // +15%
+    button.style.background = 'transparent';
+    button.style.color = 'var(--gold-base)';
+    button.style.border = '1.5px solid var(--gold-base)';
+    button.style.borderRadius = '6px';
     button.style.cursor = 'pointer';
-    button.style.fontSize = '20px';
-    button.style.lineHeight = '20px';
+    button.style.fontSize = '13px';
     button.style.fontWeight = 'bold';
     button.style.display = 'flex';
     button.style.alignItems = 'center';
     button.style.justifyContent = 'center';
-    button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-    button.style.zIndex = '1000';
-    button.textContent = '⚙';
+    button.style.boxShadow = 'none';
+    button.style.transition = 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)';
+    button.style.letterSpacing = '0.5px';
+    button.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    button.style.userSelect = 'none';
+    button.style.outline = 'none';
+    button.style.margin = '0';
+
+    button.innerHTML = '<span style="font-size:15px;margin-right:6px;">⚙</span>Настройки';
+
+    button.addEventListener('mouseenter', () => {
+        button.style.background = 'rgba(255, 215, 0, 0.08)';
+    });
+    button.addEventListener('mouseleave', () => {
+        button.style.background = 'transparent';
+    });
+
+    // Анимация нажатия
+    button.addEventListener('mousedown', () => {
+        button.style.transform = 'scale(0.93)';
+    });
+    button.addEventListener('mouseup', () => {
+        button.style.transform = 'scale(1)';
+    });
+    button.addEventListener('mouseleave', () => {
+        button.style.transform = 'scale(1)';
+    });
 
     button.addEventListener('click', () => {
         const settingsContainer = document.getElementById('settings-container');
-        if (settingsContainer.style.display === 'none') {
+        if (!settingsContainer) return;
+        if (settingsContainer.style.display === 'none' || settingsContainer.style.display === '') {
             settingsContainer.style.display = 'block';
             addOutsideClickListener(settingsContainer);
         } else {
@@ -100,7 +150,10 @@ async function createSettingsButton() {
         }
     });
 
-    document.body.appendChild(button);
+    // Добавляем кнопку в центр хедера (если еще не добавлена)
+    if (!centerContainer.contains(button)) {
+        centerContainer.appendChild(button);
+    }
 }
 
 function addOutsideClickListener(container) {
@@ -125,7 +178,7 @@ async function createSettingsWindow() {
     settingsContainer.id = 'settings-container';
     settingsContainer.style.position = 'fixed';
     settingsContainer.style.top = '110px';
-    settingsContainer.style.right = '0px';
+    settingsContainer.style.left = '10px'; // <-- изменено
     settingsContainer.style.width = '170px';
     settingsContainer.style.background = 'linear-gradient(135deg, var(--black-dark) 85%, var(--gold-base) 100%)';
     settingsContainer.style.color = 'var(--white)';
@@ -619,52 +672,96 @@ createSettingsWindow();
 
 // Функция для создания кнопки "Старт/Стоп"
 async function createControlButton() {
-    // Проверяем, существует ли уже кнопка
-    if (document.getElementById('control-button')) {
-        console.log('Кнопка "Старт/Стоп" уже существует');
-        return;
+    if (document.getElementById('control-button')) return;
+
+    // Ждем появления системного хедера
+    let header = document.querySelector('app-system-header .header-relative');
+    for (let i = 0; i < 30 && !header; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        header = document.querySelector('app-system-header .header-relative');
+    }
+    if (!header) return;
+
+    // Находим или создаем контейнер для кнопок по центру
+    let centerContainer = header.querySelector('.header-center-controls');
+    if (!centerContainer) {
+        centerContainer = document.createElement('div');
+        centerContainer.className = 'header-center-controls';
+        centerContainer.style.display = 'flex';
+        centerContainer.style.justifyContent = 'center';
+        centerContainer.style.alignItems = 'center';
+        centerContainer.style.gap = '10px';
+        centerContainer.style.position = 'absolute';
+        centerContainer.style.left = '50%';
+        centerContainer.style.top = '0';
+        centerContainer.style.transform = 'translateX(-50%)';
+        centerContainer.style.height = '100%';
+        centerContainer.style.zIndex = '1001';
+        header.appendChild(centerContainer);
     }
 
+    // --- Кнопка Старт/Стоп ---
+    const baseWidth = 68;
+    const baseHeight = 26;
     const button = document.createElement('button');
     button.id = 'control-button';
-    button.style.position = 'fixed';
-    button.style.top = '20px';
-    button.style.right = '20px';
-    button.style.width = '20px'; // Размер кнопки
-    button.style.height = '20px'; // Размер кнопки
-    button.style.backgroundColor = 'var(--gold-base)';
-    button.style.color = 'var(--black-dark)';
-    button.style.border = 'none';
-    button.style.borderRadius = '50%'; // Круглая форма
+    button.style.width = (baseWidth * 1.1) + 'px';   // +10%
+    button.style.height = (baseHeight * 0.8) + 'px'; // +15%
+    button.style.background = 'transparent';
+    button.style.color = 'var(--gold-base)';
+    button.style.border = '1.5px solid var(--gold-base)';
+    button.style.borderRadius = '6px';
     button.style.cursor = 'pointer';
-    button.style.fontSize = '10px'; // Уменьшен значок в 2 раза
+    button.style.fontSize = '13px';
     button.style.fontWeight = 'bold';
     button.style.display = 'flex';
     button.style.alignItems = 'center';
     button.style.justifyContent = 'center';
-    button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-    button.style.zIndex = '1000';
-    button.textContent = '▶'; // Значок "Старт" (треугольник)
+    button.style.boxShadow = 'none';
+    button.style.transition = 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)';
+    button.style.letterSpacing = '0.5px';
+    button.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    button.style.userSelect = 'none';
+    button.style.outline = 'none';
+    button.style.margin = '0';
+
+    button.textContent = isScriptRunning ? '⏸ Стоп' : '▶ Старт';
+
+    button.addEventListener('mouseenter', () => {
+        button.style.background = 'rgba(255, 215, 0, 0.08)';
+    });
+    button.addEventListener('mouseleave', () => {
+        button.style.background = 'transparent';
+    });
+
+    // Анимация нажатия
+    button.addEventListener('mousedown', () => {
+        button.style.transform = 'scale(0.93)';
+    });
+    button.addEventListener('mouseup', () => {
+        button.style.transform = 'scale(1)';
+    });
+    button.addEventListener('mouseleave', () => {
+        button.style.transform = 'scale(1)';
+    });
 
     button.addEventListener('click', async () => {
         if (isScriptRunning) {
             isScriptRunning = false;
-            button.textContent = '▶'; // Значок "Старт"
-            button.style.backgroundColor = 'var(--gold-base)';
-            console.log('Скрипт остановлен');
-            lastStartTime = Date.now(); // Фиксируем время остановки
+            button.textContent = '▶ Старт';
         } else {
             isScriptRunning = true;
-            button.textContent = '⏸'; // Значок "Стоп" (пауза)
-            button.style.backgroundColor = 'var(--red-light)';
-            console.log('Скрипт запущен');
-            lastStartTime = Date.now(); // Фиксируем время запуска
+            button.textContent = '⏸ Стоп';
             await runScript();
         }
     });
 
-    document.body.appendChild(button);
+    // Добавляем кнопку в центр хедера (если еще не добавлена)
+    if (!centerContainer.contains(button)) {
+        centerContainer.appendChild(button);
+    }
 }
+
 
 function detectPlayerClass() {
     // Ищем аватар игрока на экране боя
@@ -674,7 +771,6 @@ function detectPlayerClass() {
     if (!avatarImg) return selectedClass; // fallback
 
     const src = avatarImg.getAttribute('src');
-    if (src.includes('archer')) return 'Лучник';
     if (src.includes('warrior')) return 'Воин';
     if (src.includes('mage')) return 'Маг';
     if (src.includes('assassin')) return 'Убийца';
@@ -682,193 +778,169 @@ function detectPlayerClass() {
 }
 
 // Функция для создания элемента статистики
+
+
 async function createStatisticsElement() {
     // Удаляем старое окно, если оно есть
     const oldStats = document.getElementById('statistics-container');
     if (oldStats) oldStats.remove();
-    const oldToggle = document.getElementById('statistics-toggle-btn');
-    if (oldToggle) oldToggle.remove();
 
-    // Контейнер статистики
+    // Новый контейнер статистики
     const statsContainer = document.createElement('div');
     statsContainer.id = 'statistics-container';
+    statsContainer.style.display = 'flex';
+    statsContainer.style.flexDirection = 'column';
+    statsContainer.style.boxSizing = 'border-box';
+    statsContainer.style.width = '320px';
+    statsContainer.style.background = '#060315';
+    statsContainer.style.border = '1px solid #060315';
+    statsContainer.style.borderRadius = '3px';
     statsContainer.style.position = 'fixed';
-    statsContainer.style.top = '110px';
-    statsContainer.style.right = '1px';
-    statsContainer.style.zIndex = '1000';
-    statsContainer.style.minWidth = '200px';
-    statsContainer.style.maxWidth = '240px';
-    statsContainer.style.background = 'linear-gradient(135deg, var(--black-dark) 85%, var(--gold-base) 100%)';
-    statsContainer.style.border = '1.5px solid var(--gold-base)';
-    statsContainer.style.borderRadius = '12px';
-    statsContainer.style.boxShadow = '0 6px 24px 0 rgba(0,0,0,0.18)';
-    statsContainer.style.padding = '14px 10px 10px 10px';
-    statsContainer.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    statsContainer.style.right = '0px';
+    statsContainer.style.top = '163px';
+    statsContainer.style.zIndex = '1002';
     statsContainer.style.color = 'var(--white)';
-    statsContainer.style.fontSize = '13px';
-    statsContainer.style.transition = 'opacity 0.3s, visibility 0.3s';
-    statsContainer.style.opacity = '0';
+    statsContainer.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    statsContainer.style.fontSize = '12px';
+    statsContainer.style.opacity = '0'; // По умолчанию скрыто
     statsContainer.style.visibility = 'hidden';
     statsContainer.style.overflow = 'hidden';
     statsContainer.style.userSelect = 'none';
+    statsContainer.style.boxShadow = '0 6px 24px 0 rgba(0,0,0,0.18)';
+    statsContainer.style.padding = '0';
+    statsContainer.style.marginBottom = '60px';
+    statsContainer.style.maxHeight = 'none';
 
-    // Содержимое статистики
-    const statsContent = document.createElement('div');
-    statsContent.id = 'statistics-content';
+    // Верхняя часть: две колонки
+    const mainRow = document.createElement('div');
+    mainRow.style.display = 'flex';
+    mainRow.style.flexDirection = 'row';
+    mainRow.style.width = '100%';
+    mainRow.style.padding = '10px 10px 0 10px';
+    mainRow.style.boxSizing = 'border-box';
 
-    // Заголовок
-    const header = document.createElement('div');
-    header.style.fontSize = '15px';
-    header.style.fontWeight = 'bold';
-    header.style.color = 'var(--gold-base)';
-    header.style.marginBottom = '10px';
-    header.style.textAlign = 'center';
-    header.textContent = 'Статистика';
-    statsContent.appendChild(header);
+    // Левая колонка
+    const leftColumn = document.createElement('div');
+    leftColumn.style.flex = '1';
+    leftColumn.style.minWidth = '110px';
+    leftColumn.style.marginRight = '10px';
 
-    // Универсальный генератор строки-заголовка с крупным счетчиком и подчеркиванием
-    function statHeaderRow(label, id) {
-        return `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 0 0;
-            border-bottom:1px solid var(--black-light);padding-bottom:2px;">
-            <span style="font-weight:700;color:var(--gold-base);font-size:14px;">${label}</span>
-            <span id="${id}" style="
-                color:#fff;
-                font-weight:800;
-                font-size:21px;
-                margin-left:8px;
-            ">0</span>
-        </div>`;
-    }
+    // Правая колонка
+    const rightColumn = document.createElement('div');
+    rightColumn.style.flex = '1';
+    rightColumn.style.minWidth = '110px';
 
-    // Универсальный генератор подпункта
-    function statSubRow(label, id) {
-        return `
-        <div style="display:flex;align-items:center;justify-content:space-between;
-            padding:2px 0 2px 18px;
-            border-bottom:1px solid var(--black-light);
-            margin-bottom:2px;">
-            <span style="color:var(--gray-light);font-size:12px;margin:0;padding:0;">${label}</span>
-            <span id="${id}" style="
-                display:inline-block;
-                min-width:36px;
-                text-align:right;
-                color:#fff;
-                font-weight:700;
-                font-size:17px;
-                margin-left:8px;
-                background:none;
-                border:none;
-                border-radius:0;
-                padding:0;
-                box-shadow:none;
-                transition:none;
-            ">0</span>
-        </div>`;
-    }
-
-    // Основная статистика (как заголовки)
-    statsContent.innerHTML += statHeaderRow('Мобы', 'mobs-killed');
-    statsContent.innerHTML += statHeaderRow('Чампы', 'champions-killed');
-    statsContent.innerHTML += statHeaderRow('Смерти', 'deaths');
-
-    // Оставлено (заголовок с выделением)
-    statsContent.innerHTML += statHeaderRow('Оставлено', 'items-stored');
-    statsContent.innerHTML += `
-        <div style="margin-bottom:2px;">
-            ${statSubRow('Древние', 'ancient-items')}
-            ${statSubRow('ПМА/ВА', 'pma-va-items')}
-            ${statSubRow('3+ стата', 'epic-stats-items')}
-            ${statSubRow('ГС > 650', 'high-gearscore-items')}
-            ${statSubRow('Кастомный дроп', 'custom-drop-items')}
+    // --- Левая колонка ---
+    leftColumn.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gold-base);font-size:13px;">Мобов убито:</span>
+            <span id="mobs-killed" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gold-base);font-size:13px;">Чемпионов убито:</span>
+            <span id="champions-killed" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gold-base);font-size:13px;">Смертей:</span>
+            <span id="deaths" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gold-base);font-size:13px;">Продано вещей: </span>
+            <span id="items-sold" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gold-base);font-size:13px;">Кол-во походов в магазин:</span>
+            <span id="sell-trips" style="color:#fff;font-weight:700;font-size:14px;">0</span>
         </div>
     `;
 
-    // Продано (заголовок с выделением)
-    statsContent.innerHTML += statHeaderRow('Продано', 'items-sold');
-    statsContent.innerHTML += `
-        <div style="margin-bottom:2px;">
-            ${statSubRow('Походы', 'sell-trips')}
+    // --- Правая колонка ---
+    rightColumn.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gold-base);font-size:13px;">Вещи в сундуке:</span>
+            <span id="items-stored" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gray-light);font-size:11px;">Древние вещии</span>
+            <span id="ancient-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gray-light);font-size:11px;">Вещи с ПМА или ВА:</span>
+            <span id="pma-va-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gray-light);font-size:11px;">Топ вещи для лучника</span>
+            <span id="epic-stats-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gray-light);font-size:11px;">Вещи с БМ больше 650:</span>
+            <span id="high-gearscore-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+        </div>
+        <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+            <span style="color:var(--gray-light);font-size:11px;">Кастомный дроп</span>
+            <span id="custom-drop-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
         </div>
     `;
 
-    // Время работы: подпись и таймер на новой строке в рамке
-    statsContent.innerHTML += `
-        <div style="margin-top:14px;">
-            <div style="font-weight:600;color:var(--gold-base);font-size:13px;margin-bottom:4px;">Время работы:</div>
-            <div style="
-                padding:8px 10px;
-                border:2px solid var(--gold-base);
-                border-radius:8px;
-                background:rgba(255,215,0,0.07);
-                display:flex;
-                align-items:center;
-                justify-content:center;
-            ">
-                <span id="script-runtime" style="
-                    color:#fff;
-                    font-weight:800;
-                    font-size:17px;
-                ">0 сек</span>
-            </div>
-        </div>
-    `;
+    mainRow.appendChild(leftColumn);
+    mainRow.appendChild(rightColumn);
 
-    // Версия скрипта
-    statsContent.innerHTML += `
-        <div style="font-size:10px;color:var(--gray-light);text-align:right;margin-top:6px;">${typeof SCRIPT_COMMIT !== 'undefined' ? SCRIPT_COMMIT : ''}</div>
-    `;
+    // Нижняя часть: таймер по центру, без рамки, крупный, белый шрифт
+    const bottomRow = document.createElement('div');
+    bottomRow.style.display = 'flex';
+    bottomRow.style.flexDirection = 'row';
+    bottomRow.style.justifyContent = 'center';
+    bottomRow.style.alignItems = 'center';
+    bottomRow.style.width = '100%';
+    bottomRow.style.padding = '12px 0 16px 0';
+    bottomRow.style.boxSizing = 'border-box';
+    bottomRow.style.background = 'rgba(0,0,0,0.10)';
+    bottomRow.style.borderTop = '1px solid var(--black-light)';
 
-    statsContainer.appendChild(statsContent);
+    const runtimeBox = document.createElement('div');
+    runtimeBox.style.display = 'inline-block';
+    runtimeBox.style.padding = '0';
+    runtimeBox.style.background = 'transparent';
+    runtimeBox.style.border = 'none';
+    runtimeBox.style.borderRadius = '0';
+    runtimeBox.style.boxShadow = 'none';
+    runtimeBox.style.fontSize = '28px';
+    runtimeBox.style.fontWeight = 'bold';
+    runtimeBox.style.color = '#fff';
+    runtimeBox.style.textAlign = 'center';
+    runtimeBox.style.letterSpacing = '1px';
 
-    // Кнопка сворачивания/разворачивания
-    let isCollapsed = true;
-    const toggleButton = document.createElement('button');
-    toggleButton.id = 'statistics-toggle-btn';
-    toggleButton.title = 'Показать/скрыть статистику';
-    toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">+</span>';
-    toggleButton.style.position = 'fixed';
-    toggleButton.style.top = '50px';
-    toggleButton.style.right = '20px';
-    toggleButton.style.width = '20px';
-    toggleButton.style.height = '20px';
-    toggleButton.style.background = 'var(--gold-base)';
-    toggleButton.style.color = 'var(--black-dark)';
-    toggleButton.style.border = 'none';
-    toggleButton.style.borderRadius = '50%';
-    toggleButton.style.cursor = 'pointer';
-    toggleButton.style.fontSize = '16px';
-    toggleButton.style.fontWeight = 'bold';
-    toggleButton.style.display = 'flex';
-    toggleButton.style.alignItems = 'center';
-    toggleButton.style.justifyContent = 'center';
-    toggleButton.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
-    toggleButton.style.zIndex = '1001';
+    const runtimeDisplay = document.createElement('div');
+    runtimeDisplay.id = 'script-runtime';
+    runtimeDisplay.textContent = '0 сек';
+    runtimeDisplay.style.color = '#fff';
+    runtimeDisplay.style.fontSize = '28px';
+    runtimeDisplay.style.fontWeight = 'bold';
+    runtimeDisplay.style.textAlign = 'center';
 
-    toggleButton.addEventListener('click', () => {
-        if (isCollapsed) {
-            statsContainer.style.opacity = '1';
-            statsContainer.style.visibility = 'visible';
-            toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">−</span>';
-        } else {
-            statsContainer.style.opacity = '0';
-            statsContainer.style.visibility = 'hidden';
-            toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">+</span>';
-        }
-        isCollapsed = !isCollapsed;
-    });
+    runtimeBox.appendChild(runtimeDisplay);
+    bottomRow.appendChild(runtimeBox);
 
+    // Собираем всё вместе
+    statsContainer.appendChild(mainRow);
+    statsContainer.appendChild(bottomRow);
     document.body.appendChild(statsContainer);
-    document.body.appendChild(toggleButton);
 
-    // Свернуто по умолчанию
+    // По умолчанию скрыто, открывается только через openStatisticsPanelAndAttach
     statsContainer.style.opacity = '0';
     statsContainer.style.visibility = 'hidden';
-    toggleButton.innerHTML = '<span style="font-size:16px;line-height:1;">+</span>';
 
     await new Promise(resolve => setTimeout(resolve, 100));
 }
-
 
 function checkGearScore(dialog) {
     const gsElement = dialog.querySelector('.gear-score-value');
@@ -1823,7 +1895,7 @@ async function navigateToSellItems() {
         // Нажимаем на "Продать снаряжение"
         const sellButton = await waitForElement('div.button-content', 'Продать снаряжение', 5000);
         if (sellButton) {
-            sellButton.click();
+            // sellButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Продать снаряжение"');
         } else {
@@ -2076,5 +2148,140 @@ function checkEpicItemWithStats(dialog) {
     return matchingStatsCount >= 3;
 }
 
+
+
 // Обновляем время работы каждые 5 секунд
 setInterval(updateRuntimeDisplay, 5000);
+
+
+(function() {
+    let lastShrinkedPanel = null;
+    let lastPanelVisible = false;
+
+    function openStatisticsPanelAndAttach() {
+        const statsContainer = document.getElementById('statistics-container');
+        const mapWrapper = document.querySelector('.auto-map-wrapper');
+        if (!statsContainer || !mapWrapper) return;
+    
+        // Показываем окно статистики
+        statsContainer.style.opacity = '1';
+        statsContainer.style.visibility = 'visible';
+    
+        // Позиционируем окно статистики справа от карты
+        positionStatisticsPanel(statsContainer, mapWrapper);
+    
+        // Следим за изменением размера/позиции карты (например, при ресайзе окна)
+        window.addEventListener('resize', () => positionStatisticsPanel(statsContainer, mapWrapper));
+    }
+
+    function closeStatisticsPanel() {
+        const statsContainer = document.getElementById('statistics-container');
+        if (!statsContainer) return;
+    
+        statsContainer.style.transition = 'none';
+        statsContainer.style.opacity = '0';
+        statsContainer.style.visibility = 'hidden';
+    }
+
+    
+
+    function positionStatisticsPanel(statsContainer, mapWrapper) {
+        // Получаем координаты и размеры карты
+        const rect = mapWrapper.getBoundingClientRect();
+    
+        // Получаем контейнер battle-top
+        const battleTop = document.querySelector('.battle-top.page-container.ng-tns-c3091494937-7');
+        if (!battleTop) return;
+        const battleRect = battleTop.getBoundingClientRect();
+    
+        // Высота окна статистики = высота карты (без дополнительных пикселей)
+        const statsHeight = rect.height +10;
+    
+        // Левая граница окна статистики = правый край карты + 10px
+        const statsLeft = rect.right + 10;
+    
+        // Правая граница окна статистики = правый край battle-top - 30px (оставляем ваш отступ)
+        const statsRight = battleRect.right - 10;
+    
+        // Ширина окна статистики = statsRight - statsLeft
+        const statsWidth = Math.max(0, statsRight - statsLeft);
+    
+        // Позиционируем statsContainer фиксировано справа от карты
+        statsContainer.style.position = 'fixed';
+        statsContainer.style.left = statsLeft + 'px';
+        statsContainer.style.top = (rect.top - 5) + 'px'; // на 5px ниже карты
+        statsContainer.style.width = statsWidth + 'px';
+        statsContainer.style.height = statsHeight + 'px';
+        statsContainer.style.minWidth = statsWidth + 'px';
+        statsContainer.style.maxWidth = statsWidth + 'px';
+        statsContainer.style.minHeight = statsHeight + 'px';
+        statsContainer.style.maxHeight = statsHeight + 'px';
+        statsContainer.style.overflowY = 'auto';
+        statsContainer.style.transition = 'left 0.7s cubic-bezier(.4,2,.6,1), width 0.7s cubic-bezier(.4,2,.6,1), height 0.7s cubic-bezier(.4,2,.6,1), opacity 0.3s, visibility 0.3s';
+        statsContainer.style.zIndex = '1002';
+    }
+    
+
+    function shrinkBattleMapPanel(panel) {
+        if (!panel) return;
+        if (lastShrinkedPanel === panel) return;
+        lastShrinkedPanel = panel;
+
+        const map = panel.querySelector('app-battle-map');
+        if (!map) return;
+
+        if (map.parentNode && map.parentNode.classList && map.parentNode.classList.contains('auto-map-wrapper')) {
+            panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+            panel.style.marginRight = '240px';
+            panel.style.width = '40%';
+            // После анимации позиционируем статистику
+            setTimeout(openStatisticsPanelAndAttach, 700);
+            return;
+        }
+
+        const mapWrapper = document.createElement('div');
+        mapWrapper.className = 'auto-map-wrapper';
+        mapWrapper.style.width = '100%';
+        mapWrapper.style.height = '100%';
+        mapWrapper.style.overflow = 'hidden';
+
+        map.parentNode.insertBefore(mapWrapper, map);
+        mapWrapper.appendChild(map);
+
+        panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+        panel.style.marginRight = '';
+        panel.style.width = '';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                panel.style.marginRight = '240px';
+                panel.style.width = '40%';
+                // После анимации позиционируем статистику
+                setTimeout(openStatisticsPanelAndAttach, 700);
+            });
+        });
+    }
+
+    // MutationObserver для отслеживания появления и исчезновения карты
+    const observer = new MutationObserver(() => {
+        const panel = document.querySelector('app-battle-middle-panel');
+        const panelVisible = panel && panel.offsetParent !== null;
+
+        if (panelVisible) {
+            shrinkBattleMapPanel(panel);
+            lastPanelVisible = true;
+        } else if (lastPanelVisible) {
+            closeStatisticsPanel();
+            lastPanelVisible = false;
+            lastShrinkedPanel = null;
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Если карта уже есть при загрузке
+    const initialPanel = document.querySelector('app-battle-middle-panel');
+    if (initialPanel && initialPanel.offsetParent !== null) {
+        shrinkBattleMapPanel(initialPanel);
+        lastPanelVisible = true;
+    }
+})();
