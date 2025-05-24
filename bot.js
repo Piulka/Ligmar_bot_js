@@ -7,9 +7,22 @@ let selectedClass = 'Лучник'; // Класс по умолчанию
 let sellItemsSetting = 'Продавать вещи'; // По умолчанию
 let attackChampionsSetting = 'Атаковать чампов'; // По умолчанию атакуем чампов
 let vipStatus = 'VIP'; // По умолчанию VIP
+let dropModeStandard = true;
+let dropModeCustom = false;
+let dropFilters = {
+    ancient: true,
+    pmaVa: true,
+    epicStats: true,
+    highGearScore: true,
+    custom: false
+};
+let dropStats = ['Сила', 'Ловкость', 'Интеллект', 'Защита', 'Сопротивление', 'Меткость', 'Здоровье', 'Живучесть', 'Мана', 'Уклонение', 'Скрытность', 'Максимальный урон', 'Физ. атака'];
+let dropSelectedStats = ['Сила', 'Ловкость', 'Интеллект', 'Защита', 'Сопротивление', 'Меткость', 'Здоровье', 'Живучесть', 'Мана', 'Уклонение', 'Скрытность', 'Максимальный урон', 'Физ. атака'];
+let dropStatsCount = 3;
+let dropMinGearScore = 650;
+let dropQuality = 'Эпические';
 
-
-const SCRIPT_COMMIT = '1.4';
+const SCRIPT_COMMIT = 'v.2.0';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -24,8 +37,13 @@ const CLASS_SKILLS = {
         buff: null
     },
     'Лучник': {
-        attack: ['assets/images/skills/1591a679ae4080169e8fedd380594e52.webp', 'assets/images/skills/1591a679ae40808cb79ff144baf28502.webp','assets/images/skills/1591a679ae40808790d1dda8fe2e9779.webp', 'assets/images/skills/1591a679ae40807a8b42fb31199a8297.webp', 'assets/images/skills/1591a679ae4080c297f7d036916c3c06.webp'],
-        heal: 'assets/images/skills/archer_heal_skill.webp',
+        attack: [
+            'assets/images/skills/1591a679ae40808cb79ff144baf28502.webp',
+            'assets/images/skills/1591a679ae40808790d1dda8fe2e9779.webp',
+            'assets/images/skills/1591a679ae40807a8b42fb31199a8297.webp',
+            'assets/images/skills/1591a679ae4080c297f7d036916c3c06.webp'
+        ],
+        multitarget: 'assets/images/skills/1591a679ae4080169e8fedd380594e52.webp', // Мультискилл        heal: 'assets/images/skills/archer_heal_skill.webp',
         championSkill: 'assets/images/skills/1591a679ae408027a26fc49c44136cc9.webp', // Добавлен специальный навык для чемпиона
 
         buff: [
@@ -76,15 +94,29 @@ async function createSettingsButton() {
         const settingsContainer = document.getElementById('settings-container');
         if (settingsContainer.style.display === 'none') {
             settingsContainer.style.display = 'block';
+            addOutsideClickListener(settingsContainer);
         } else {
             settingsContainer.style.display = 'none';
         }
     });
 
     document.body.appendChild(button);
-    
 }
 
+function addOutsideClickListener(container) {
+    function handler(event) {
+        // Если клик вне контейнера и не по кнопке настроек
+        if (!container.contains(event.target) && event.target.id !== 'settings-button') {
+            container.style.display = 'none';
+            document.removeEventListener('mousedown', handler);
+        }
+    }
+    // Удаляем старый обработчик, если есть
+    document.removeEventListener('mousedown', handler);
+    setTimeout(() => {
+        document.addEventListener('mousedown', handler);
+    }, 0);
+}
 // Функция для создания окна настроек
 async function createSettingsWindow() {
     if (document.getElementById('settings-container')) return;
@@ -236,6 +268,38 @@ async function createSettingsWindow() {
     });
     settingsContainer.appendChild(sellGroup);
     
+    // --- Группа: Дроп ---
+    const dropGroup = document.createElement('div');
+    dropGroup.style.marginBottom = '10px';
+
+    const dropGroupLabel = document.createElement('div');
+    dropGroupLabel.textContent = 'Дроп';
+    dropGroupLabel.style.fontWeight = '700';
+    dropGroupLabel.style.color = 'var(--gold-base)';
+    dropGroupLabel.style.fontSize = '15px';
+    dropGroupLabel.style.marginBottom = '6px';
+    dropGroupLabel.style.textAlign = 'left';
+    dropGroupLabel.style.borderBottom = '1.5px solid var(--black-light)';
+    dropGroupLabel.style.paddingBottom = '2px';
+    dropGroupLabel.style.letterSpacing = '0.5px';
+    dropGroup.appendChild(dropGroupLabel);
+
+    // Кнопка "Настроить"
+    const dropSettingsBtn = document.createElement('button');
+    dropSettingsBtn.textContent = 'Настроить';
+    dropSettingsBtn.style.background = 'var(--gold-base)';
+    dropSettingsBtn.style.color = 'var(--black-dark)';
+    dropSettingsBtn.style.fontWeight = 'bold';
+    dropSettingsBtn.style.border = 'none';
+    dropSettingsBtn.style.borderRadius = '6px';
+    dropSettingsBtn.style.padding = '4px 14px';
+    dropSettingsBtn.style.cursor = 'pointer';
+    dropSettingsBtn.style.fontSize = '13px';
+    dropSettingsBtn.style.marginTop = '4px';
+    dropSettingsBtn.onclick = showDropSettingsModal;
+    dropGroup.appendChild(dropSettingsBtn);
+
+    settingsContainer.appendChild(dropGroup);
     // --- Группа: Атаковать чампов ---
     const championAttackOptions = ['Атаковать чампов', 'Игнорировать чампов'];
     const championAttackGroup = createRadioGroup({
@@ -250,35 +314,283 @@ async function createSettingsWindow() {
     });
     settingsContainer.appendChild(championAttackGroup);
 
-    // --- Группа: VIP ---
-    const vipOptions = ['VIP', 'Не VIP'];
-    const vipGroup = createRadioGroup({
-        label: 'Статус',
-        name: 'vip-status-setting',
-        options: vipOptions,
-        selectedValue: vipStatus,
-        onChange: (val) => {
-            vipStatus = val;
-            console.log(`Статус VIP: ${vipStatus}`);
-        }
-    });
-    settingsContainer.appendChild(vipGroup);
-
-    // --- Группа: Класс ---
-    const classes = ['Воин', 'Убийца', 'Лучник', 'Маг'];
-    const classGroup = createRadioGroup({
-        label: 'Выбор класса',
-        name: 'class',
-        options: classes,
-        selectedValue: selectedClass,
-        onChange: (val) => {
-            selectedClass = val;
-            console.log(`Выбран класс: ${selectedClass}`);
-        }
-    });
-    settingsContainer.appendChild(classGroup);
-
     document.body.appendChild(settingsContainer);
+    enableCloseOnOutsideClick('settings-container');
+
+}
+
+function enableCloseOnOutsideClick(containerId, onClose) {
+    function handler(event) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        // Если клик вне контейнера
+        if (!container.contains(event.target)) {
+            container.style.display = 'none';
+            if (onClose) onClose();
+            document.removeEventListener('mousedown', handler);
+        }
+    }
+    // Сначала удаляем старый обработчик (на всякий случай)
+    document.removeEventListener('mousedown', handler);
+    setTimeout(() => {
+        document.addEventListener('mousedown', handler);
+    }, 0);
+}
+
+function showDropSettingsModal() {
+    // Удалить старое окно, если оно есть
+    let oldModal = document.getElementById('drop-settings-modal');
+    if (oldModal) oldModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'drop-settings-modal';
+    modal.style.position = 'fixed';
+    modal.style.top = '50%';
+    modal.style.left = '50%';
+    modal.style.transform = 'translate(-50%, -50%)';
+    modal.style.background = 'var(--black-dark)';
+    modal.style.border = '2px solid var(--gold-base)';
+    modal.style.borderRadius = '12px';
+    modal.style.padding = '18px 20px 16px 20px';
+    modal.style.zIndex = '2000';
+    modal.style.color = 'var(--white)';
+    modal.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+    modal.style.minWidth = '340px';
+    modal.style.boxShadow = '0 8px 32px 0 rgba(0,0,0,0.25)';
+
+    // Заголовок
+    const title = document.createElement('div');
+    title.textContent = 'Настройки дропа';
+    title.style.fontSize = '17px';
+    title.style.fontWeight = 'bold';
+    title.style.color = 'var(--gold-base)';
+    title.style.marginBottom = '12px';
+    title.style.textAlign = 'center';
+    modal.appendChild(title);
+
+    // --- Чекбоксы стандартных фильтров ---
+    const filters = [
+        { key: 'ancient', label: 'Древние' },
+        { key: 'pmaVa', label: 'ПМА/ВА' },
+        { key: 'epicStats', label: '3+ стата (мои личные настройки)' },
+        { key: 'highGearScore', label: 'ГС > 650' }
+    ];
+    filters.forEach(f => {
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.cursor = 'pointer';
+        label.style.fontSize = '13px';
+        label.style.marginBottom = '4px';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = dropFilters[f.key];
+        checkbox.style.marginRight = '6px';
+        checkbox.onchange = () => {
+            dropFilters[f.key] = checkbox.checked;
+        };
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(f.label));
+        modal.appendChild(label);
+    });
+
+    // --- Чекбокс кастомного фильтра ---
+    const customLabel = document.createElement('label');
+    customLabel.style.display = 'flex';
+    customLabel.style.alignItems = 'center';
+    customLabel.style.cursor = 'pointer';
+    customLabel.style.fontSize = '13px';
+    customLabel.style.marginBottom = '4px';
+
+    const customCheckbox = document.createElement('input');
+    customCheckbox.type = 'checkbox';
+    customCheckbox.checked = dropFilters.custom;
+    customCheckbox.style.marginRight = '6px';
+    customCheckbox.onchange = () => {
+        dropFilters.custom = customCheckbox.checked;
+        // Показать/скрыть кастомные настройки
+        customSettingsBlock.style.display = dropFilters.custom ? '' : 'none';
+    };
+
+    customLabel.appendChild(customCheckbox);
+    customLabel.appendChild(document.createTextNode('Кастомные'));
+    modal.appendChild(customLabel);
+
+    // --- Кастомные настройки (по умолчанию скрыты) ---
+    const customSettingsBlock = document.createElement('div');
+    customSettingsBlock.style.margin = '10px 0 0 0';
+    customSettingsBlock.style.padding = '10px 0 0 0';
+    customSettingsBlock.style.borderTop = '1px solid var(--gold-base)';
+    customSettingsBlock.style.display = dropFilters.custom ? '' : 'none';
+
+    // --- Выбор статов ---
+    const statsLabel = document.createElement('div');
+    statsLabel.textContent = 'Статы для отбора:';
+    statsLabel.style.fontWeight = '600';
+    statsLabel.style.marginBottom = '4px';
+    customSettingsBlock.appendChild(statsLabel);
+
+    const statsContainer = document.createElement('div');
+    statsContainer.style.display = 'flex';
+    statsContainer.style.flexWrap = 'wrap';
+    statsContainer.style.gap = '8px';
+    statsContainer.style.marginBottom = '10px';
+
+    dropStats.forEach(stat => {
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.cursor = 'pointer';
+        label.style.fontSize = '13px';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = stat;
+        checkbox.checked = dropSelectedStats.includes(stat);
+        checkbox.style.marginRight = '4px';
+
+        checkbox.onchange = () => {
+            if (checkbox.checked) {
+                dropSelectedStats.push(stat);
+            } else {
+                dropSelectedStats = dropSelectedStats.filter(s => s !== stat);
+            }
+        };
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(stat));
+        statsContainer.appendChild(label);
+    });
+    customSettingsBlock.appendChild(statsContainer);
+
+    // --- Количество совпадений ---
+    const countLabel = document.createElement('div');
+    countLabel.textContent = 'Минимум совпадающих статов:';
+    countLabel.style.fontWeight = '600';
+    countLabel.style.marginBottom = '4px';
+    customSettingsBlock.appendChild(countLabel);
+
+    const countSelect = document.createElement('select');
+    [1, 2, 3].forEach(num => {
+        const option = document.createElement('option');
+        option.value = num;
+        option.textContent = num;
+        if (dropStatsCount === num) option.selected = true;
+        countSelect.appendChild(option);
+    });
+    countSelect.onchange = () => {
+        dropStatsCount = parseInt(countSelect.value, 10);
+    };
+    countSelect.style.marginBottom = '10px';
+    countSelect.style.fontSize = '13px';
+    countSelect.style.padding = '2px 6px';
+    customSettingsBlock.appendChild(countSelect);
+
+    // --- Минимальный Gear Score ---
+    const gsLabel = document.createElement('div');
+    gsLabel.textContent = 'Минимальный Gear Score:';
+    gsLabel.style.fontWeight = '600';
+    gsLabel.style.margin = '8px 0 4px 0';
+    customSettingsBlock.appendChild(gsLabel);
+
+    const gsInput = document.createElement('input');
+    gsInput.type = 'number';
+    gsInput.value = dropMinGearScore;
+    gsInput.min = 0;
+    gsInput.style.width = '70px';
+    gsInput.style.fontSize = '13px';
+    gsInput.style.padding = '2px 6px';
+    gsInput.style.background = '#fff';
+    gsInput.style.color = '#222';
+    gsInput.onchange = () => {
+        dropMinGearScore = parseInt(gsInput.value, 10) || 0;
+    };
+    customSettingsBlock.appendChild(gsInput);
+
+    // --- Качество предмета ---
+    const qualityLabel = document.createElement('div');
+    qualityLabel.textContent = 'Качество предмета:';
+    qualityLabel.style.fontWeight = '600';
+    qualityLabel.style.margin = '8px 0 4px 0';
+    customSettingsBlock.appendChild(qualityLabel);
+
+    const qualitySelect = document.createElement('select');
+    ['Эпические', 'Все'].forEach(q => {
+        const option = document.createElement('option');
+        option.value = q;
+        option.textContent = q;
+        if (dropQuality === q) option.selected = true;
+        qualitySelect.appendChild(option);
+    });
+    qualitySelect.onchange = () => {
+        dropQuality = qualitySelect.value;
+    };
+    qualitySelect.style.fontSize = '13px';
+    qualitySelect.style.padding = '2px 6px';
+    customSettingsBlock.appendChild(qualitySelect);
+
+    modal.appendChild(customSettingsBlock);
+
+    // --- Кнопка "Сохранить" справа и закрывает окно ---
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Сохранить';
+    saveBtn.style.marginTop = '16px';
+    saveBtn.style.background = 'var(--gold-base)';
+    saveBtn.style.color = 'var(--black-dark)';
+    saveBtn.style.fontWeight = 'bold';
+    saveBtn.style.border = 'none';
+    saveBtn.style.borderRadius = '6px';
+    saveBtn.style.padding = '6px 18px';
+    saveBtn.style.cursor = 'pointer';
+    saveBtn.style.float = 'right';
+    saveBtn.onclick = () => {
+        // Все значения уже обновляются onChange
+        modal.remove(); // Закрыть окно
+    };
+    modal.appendChild(saveBtn);
+
+    document.body.appendChild(modal);
+    enableCloseOnOutsideClick('drop-settings-modal', () => {
+        // Если нужно что-то еще при закрытии окна дропа — добавить здесь
+    });
+}
+function checkDropCustomRules(dialog) {
+    // Качество
+    if (dropQuality === 'Эпические') {
+        const qualityElement = dialog.querySelector('.item-quality');
+        if (!qualityElement || !qualityElement.textContent.includes('Эпич')) {
+            return false;
+        }
+    }
+    // Gear Score
+    if (dropMinGearScore > 0) {
+        const gsElement = dialog.querySelector('.gear-score-value');
+        if (!gsElement) return false;
+        const gearScore = parseInt(gsElement.textContent.replace(/\D/g, ''), 10);
+        if (gearScore < dropMinGearScore) return false;
+    }
+    // Совпадение статов
+    const statsElements = dialog.querySelectorAll('.magic-prop-name');
+    let matchingStatsCount = 0;
+    statsElements.forEach(statElement => {
+        const statText = statElement.textContent.trim();
+        if (dropSelectedStats.some(required => statText.includes(required))) {
+            matchingStatsCount++;
+        }
+    });
+    return matchingStatsCount >= dropStatsCount;
+}
+
+function autoDetectVipStatus() {
+    // Если есть иконка switch-auto.svg — VIP, если только switch.svg — не VIP
+    const autoIcon = document.querySelector('tui-icon.svg-icon[style*="switch-auto.svg"]');
+    if (autoIcon) return 'VIP';
+    const switchIcon = document.querySelector('tui-icon.svg-icon[style*="switch.svg"]');
+    if (switchIcon) return 'Не VIP';
+    // Если ничего не найдено, по умолчанию VIP (или можно вернуть прошлое значение)
+    return 'VIP';
 }
 
 
@@ -353,9 +665,23 @@ async function createControlButton() {
 
     document.body.appendChild(button);
 }
+
+function detectPlayerClass() {
+    // Ищем аватар игрока на экране боя
+    const avatarImg = document.querySelector(
+        'app-profile-avatar img[src*="portrait.webp"]'
+    );
+    if (!avatarImg) return selectedClass; // fallback
+
+    const src = avatarImg.getAttribute('src');
+    if (src.includes('archer')) return 'Лучник';
+    if (src.includes('warrior')) return 'Воин';
+    if (src.includes('mage')) return 'Маг';
+    if (src.includes('assassin')) return 'Убийца';
+    return selectedClass; // fallback
+}
+
 // Функция для создания элемента статистики
-
-
 async function createStatisticsElement() {
     // Удаляем старое окно, если оно есть
     const oldStats = document.getElementById('statistics-container');
@@ -453,8 +779,8 @@ async function createStatisticsElement() {
             ${statSubRow('Древние', 'ancient-items')}
             ${statSubRow('ПМА/ВА', 'pma-va-items')}
             ${statSubRow('3+ стата', 'epic-stats-items')}
-            ${statSubRow('Пухи', 'epic-weapons')}
             ${statSubRow('ГС > 650', 'high-gearscore-items')}
+            ${statSubRow('Кастомный дроп', 'custom-drop-items')}
         </div>
     `;
 
@@ -545,7 +871,7 @@ async function createStatisticsElement() {
 
 
 function checkGearScore(dialog) {
-    const gsElement = dialog.querySelector('.item-gearscore');
+    const gsElement = dialog.querySelector('.gear-score-value');
     if (!gsElement) return false;
 
     const gearScore = parseInt(gsElement.textContent.replace(/\D/g, ''), 10);
@@ -557,106 +883,10 @@ function checkGearScore(dialog) {
     return false;
 }
 
-async function processBackpackItems() {
-    const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
-        const nameElement = group.querySelector('.items-group-name');
-        return nameElement && nameElement.textContent.trim() === 'Снаряжение';
-    });
-
-    if (!equipmentGroup) {
-        console.error('Вкладка "Снаряжение" не найдена');
-        return;
-    }
-
-    const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
-    let itemsStoredInChest = 0;
-    let ancientItemsStored = 0;
-    let pmaVaItemsStored = 0;
-    let epicWeaponsStored = 0;
-    let epicStatsItemsStored = 0;
-    let highGearScoreItemsStored = 0;
-
-    const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
-    if (!items.length) {
-        console.log('Предметы не найдены');
-        return;
-    }
-
-    console.log(`Найдено ${items.length} предметов`);
-
-    for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        item.click();
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        const dialog = document.querySelector('app-dialog-container.dialog-container-item');
-        if (!dialog) {
-            console.log('Диалог не открылся');
-            continue;
-        }
-
-        console.log(`Обрабатываем предмет ${i + 1}`);
-        
-        const isAncient = checkAncientItem(dialog);
-        const isPmaVa = checkPmaVaItem(dialog);
-        const isEpicWithStats = checkEpicItemWithStats(dialog);
-        const isEpicWeapon = checkEpicWeapon(dialog);
-        const hasHighGearScore = checkGearScore(dialog);
-
-        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon || hasHighGearScore) {
-            const chestButton = dialog.querySelector('div.put-in-chest .button-content');
-            if (chestButton && chestButton.textContent.trim() === 'В сундук') {
-                chestButton.click();
-                console.log('Вещь отправлена в сундук');
-                itemsStoredInChest++;
-                
-                if (isAncient) ancientItemsStored++;
-                if (isPmaVa) pmaVaItemsStored++;
-                if (isEpicWithStats) epicStatsItemsStored++;
-                if (isEpicWeapon) epicWeaponsStored++;
-                if (hasHighGearScore) highGearScoreItemsStored++;
-                
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-        }
-
-        const closeBtn = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
-        if (closeBtn) {
-            closeBtn.click();
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-    }
-
-    // Обновляем статистику
-    itemsStored += itemsStoredInChest;
-    ancientItems += ancientItemsStored;
-    pmaVaItems += pmaVaItemsStored;
-    epicStatsItems += epicStatsItemsStored;
-    epicWeapons += epicWeaponsStored;
-    highGearScoreItems += highGearScoreItemsStored;
-    
-    updateStatistics('items-stored', itemsStored);
-    updateStatistics('ancient-items', ancientItems);
-    updateStatistics('pma-va-items', pmaVaItems);
-    updateStatistics('epic-stats-items', epicStatsItems);
-    updateStatistics('epic-weapons', epicWeapons);
-
-    const itemsSoldNow = itemsBeforeProcessing - itemsStoredInChest;
-    itemsSold += itemsSoldNow;
-    updateStatistics('items-sold', itemsSold);
-
-    console.log(`Оставлено: ${itemsStoredInChest} (Древние: ${ancientItemsStored}, ПМА/ВА: ${pmaVaItemsStored}, 3+ стата: ${epicStatsItemsStored}, Пухи: ${epicWeaponsStored}, ГС > 650: ${highGearScoreItemsStored})`);
-    console.log(`Продано: ${itemsSoldNow}`);
-
-    if (sellItemsSetting === 'Продавать вещи') {
-        await navigateToSellItems();
-    }
-}
-
-
 // Основной скрипт
 async function runScript() {
     try {
+        selectedClass = detectPlayerClass();
         await clickByTextContent('Сражения');
         await new Promise(resolve => setTimeout(resolve, 100));
         await clickByLocationName(selectedLocation);
@@ -706,7 +936,6 @@ async function clickByLocationName(text, timeout = 500) {
 
 // Функция поиска и клика по гексагону
 
-
 async function clickHexagonWithPriority(priorities, timeout = 5000) {
     const start = Date.now();
 
@@ -719,7 +948,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        // Собираем все гексагоны с чемпионом (для строгой фильтрации)
         let championHexes = [];
         if (attackChampionsSetting === 'Игнорировать чампов') {
             championHexes = Array.from(document.querySelectorAll('g.hex-box')).filter(hex => {
@@ -728,7 +956,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
         }
 
         for (const priority of priorities) {
-            // Для всех приоритетов ищем гексагоны, содержащие нужный use
             let hexagons = [];
             if (
                 priority.type === 'champion' ||
@@ -738,7 +965,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
                 priority.type === 'chest-rare' ||
                 priority.type === 'chest-common'
             ) {
-                // Находим все use с нужным селектором
                 const targetUses = Array.from(document.querySelectorAll('use')).filter(use => {
                     const href = use.getAttribute('xlink:href') || use.getAttribute('href');
                     return href === priority.selector.replace('use[xlink\\:href="', '').replace('"]', '');
@@ -748,21 +974,28 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
             }
 
             if (priority.type === 'enemies') {
-                // Находим все гексагоны с нужным количеством врагов
                 hexagons = Array.from(document.querySelectorAll('g.hex-box')).filter(hexagon => {
                     const textElement = hexagon.querySelector('text.enemies');
                     return textElement && textElement.textContent.trim() === String(priority.value);
                 });
             }
 
-            // Строго фильтруем гексагоны с чемпионом для всех приоритетов
             if (attackChampionsSetting === 'Игнорировать чампов' && championHexes.length > 0) {
                 hexagons = hexagons.filter(hex => hex && !championHexes.includes(hex));
             }
 
-            // Кликаем по первому подходящему гексагону
             for (const hexagon of hexagons) {
                 if (!hexagon) continue;
+                // --- ДО захода на гексагон: если класс Лучник и (врагов 2+ или есть чемпион), используем мультискилл ---
+                if (selectedClass === 'Лучник') {
+                    const enemiesText = hexagon.querySelector('text.enemies');
+                    const enemiesCount = enemiesText ? parseInt(enemiesText.textContent.trim(), 10) : 0;
+                    const hasChampion = !!hexagon.querySelector('use[href="#champion"], use[xlink\\:href="#champion"]');
+                    if (enemiesCount >= 2 || hasChampion) {
+                        await useSkill(CLASS_SKILLS['Лучник'].multitarget);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
                 console.log(`Найден гексагон по приоритету: ${priority.type}`);
                 clickHexagon(hexagon);
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -782,8 +1015,6 @@ async function clickHexagonWithPriority(priorities, timeout = 5000) {
 
     return false;
 }
-
-
 
 // Универсальная функция клика по гексагону
 function clickHexagon(hexagon) {
@@ -837,11 +1068,15 @@ function clickPolygon(polygon) {
 
 async function mainLoop() {
     checkAndReturnToCity();
+    selectedClass = detectPlayerClass();
     await checkBattleMembersAndClickMap();
     await new Promise(resolve => setTimeout(resolve, 100));
 
     await handleFullBackpack();
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    // --- Автоматически определяем VIP/Не VIP ---
+    vipStatus = autoDetectVipStatus();
 
     // 1. Всегда ищем и переходим на гексагон по приоритету
     const hexagonFound = await clickHexagonWithPriority(getPriorities());
@@ -882,6 +1117,9 @@ async function mainLoop() {
     }
 
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    // --- Автоматически определяем VIP/Не VIP перед боем ---
+    vipStatus = autoDetectVipStatus();
 
     // 2. После перехода: логика для VIP и не-VIP
     if (vipStatus === 'VIP') {
@@ -1312,8 +1550,8 @@ function initializeStatistics() {
                 ancient: 0,
                 pmaVa: 0,
                 epicStats: 0,
-                epicWeapons: 0,
-                highGearScore: 0
+                highGearScore: 0,
+                dropCustom: 0
             }
         },
         sellTrips: 0,
@@ -1373,7 +1611,6 @@ let stats = {
             ancient: 0,
             pmaVa: 0,
             epicStats: 0,
-            epicWeapons: 0,
             highGearScore: 0
         }
     },
@@ -1394,8 +1631,8 @@ function updateStatisticsDisplay() {
     updateStatElement('ancient-items', stats.items.categories.ancient);
     updateStatElement('pma-va-items', stats.items.categories.pmaVa);
     updateStatElement('epic-stats-items', stats.items.categories.epicStats);
-    updateStatElement('epic-weapons', stats.items.categories.epicWeapons);
     updateStatElement('high-gearscore-items', stats.items.categories.highGearScore);
+    updateStatElement('custom-drop-items', stats.items.categories.dropCustom);
     updateStatElement('items-sold', stats.items.sold);
     updateStatElement('sell-trips', stats.sellTrips);
     
@@ -1430,14 +1667,30 @@ function updateStatElement(id, value) {
     if (element) element.textContent = value;
 }
 
-
 async function fightEnemies(isChampionHexagon = false) {
+    vipStatus = autoDetectVipStatus();
+    selectedClass = detectPlayerClass();
     let initialEnemyCount = 0;
     await checkBattleMembersAndClickMap();
+
     // Получаем количество врагов перед боем
     const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
     if (enemiesCountElement) {
         initialEnemyCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
+    }
+
+    // --- Используем мультискилл лучника если врагов 2+ или есть чемпион ---
+    if (selectedClass === 'Лучник') {
+        // Проверяем есть ли чемпион на гексе (текущий гекс)
+        let hasChampion = false;
+        const currentHexagon = document.querySelector('g.hex-box.current');
+        if (currentHexagon) {
+            hasChampion = !!currentHexagon.querySelector('use[href="#champion"], use[xlink\\:href="#champion"]');
+        }
+        if (initialEnemyCount >= 2 || hasChampion) {
+            await useSkill(CLASS_SKILLS['Лучник'].multitarget);
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
     }
 
     if (isChampionHexagon && selectedClass === 'Лучник' && CLASS_SKILLS[selectedClass].championSkill) {
@@ -1447,19 +1700,15 @@ async function fightEnemies(isChampionHexagon = false) {
     }
 
     while (isScriptRunning) {
-        // --- ДОБАВЛЕНО: Для не-VIP проверяем, не мертв ли враг, и если да — жмем switch.svg ---
         if (vipStatus === 'Не VIP') {
-            // Проверяем, остались ли враги на гексагоне
             const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
             if (enemiesCountElement && enemiesCountElement.textContent.trim() === '0') {
-                // Врагов больше нет — выходим из боя и НЕ жмем switch.svg
                 break;
             }
 
             let needSwitch = false;
             const enemyCard = document.querySelector('app-profile-card.target');
             if (enemyCard) {
-                // Проверяем HP врага
                 const hpText = enemyCard.querySelector('.profile-health .stats-text');
                 if (hpText) {
                     const hpMatch = hpText.textContent.trim().match(/^(\d+)\s*\/\s*[\d, ]+$/);
@@ -1467,19 +1716,17 @@ async function fightEnemies(isChampionHexagon = false) {
                         needSwitch = true;
                     }
                 }
-                // Проверяем статус "мертв" (dead.svg)
                 const deadIcon = enemyCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
                 if (deadIcon) {
                     needSwitch = true;
                 }
             }
-            // Если враг отсутствует или мертв — жмем switch.svg
             if ((!enemyCard || needSwitch)) {
                 const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
                 if (switchBtn) {
                     switchBtn.closest('div.button-icon-content').click();
                     await new Promise(resolve => setTimeout(resolve, 300));
-                    continue; // Ждем появления нового врага
+                    continue;
                 } else {
                     await new Promise(resolve => setTimeout(resolve, 300));
                     continue;
@@ -1496,33 +1743,39 @@ async function fightEnemies(isChampionHexagon = false) {
             break;
         }
 
-        // Проверяем состояние маны и здоровья
+        // --- Во время боя: если класс Лучник и (врагов 2+ или есть чемпион), используем мультискилл ---
+        if (selectedClass === 'Лучник') {
+            let hasChampion = false;
+            const currentHexagon = document.querySelector('g.hex-box.current');
+            if (currentHexagon) {
+                hasChampion = !!currentHexagon.querySelector('use[href="#champion"], use[xlink\\:href="#champion"]');
+            }
+            const enemiesCount = enemiesCountElement2 ? parseInt(enemiesCountElement2.textContent.trim(), 10) : 0;
+            if (enemiesCount >= 2 || hasChampion) {
+                await useSkill(CLASS_SKILLS['Лучник'].multitarget);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
         await checkManaAndHealth();
         await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Проверяем и активируем DEF_BUFF, если нужно
         await checkAndActivateDefenseBuff();
         await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Используем навыки
         await useSkills([SKILLS.KICK, SKILLS.TAUNTING_STRIKE], [1.1, 1.3]);
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Увеличиваем счетчик мобов после боя
     mobsKilled += initialEnemyCount;
     updateStatistics('mobs-killed', mobsKilled);
 
-    // Если это клетка с чемпионом, увеличиваем счетчик чемпионов
     if (isChampionHexagon) {
         championsKilled++;
         updateStatistics('champions-killed', championsKilled);
     }
 
-    // Проверяем, есть ли на гексагоне алтарь или сундук
     const isSpecial = await isSpecialHexagon();
     if (isSpecial) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Ожидание 5 секунд
+        await new Promise(resolve => setTimeout(resolve, 5000));
     }
 }
 
@@ -1631,8 +1884,18 @@ async function getBackpackItemCount() {
     return items.length;
 }
 
-// Обновляем статистику при добавлении вещей в сундук
+
+
 async function processBackpackItems() {
+    // --- Логирование настроек кастомного фильтра ---
+    if (dropFilters.custom) {
+        console.log('Текущие настройки кастомного фильтра:');
+        console.log('  Минимальный Gear Score:', dropMinGearScore);
+        console.log('  Минимум совпадающих статов:', dropStatsCount);
+        console.log('  Качество:', dropQuality);
+        console.log('  Выбранные статы:', dropSelectedStats.join(', '));
+    }
+
     const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
         const nameElement = group.querySelector('.items-group-name');
         return nameElement && nameElement.textContent.trim() === 'Снаряжение';
@@ -1657,8 +1920,8 @@ async function processBackpackItems() {
         ancient: 0,
         pmaVa: 0,
         epicStats: 0,
-        epicWeapons: 0,
-        highGearScore: 0
+        highGearScore: 0,
+        dropCustom: 0
     };
 
     const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
@@ -1676,14 +1939,29 @@ async function processBackpackItems() {
         console.log(`Обрабатываем предмет ${i + 1}`);
         
         // Проверяем категории предмета
-        const isAncient = checkAncientItem(dialog);
-        const isPmaVa = checkPmaVaItem(dialog);
-        const isEpicWithStats = checkEpicItemWithStats(dialog);
-        const isEpicWeapon = checkEpicWeapon(dialog);
-        const hasHighGearScore = checkGearScore(dialog);
+        let isAncient = false, isPmaVa = false, isEpicWithStats = false, hasHighGearScore = false, isDropCustom = false;
+        if (dropFilters.ancient) isAncient = checkAncientItem(dialog);
+        if (dropFilters.pmaVa) isPmaVa = checkPmaVaItem(dialog);
+        if (dropFilters.epicStats) isEpicWithStats = checkEpicItemWithStats(dialog);
+        if (dropFilters.highGearScore) hasHighGearScore = checkGearScore(dialog);
+        if (dropFilters.custom) isDropCustom = checkDropCustomRules(dialog);
 
-        // Если предмет соответствует любой из категорий
-        if (isAncient || isPmaVa || isEpicWithStats || isEpicWeapon || hasHighGearScore) {
+        // Логирование результата кастомного фильтра
+        if (dropFilters.custom) {
+            if (isDropCustom) {
+                console.log(`Вещь ${i + 1}: ПОДХОДИТ под кастомный фильтр`);
+            } else {
+                console.log(`Вещь ${i + 1}: НЕ подходит под кастомный фильтр`);
+            }
+        }
+
+        const shouldStore = (dropFilters.ancient && isAncient)
+                         || (dropFilters.pmaVa && isPmaVa)
+                         || (dropFilters.epicStats && isEpicWithStats)
+                         || (dropFilters.highGearScore && hasHighGearScore)
+                         || (dropFilters.custom && isDropCustom);
+
+        if (shouldStore) {
             const chestButton = dialog.querySelector('div.put-in-chest .button-content');
             if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                 chestButton.click();
@@ -1694,8 +1972,8 @@ async function processBackpackItems() {
                 if (isAncient) currentSessionStats.ancient++;
                 if (isPmaVa) currentSessionStats.pmaVa++;
                 if (isEpicWithStats) currentSessionStats.epicStats++;
-                if (isEpicWeapon) currentSessionStats.epicWeapons++;
                 if (hasHighGearScore) currentSessionStats.highGearScore++;
+                if (isDropCustom) currentSessionStats.dropCustom++;
                 
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
@@ -1713,8 +1991,9 @@ async function processBackpackItems() {
     stats.items.categories.ancient += currentSessionStats.ancient;
     stats.items.categories.pmaVa += currentSessionStats.pmaVa;
     stats.items.categories.epicStats += currentSessionStats.epicStats;
-    stats.items.categories.epicWeapons += currentSessionStats.epicWeapons;
     stats.items.categories.highGearScore += currentSessionStats.highGearScore;
+    if (!stats.items.categories.dropCustom) stats.items.categories.dropCustom = 0;
+    stats.items.categories.dropCustom += currentSessionStats.dropCustom;
     
     // Рассчитываем количество проданных предметов
     const itemsSoldNow = itemsBeforeProcessing - currentSessionStats.stored;
@@ -1723,7 +2002,7 @@ async function processBackpackItems() {
     // Обновляем отображение
     updateStatisticsDisplay();
 
-    console.log(`Оставлено: ${currentSessionStats.stored} (Древние: ${currentSessionStats.ancient}, ПМА/ВА: ${currentSessionStats.pmaVa}, 3+ стата: ${currentSessionStats.epicStats}, Пухи: ${currentSessionStats.epicWeapons}, ГС > 650: ${currentSessionStats.highGearScore})`);
+    console.log(`Оставлено: ${currentSessionStats.stored} (Древние: ${currentSessionStats.ancient}, ПМА/ВА: ${currentSessionStats.pmaVa}, 3+ стата: ${currentSessionStats.epicStats}, ГС > 650: ${currentSessionStats.highGearScore}, Кастомный дроп: ${currentSessionStats.dropCustom})`);
     console.log(`Продано: ${itemsSoldNow}`);
 
     if (sellItemsSetting === 'Продавать вещи') {
@@ -1731,6 +2010,8 @@ async function processBackpackItems() {
         await navigateToSellItems();
     }
 }
+
+
 // Проверка, является ли предмет древним (>100%)
 function checkAncientItem(dialog) {
     // Проверяем несколько возможных мест, где могут быть проценты
@@ -1755,23 +2036,6 @@ function checkAncientItem(dialog) {
     return false;
 }
 
-function checkEpicWeapon(dialog) {
-    const qualityElement = dialog.querySelector('.item-quality');
-    if (!qualityElement || !qualityElement.textContent.includes('Эпич')) {
-        return false;
-    }
-
-    const itemTypeElement = dialog.querySelector('.item-name');
-    if (!itemTypeElement) return false;
-
-    const weaponTypes = [
-        'Меч', 'Топор', 'Посох', 'Кинжал', 'Лук', 
-        'Арбалет', 'Молот', 'Копье', 'Коса', 'Булава'
-    ];
-
-    return weaponTypes.some(type => itemTypeElement.textContent.includes(type));
-}
-
 // Проверка, имеет ли предмет ПМА или ВА
 function checkPmaVaItem(dialog) {
     const stats = dialog.querySelectorAll('.magic-prop-name');
@@ -1792,9 +2056,8 @@ function checkEpicItemWithStats(dialog) {
 
     const statsElements = dialog.querySelectorAll('.magic-prop-name');
     const requiredStats = [
-        'Сила', 'Выживаемость', 'Ловкость', 'Уклонение', 'Скрытность',
-        'Максимальный урон', 'Физ. атака', 'Живучесть', 'Защита',
-        'Сопротивление', 'Интеллект', 'Здоровье', 'Точность', 'Требования', 'Мана', 'Меткость'
+        'Сила', 'Ловкость', 'Уклонение', 'Скрытность',
+        'Максимальный урон', 'Физ. атака'
     ];
 
     let matchingStatsCount = 0;
