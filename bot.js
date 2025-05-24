@@ -22,7 +22,7 @@ let dropStatsCount = 3;
 let dropMinGearScore = 650;
 let dropQuality = 'Эпические';
 
-const SCRIPT_COMMIT = 'v.2.0';
+const SCRIPT_COMMIT = 'v.2.1.1';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -1895,7 +1895,7 @@ async function navigateToSellItems() {
         // Нажимаем на "Продать снаряжение"
         const sellButton = await waitForElement('div.button-content', 'Продать снаряжение', 5000);
         if (sellButton) {
-            // sellButton.click();
+            sellButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('Нажата кнопка "Продать снаряжение"');
         } else {
