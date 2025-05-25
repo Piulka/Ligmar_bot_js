@@ -26,7 +26,7 @@ let dropSelectedTypes = [
 ];
 let dropPotionEnabled = false;
 
-const SCRIPT_COMMIT = 'v.2.3.1';
+const SCRIPT_COMMIT = 'v.2.3.2';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -757,6 +757,8 @@ createControlButton();
 createStatisticsElement();
 createSettingsButton();
 createSettingsWindow();
+createBossButton();
+
 
 // Функция для создания кнопки "Старт/Стоп"
 async function createControlButton() {
@@ -1290,14 +1292,16 @@ async function mainLoop() {
         await fightEnemies();
         await new Promise(resolve => setTimeout(resolve, 100));
     } else {
-        // Не VIP: крутим switch.svg до появления любого врага, если HP врага = 0 или если враг мертв (dead.svg)
         let enemyAppeared = false;
         let maxTries = 50; // чтобы не зациклиться
         while (!enemyAppeared && maxTries-- > 0 && isScriptRunning) {
+            // --- ДОБАВЛЕНО: Проверка смерти внутри цикла ---
+            await checkAndReturnToCity();
+    
             // Проверяем наличие врага
             const enemyCard = document.querySelector('app-profile-card.target');
             let needSwitch = false;
-
+    
             if (enemyCard) {
                 // Проверяем HP врага
                 const hpText = enemyCard.querySelector('.profile-health .stats-text');
@@ -1318,7 +1322,7 @@ async function mainLoop() {
                     break;
                 }
             }
-
+    
             // Если врага нет, HP=0 или враг мертв, жмем switch.svg
             const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
             if (switchBtn) {
@@ -1647,8 +1651,10 @@ async function waitForElement(selector, text = null, timeout = 5000) {
 // Функция для поиска и нажатия на кнопку "В город"
 async function checkAndReturnToCity() {
     try {
-        const cityButton = document.querySelector('div.button-content');
-        if (cityButton && cityButton.textContent.trim() === 'В город') {
+        // Ищем среди всех кнопок с классом button-content
+        const cityButton = Array.from(document.querySelectorAll('div.button-content'))
+            .find(btn => btn.textContent.trim() === 'В город');
+        if (cityButton) {
             console.log('Найдена кнопка "В город", выполняем нажатие...');
             cityButton.click();
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -2234,6 +2240,270 @@ function checkPmaVaItem(dialog) {
     return false;
 }
 
+
+/**
+ * Добавляет кнопку "БОСС" слева от кнопки старт и реализует фарм босса в Зеленых топях.
+ * Путь: Зеленые топи -> polygon1 -> polygon2 -> polygon3 -> polygon4 -> fightEnemies -> повтор.
+ */
+
+// --- 1. Добавление кнопки БОСС ---
+function createBossButton() {
+    // Проверяем, не создана ли уже кнопка
+    if (document.getElementById('boss-button')) return;
+
+    // Ждём появления системного хедера
+    let tryCount = 0;
+    function waitHeaderAndCreate() {
+        const header = document.querySelector('app-system-header .header-relative');
+        if (!header) {
+            if (++tryCount < 30) return setTimeout(waitHeaderAndCreate, 100);
+            return;
+        }
+
+        // Находим или создаём контейнер для кнопок по центру
+        let centerContainer = header.querySelector('.header-center-controls');
+        if (!centerContainer) {
+            centerContainer = document.createElement('div');
+            centerContainer.className = 'header-center-controls';
+            centerContainer.style.display = 'flex';
+            centerContainer.style.justifyContent = 'center';
+            centerContainer.style.alignItems = 'center';
+            centerContainer.style.gap = '10px';
+            centerContainer.style.position = 'absolute';
+            centerContainer.style.left = '50%';
+            centerContainer.style.top = '0';
+            centerContainer.style.transform = 'translateX(-50%)';
+            centerContainer.style.height = '100%';
+            centerContainer.style.zIndex = '1001';
+            header.appendChild(centerContainer);
+        }
+
+        // --- Кнопка БОСС ---
+        const baseWidth = 90;
+        const baseHeight = 26;
+        const bossBtn = document.createElement('button');
+        bossBtn.id = 'boss-button';
+        bossBtn.className = 'control-button-boss';
+        bossBtn.style.width = (baseWidth * 1.1) + 'px';
+        bossBtn.style.height = (baseHeight * 0.8) + 'px';
+        bossBtn.style.background = 'transparent';
+        bossBtn.style.color = 'var(--gold-base)';
+        bossBtn.style.border = '1.5px solid var(--gold-base)';
+        bossBtn.style.borderRadius = '6px';
+        bossBtn.style.cursor = 'pointer';
+        bossBtn.style.fontSize = '13px';
+        bossBtn.style.fontWeight = 'bold';
+        bossBtn.style.display = 'flex';
+        bossBtn.style.alignItems = 'center';
+        bossBtn.style.justifyContent = 'center';
+        bossBtn.style.boxShadow = 'none';
+        bossBtn.style.transition = 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)';
+        bossBtn.style.letterSpacing = '0.5px';
+        bossBtn.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+        bossBtn.style.userSelect = 'none';
+        bossBtn.style.outline = 'none';
+        bossBtn.style.margin = '0';
+
+        bossBtn.textContent = 'БОСС';
+
+        // --- Анимация как у кнопки Старт ---
+        bossBtn.addEventListener('mouseenter', () => {
+            if (!bossBtn.classList.contains('active')) {
+                bossBtn.style.background = 'rgba(255, 215, 0, 0.08)';
+            }
+        });
+        bossBtn.addEventListener('mouseleave', () => {
+            if (!bossBtn.classList.contains('active')) {
+                bossBtn.style.background = 'transparent';
+            }
+        });
+        bossBtn.addEventListener('mousedown', () => {
+            bossBtn.style.transform = 'scale(0.93)';
+        });
+        bossBtn.addEventListener('mouseup', () => {
+            bossBtn.style.transform = 'scale(1)';
+        });
+        bossBtn.addEventListener('mouseleave', () => {
+            bossBtn.style.transform = 'scale(1)';
+        });
+
+        // --- Логика запуска/остановки фарма босса ---
+        let bossFarming = false;
+        let bossFarmingAbort = null;
+
+        function setActive(active) {
+            if (active) {
+                bossBtn.classList.add('active');
+                bossBtn.textContent = 'СТОП БОСС';
+                bossBtn.style.background = '#a33';
+                bossBtn.style.color = '#fff';
+                bossBtn.style.border = '1.5px solid #a33';
+            } else {
+                bossBtn.classList.remove('active');
+                bossBtn.textContent = 'БОСС';
+                bossBtn.style.background = 'transparent';
+                bossBtn.style.color = 'var(--gold-base)';
+                bossBtn.style.border = '1.5px solid var(--gold-base)';
+            }
+        }
+
+        bossBtn.addEventListener('click', async () => {
+            if (bossFarming) {
+                bossFarming = false;
+                if (bossFarmingAbort) bossFarmingAbort.abort();
+                setActive(false);
+                return;
+            }
+            bossFarming = true;
+            setActive(true);
+            bossFarmingAbort = new AbortController();
+            try {
+                await bossFarmLoop(bossFarmingAbort.signal);
+            } catch (e) {
+                // Прерывание или ошибка
+            }
+            bossFarming = false;
+            setActive(false);
+        });
+
+        // Добавляем кнопку в центр хедера (в начало, чтобы была слева от Старт)
+        if (centerContainer.firstChild) {
+            centerContainer.insertBefore(bossBtn, centerContainer.firstChild);
+        } else {
+            centerContainer.appendChild(bossBtn);
+        }
+    }
+    waitHeaderAndCreate();
+}
+
+
+// --- 2. Логика фарма босса ---
+
+async function bossFarmLoop(abortSignal) {
+    // Координаты нужных полигонов (points)
+    const polygons = [
+        "-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25",
+        "18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5",
+        "37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25",
+        "57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"
+    ];
+    const bossPolygonPoints = polygons[polygons.length - 1];
+
+    while (true) {
+        if (abortSignal.aborted) throw new Error('bossFarmLoop aborted');
+
+        // 1. Нажимаем "Сражения"
+        await clickByTextContent('Сражения', 5000);
+
+        // 2. Нажимаем "Зеленые топи"
+        await clickByLocationName('Зеленые топи', 5000);
+
+        // 3. Пошаговый обход всех полигонов до босса (кроме последнего)
+        for (let i = 0; i < polygons.length - 1; ++i) {
+            const polygonPoints = polygons[i];
+
+            // Ждём появления нужного полигона
+            const polygon = await waitFor(() => {
+                if (abortSignal.aborted) throw new Error('bossFarmLoop aborted');
+                return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+            }, 200, 10000);
+
+            if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
+
+            // Кликаем по полигону
+            clickPolygon(polygon);
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Ждём появления кнопки "Перейти"
+            const goBtn = await waitFor(() => {
+                if (abortSignal.aborted) throw new Error('bossFarmLoop aborted');
+                return Array.from(document.querySelectorAll('div.button-content'))
+                    .find(btn => btn.textContent.trim() === 'Перейти');
+            }, 200, 10000);
+
+            if (goBtn) {
+                goBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } else {
+                throw new Error('Кнопка "Перейти" не найдена');
+            }
+
+            // Ждём, что текущий hex сменился на нужный полигон
+            await waitFor(() => {
+                if (abortSignal.aborted) throw new Error('bossFarmLoop aborted');
+                const current = document.querySelector('g.hex-box.current polygon.hexagon');
+                return current && current.getAttribute('points') === polygonPoints;
+            }, 200, 10000);
+        }
+
+        // 4. Цикл боя с боссом (идти к боссу, бить, умер - воскрес и снова идти)
+        if (abortSignal.aborted) throw new Error('bossFarmLoop aborted');
+        await bossFightLoop(abortSignal, bossPolygonPoints);
+
+        // 5. После смерти или окончания боя повторяем цикл (это реализовано внутри bossFightLoop)
+    }
+}
+
+
+
+// --- 3. Вспомогательные функции ---
+
+// Переход на локацию по названию
+async function goToLocationByName(name, abortSignal) {
+    // Открываем карту, ищем локацию по названию, кликаем
+    const openMap = () => {
+        const mapBtn = document.querySelector('app-button-icon.button-map[data-appearance="primary"]');
+        if (mapBtn) mapBtn.click();
+    };
+    openMap();
+    await waitFor(() => {
+        if (abortSignal.aborted) throw new Error('goToLocationByName aborted');
+        // Локация с нужным названием
+        return Array.from(document.querySelectorAll('.location-list-item, .location-item, .location-name'))
+            .find(el => el.textContent && el.textContent.includes(name));
+    }, 100, 10000);
+    const locBtn = Array.from(document.querySelectorAll('.location-list-item, .location-item, .location-name'))
+        .find(el => el.textContent && el.textContent.includes(name));
+    if (locBtn) locBtn.click();
+    // Ждём загрузки локации (можно по hex-карте)
+    await waitFor(() => {
+        if (abortSignal.aborted) throw new Error('goToLocationByName aborted');
+        // Проверяем, что находимся в нужной локации (например, по заголовку)
+        const header = document.querySelector('.location-header, .location-title');
+        return header && header.textContent && header.textContent.includes(name);
+    }, 200, 10000);
+}
+
+// Переход к нужному полигону по points
+async function stepToPolygonByPoints(points, abortSignal) {
+    // Ждём появления полигона
+    const polygon = await waitFor(() => {
+        if (abortSignal.aborted) throw new Error('stepToPolygonByPoints aborted');
+        return Array.from(document.querySelectorAll('polygon.hexagon'))
+            .find(p => p.getAttribute('points') === points);
+    }, 200, 10000);
+    // Кликаем по полигону
+    polygon.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Ждём, что текущий гекс сменился на этот (например, по выделению)
+    await waitFor(() => {
+        if (abortSignal.aborted) throw new Error('stepToPolygonByPoints aborted');
+        // Проверяем, что текущий hex выделен и совпадает по points
+        const current = document.querySelector('g.hex-box.current polygon.hexagon');
+        return current && current.getAttribute('points') === points;
+    }, 200, 10000);
+}
+
+// Универсальный waitFor
+async function waitFor(predicate, interval = 200, timeout = 10000) {
+    const start = Date.now();
+    while (true) {
+        const result = predicate();
+        if (result) return result;
+        if (Date.now() - start > timeout) throw new Error('waitFor timeout');
+        await new Promise(r => setTimeout(r, interval));
+    }
+}
+
 function checkEpicItemWithStats(dialog) {
     const qualityElement = dialog.querySelector('.item-quality');
     if (!qualityElement || !qualityElement.textContent.includes('Эпич')) {
@@ -2262,6 +2532,103 @@ function checkEpicItemWithStats(dialog) {
     return matchingStatsCount >= 3;
 }
 
+async function bossFightLoop(abortSignal, bossPolygonPoints) {
+    while (true) {
+        if (abortSignal.aborted) throw new Error('bossFightLoop aborted');
+
+        // 1. Проверяем смерть и обрабатываем её (функция уже есть)
+        await checkAndReturnToCity();
+
+        // 2. Доходим до босса (последний полигон)
+        // Ждём появления нужного полигона
+        const polygon = await waitFor(() => {
+            if (abortSignal.aborted) throw new Error('bossFightLoop aborted');
+            return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
+        }, 200, 10000);
+
+        if (!polygon) throw new Error(`Не найден полигон для босса: ${bossPolygonPoints}`);
+
+        // Кликаем по полигону
+        clickPolygon(polygon);
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Ждём появления кнопки "Перейти"
+        const goBtn = await waitFor(() => {
+            if (abortSignal.aborted) throw new Error('bossFightLoop aborted');
+            return Array.from(document.querySelectorAll('div.button-content'))
+                .find(btn => btn.textContent.trim() === 'Перейти');
+        }, 200, 10000);
+
+        if (goBtn) {
+            goBtn.click();
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+            throw new Error('Кнопка "Перейти" не найдена');
+        }
+
+        // Ждём, что текущий hex сменился на нужный полигон
+        await waitFor(() => {
+            if (abortSignal.aborted) throw new Error('bossFightLoop aborted');
+            const current = document.querySelector('g.hex-box.current polygon.hexagon');
+            return current && current.getAttribute('points') === bossPolygonPoints;
+        }, 200, 10000);
+
+        // 3. Кликаем по иконке босса (mob-type-boss.svg)
+        const bossIcon = await waitFor(() => {
+            if (abortSignal.aborted) throw new Error('bossFightLoop aborted');
+            return document.querySelector('tui-icon.svg-icon[style*="mob-type-boss.svg"]');
+        }, 200, 10000);
+
+        if (!bossIcon) throw new Error('Иконка босса не найдена');
+        bossIcon.click();
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // 4. Бой с боссом: прожим всех attack-навыков, multitarget для лучника, автопитье банок, слежение за смертью
+        let bossDead = false;
+        while (!bossDead) {
+            if (abortSignal.aborted) throw new Error('bossFightLoop aborted');
+
+            // Проверяем смерть и обрабатываем её (если умерли, цикл начнётся заново)
+            await checkAndReturnToCity();
+
+            // Проверяем, жив ли босс (иконка dead.svg на карточке босса)
+            const bossCard = document.querySelector('app-profile-card.target');
+            if (bossCard) {
+                const deadIcon = bossCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
+                if (deadIcon) {
+                    bossDead = true;
+                    break;
+                }
+            }
+
+            // Прожимаем все attack-навыки класса
+            selectedClass = detectPlayerClass();
+            const skills = CLASS_SKILLS[selectedClass];
+            if (skills && skills.attack && skills.attack.length) {
+                for (const skill of skills.attack) {
+                    await useSkill(skill);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            // Для лучника дополнительно multitarget
+            if (selectedClass === 'Лучник' && skills && skills.multitarget) {
+                await useSkill(skills.multitarget);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Автопитье банок HP/MP (функция уже есть)
+            await checkManaAndHealth();
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Задержка между итерациями боя
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        // После победы над боссом можно добавить обработку награды или задержку
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Цикл повторяется: снова идём к боссу
+    }
+}
 
 
 // Обновляем время работы каждые 5 секунд
