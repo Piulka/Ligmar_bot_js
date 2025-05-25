@@ -21,8 +21,12 @@ let dropSelectedStats = ['Сила', 'Ловкость', 'Интеллект', '
 let dropStatsCount = 3;
 let dropMinGearScore = 650;
 let dropQuality = 'Эпические';
+let dropSelectedTypes = [
+    'Оружие', 'Плечи', 'Шея', 'Пояс', 'Палец', 'Ступни', 'Ноги', 'Руки', 'Грудь', 'Голова'
+];
+let dropPotionEnabled = false;
 
-const SCRIPT_COMMIT = 'v.2.1.1';
+const SCRIPT_COMMIT = 'v.2.2';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -463,7 +467,6 @@ function showDropSettingsModal() {
     customCheckbox.style.marginRight = '6px';
     customCheckbox.onchange = () => {
         dropFilters.custom = customCheckbox.checked;
-        // Показать/скрыть кастомные настройки
         customSettingsBlock.style.display = dropFilters.custom ? '' : 'none';
     };
 
@@ -477,6 +480,69 @@ function showDropSettingsModal() {
     customSettingsBlock.style.padding = '10px 0 0 0';
     customSettingsBlock.style.borderTop = '1px solid var(--gold-base)';
     customSettingsBlock.style.display = dropFilters.custom ? '' : 'none';
+
+    // --- Выбор типов вещей ---
+    const typesLabel = document.createElement('div');
+    typesLabel.textContent = 'Типы вещей:';
+    typesLabel.style.fontWeight = '600';
+    typesLabel.style.marginBottom = '4px';
+    customSettingsBlock.appendChild(typesLabel);
+
+    const typesContainer = document.createElement('div');
+    typesContainer.style.display = 'flex';
+    typesContainer.style.flexWrap = 'wrap';
+    typesContainer.style.gap = '8px';
+    typesContainer.style.marginBottom = '10px';
+
+    const allTypes = [
+        'Оружие', 'Плечи', 'Шея', 'Пояс', 'Палец', 'Ступни', 'Ноги', 'Руки', 'Грудь', 'Голова'
+    ];
+    allTypes.forEach(type => {
+        const label = document.createElement('label');
+        label.style.display = 'flex';
+        label.style.alignItems = 'center';
+        label.style.cursor = 'pointer';
+        label.style.fontSize = '13px';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = type;
+        checkbox.checked = dropSelectedTypes.includes(type);
+        checkbox.style.marginRight = '4px';
+
+        checkbox.onchange = () => {
+            if (checkbox.checked) {
+                if (!dropSelectedTypes.includes(type)) dropSelectedTypes.push(type);
+            } else {
+                dropSelectedTypes = dropSelectedTypes.filter(s => s !== type);
+            }
+        };
+
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(type));
+        typesContainer.appendChild(label);
+    });
+    customSettingsBlock.appendChild(typesContainer);
+
+    // --- Чекбокс для зелья ---
+    const potionLabel = document.createElement('label');
+    potionLabel.style.display = 'flex';
+    potionLabel.style.alignItems = 'center';
+    potionLabel.style.cursor = 'pointer';
+    potionLabel.style.fontSize = '13px';
+    potionLabel.style.marginBottom = '8px';
+
+    const potionCheckbox = document.createElement('input');
+    potionCheckbox.type = 'checkbox';
+    potionCheckbox.checked = dropPotionEnabled;
+    potionCheckbox.style.marginRight = '6px';
+    potionCheckbox.onchange = () => {
+        dropPotionEnabled = potionCheckbox.checked;
+    };
+
+    potionLabel.appendChild(potionCheckbox);
+    potionLabel.appendChild(document.createTextNode('Зелье (класть все зелья)'));
+    customSettingsBlock.appendChild(potionLabel);
 
     // --- Выбор статов ---
     const statsLabel = document.createElement('div');
@@ -610,6 +676,29 @@ function showDropSettingsModal() {
     });
 }
 function checkDropCustomRules(dialog) {
+    // Если выбрано "Зелье" — кладём все зелья, вне зависимости от статов и ГС
+    if (dropPotionEnabled) {
+        const tagDivs = dialog.querySelectorAll('.item-tags');
+        for (const tagDiv of tagDivs) {
+            if (tagDiv.textContent.trim() === 'Зелье') {
+                return true;
+            }
+        }
+    }
+
+    // Проверка типа вещи
+    if (dropSelectedTypes && dropSelectedTypes.length > 0) {
+        const tagDivs = dialog.querySelectorAll('.item-tags');
+        let hasType = false;
+        for (const tagDiv of tagDivs) {
+            if (dropSelectedTypes.includes(tagDiv.textContent.trim())) {
+                hasType = true;
+                break;
+            }
+        }
+        if (!hasType) return false;
+    }
+
     // Качество
     if (dropQuality === 'Эпические') {
         const qualityElement = dialog.querySelector('.item-quality');
@@ -635,7 +724,6 @@ function checkDropCustomRules(dialog) {
     });
     return matchingStatsCount >= dropStatsCount;
 }
-
 function autoDetectVipStatus() {
     // Если есть иконка switch-auto.svg — VIP, если только switch.svg — не VIP
     const autoIcon = document.querySelector('tui-icon.svg-icon[style*="switch-auto.svg"]');
