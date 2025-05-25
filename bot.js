@@ -26,7 +26,7 @@ let dropSelectedTypes = [
 ];
 let dropPotionEnabled = false;
 
-const SCRIPT_COMMIT = 'v.2.3';
+const SCRIPT_COMMIT = 'v.2.3.1';
 
 // Навыки для каждого класса
 const CLASS_SKILLS = {
@@ -1941,12 +1941,18 @@ async function fightEnemies(isChampionHexagon = false) {
         const switchBtn = Array.from(document.querySelectorAll('app-button-icon.button-find-target[data-appearance="primary"]'))
             .find(btn => btn.querySelector('tui-icon.svg-icon[style*="switch.svg"]'));
         if (switchBtn) {
-            // Ищем <app-button-icon.hex-event-item.highlight ...> с shrine.svg или chest.svg
+            // Ищем <app-button-icon.hex-event-item.highlight ...> с shrine.svg или chest
             const eventBtn = Array.from(document.querySelectorAll('app-button-icon.hex-event-item.highlight[data-appearance="primary"]'))
-                .find(btn => btn.querySelector('tui-icon.svg-icon[style*="shrine.svg"], tui-icon.svg-icon[style*="chest"]'));
+                .find(btn => btn.querySelector('tui-icon.svg-icon[style*="shrine"], tui-icon.svg-icon[style*="chest"]'));
             if (eventBtn) {
                 eventBtn.click();
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // После клика по алтарю/сундуку сразу кликаем по кнопке карты
+                await new Promise(resolve => setTimeout(resolve, 300));
+                const mapBtn = Array.from(document.querySelectorAll('app-button-icon.button-map[data-appearance="primary"]'))
+                    .find(btn => btn.querySelector('tui-icon.svg-icon[style*="map.svg"]'));
+                if (mapBtn) {
+                    mapBtn.click();
+                }
                 return;
             }
         }
