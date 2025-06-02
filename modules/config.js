@@ -30,10 +30,10 @@ window.BotConfig = {
     dropPotionEnabled: false,
 
     // Версия скрипта
-    SCRIPT_COMMIT: 'v.3.8.6',
+    SCRIPT_COMMIT: 'v.3.8.8',
 
     // Google Sheets интеграция (оставьте пустым если не используете)
-    googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbw5IAR0ak2pPGWaJSeay6xNe_ULS0BgV1gSzEaahNiIiWMSExnzGWMOB-55yFG3ugOtpg/exec', // URL Google Apps Script веб-приложения
+    googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbwiXSBsPQw-bL2FvXD6MwbOnRoP7WIPr4b_t45hqbZhBFZqMxQkGQ0MkPCNRXVzOGKGww/exec', // URL Google Apps Script веб-приложения
 
     // Навыки для каждого класса
     CLASS_SKILLS: {

@@ -111,8 +111,6 @@ window.BotNavigation = {
      * @param {HTMLElement} polygon - элемент полигона
      */
     clickPolygon(polygon) {
-        console.log('🎯 clickPolygon: попытка клика по полигону');
-        
         if (!polygon) {
             console.error('❌ clickPolygon: полигон не найден или равен null');
             return false;
@@ -132,7 +130,6 @@ window.BotNavigation = {
         
         try {
             const rect = polygon.getBoundingClientRect();
-            console.log('✅ Получены координаты полигона:', rect);
             
             const clickEvent = new MouseEvent('click', {
                 bubbles: true,
@@ -143,7 +140,6 @@ window.BotNavigation = {
             });
             
             polygon.dispatchEvent(clickEvent);
-            console.log('✅ Клик по полигону выполнен');
             return true;
         } catch (error) {
             console.error('❌ Ошибка клика по полигону:', error);
