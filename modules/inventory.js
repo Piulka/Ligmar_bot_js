@@ -160,8 +160,51 @@ window.BotInventory = {
     },
 
     checkDropCustomRules(dialog) {
-        // Упрощенная версия кастомных правил
-        return false; // Можно расширить при необходимости
+        // Проверяем качество
+        const qualityElement = dialog.querySelector('.item-quality');
+        if (!qualityElement) return false;
+        
+        const quality = qualityElement.textContent.trim();
+        if (window.BotConfig.dropQuality && quality !== window.BotConfig.dropQuality) {
+            return false;
+        }
+
+        // Проверяем тип вещи
+        const typeElement = dialog.querySelector('.item-type');
+        if (typeElement && window.BotConfig.dropSelectedTypes.length > 0) {
+            const itemType = typeElement.textContent.trim();
+            if (!window.BotConfig.dropSelectedTypes.some(type => itemType.includes(type))) {
+                return false;
+            }
+        }
+
+        // Проверяем статы
+        const statsElements = dialog.querySelectorAll('.magic-prop-name');
+        if (statsElements.length === 0) return false;
+
+        let matchingStatsCount = 0;
+        statsElements.forEach(statElement => {
+            const statText = statElement.textContent.trim();
+            if (window.BotConfig.dropSelectedStats.some(stat => statText.includes(stat))) {
+                matchingStatsCount++;
+            }
+        });
+
+        // Проверяем минимальное количество статов
+        if (matchingStatsCount < window.BotConfig.dropStatsCount) {
+            return false;
+        }
+
+        // Проверяем минимальный ГС
+        const gsElement = dialog.querySelector('.gear-score-value');
+        if (gsElement) {
+            const gearScore = parseInt(gsElement.textContent.replace(/\D/g, ''), 10);
+            if (gearScore < window.BotConfig.dropMinGearScore) {
+                return false;
+            }
+        }
+
+        return true;
     },
 
     async navigateToSellItems() {
@@ -223,7 +266,261 @@ window.BotInventory = {
     },
 
     showDropSettingsModal() {
-        // Упрощенная версия - можно расширить при необходимости
-        alert('Настройки дропа будут добавлены в следующих версиях');
+        // Удалить старое окно, если оно есть
+        let oldModal = document.getElementById('drop-settings-modal');
+        if (oldModal) oldModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'drop-settings-modal';
+        modal.style.position = 'fixed';
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%)';
+        modal.style.background = 'var(--black-dark)';
+        modal.style.border = '2px solid var(--gold-base)';
+        modal.style.borderRadius = '12px';
+        modal.style.padding = '18px 20px 16px 20px';
+        modal.style.zIndex = '2000';
+        modal.style.color = 'var(--white)';
+        modal.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+        modal.style.minWidth = '340px';
+        modal.style.boxShadow = '0 8px 32px 0 rgba(0,0,0,0.25)';
+
+        // Заголовок
+        const title = document.createElement('div');
+        title.textContent = 'Настройки дропа';
+        title.style.fontSize = '17px';
+        title.style.fontWeight = 'bold';
+        title.style.color = 'var(--gold-base)';
+        title.style.marginBottom = '12px';
+        title.style.textAlign = 'center';
+        modal.appendChild(title);
+
+        // --- Чекбоксы стандартных фильтров ---
+        const filters = [
+            { key: 'ancient', label: 'Древние' },
+            { key: 'pmaVa', label: 'ПМА/ВА' },
+            { key: 'epicStats', label: '3+ стата (мои личные настройки)' },
+            { key: 'highGearScore', label: 'ГС > 650' }
+        ];
+        filters.forEach(f => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.cursor = 'pointer';
+            label.style.fontSize = '13px';
+            label.style.marginBottom = '4px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = window.BotConfig.dropFilters[f.key];
+            checkbox.style.marginRight = '6px';
+            checkbox.onchange = () => {
+                window.BotConfig.dropFilters[f.key] = checkbox.checked;
+            };
+
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(f.label));
+            modal.appendChild(label);
+        });
+
+        // --- Чекбокс кастомного фильтра ---
+        const customLabel = document.createElement('label');
+        customLabel.style.display = 'flex';
+        customLabel.style.alignItems = 'center';
+        customLabel.style.cursor = 'pointer';
+        customLabel.style.fontSize = '13px';
+        customLabel.style.marginBottom = '4px';
+
+        const customCheckbox = document.createElement('input');
+        customCheckbox.type = 'checkbox';
+        customCheckbox.checked = window.BotConfig.dropFilters.custom;
+        customCheckbox.style.marginRight = '6px';
+        customCheckbox.onchange = () => {
+            window.BotConfig.dropFilters.custom = customCheckbox.checked;
+            customSettingsBlock.style.display = window.BotConfig.dropFilters.custom ? '' : 'none';
+        };
+
+        customLabel.appendChild(customCheckbox);
+        customLabel.appendChild(document.createTextNode('Кастомные'));
+        modal.appendChild(customLabel);
+
+        // --- Кастомные настройки (по умолчанию скрыты) ---
+        const customSettingsBlock = document.createElement('div');
+        customSettingsBlock.style.margin = '10px 0 0 0';
+        customSettingsBlock.style.padding = '10px 0 0 0';
+        customSettingsBlock.style.borderTop = '1px solid var(--gold-base)';
+        customSettingsBlock.style.display = window.BotConfig.dropFilters.custom ? '' : 'none';
+
+        // --- Выбор типов вещей ---
+        const typesLabel = document.createElement('div');
+        typesLabel.textContent = 'Типы вещей:';
+        typesLabel.style.fontWeight = '600';
+        typesLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(typesLabel);
+
+        const typesContainer = document.createElement('div');
+        typesContainer.style.display = 'flex';
+        typesContainer.style.flexWrap = 'wrap';
+        typesContainer.style.gap = '8px';
+        typesContainer.style.marginBottom = '10px';
+
+        const allTypes = ['Оружие', 'Плечи', 'Шея', 'Пояс', 'Палец', 'Ступни', 'Ноги', 'Руки', 'Грудь', 'Голова'];
+        allTypes.forEach(type => {
+            const typeLabel = document.createElement('label');
+            typeLabel.style.display = 'flex';
+            typeLabel.style.alignItems = 'center';
+            typeLabel.style.cursor = 'pointer';
+            typeLabel.style.fontSize = '12px';
+            typeLabel.style.width = '48%';
+
+            const typeCheckbox = document.createElement('input');
+            typeCheckbox.type = 'checkbox';
+            typeCheckbox.checked = window.BotConfig.dropSelectedTypes.includes(type);
+            typeCheckbox.style.marginRight = '4px';
+            typeCheckbox.onchange = () => {
+                if (typeCheckbox.checked) {
+                    if (!window.BotConfig.dropSelectedTypes.includes(type)) {
+                        window.BotConfig.dropSelectedTypes.push(type);
+                    }
+                } else {
+                    window.BotConfig.dropSelectedTypes = window.BotConfig.dropSelectedTypes.filter(t => t !== type);
+                }
+            };
+
+            typeLabel.appendChild(typeCheckbox);
+            typeLabel.appendChild(document.createTextNode(type));
+            typesContainer.appendChild(typeLabel);
+        });
+        customSettingsBlock.appendChild(typesContainer);
+
+        // --- Выбор статов ---
+        const statsLabel = document.createElement('div');
+        statsLabel.textContent = 'Статы:';
+        statsLabel.style.fontWeight = '600';
+        statsLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(statsLabel);
+
+        const statsContainer = document.createElement('div');
+        statsContainer.style.display = 'flex';
+        statsContainer.style.flexWrap = 'wrap';
+        statsContainer.style.gap = '8px';
+        statsContainer.style.marginBottom = '10px';
+
+        window.BotConfig.dropStats.forEach(stat => {
+            const statLabel = document.createElement('label');
+            statLabel.style.display = 'flex';
+            statLabel.style.alignItems = 'center';
+            statLabel.style.cursor = 'pointer';
+            statLabel.style.fontSize = '12px';
+            statLabel.style.width = '48%';
+
+            const statCheckbox = document.createElement('input');
+            statCheckbox.type = 'checkbox';
+            statCheckbox.checked = window.BotConfig.dropSelectedStats.includes(stat);
+            statCheckbox.style.marginRight = '4px';
+            statCheckbox.onchange = () => {
+                if (statCheckbox.checked) {
+                    if (!window.BotConfig.dropSelectedStats.includes(stat)) {
+                        window.BotConfig.dropSelectedStats.push(stat);
+                    }
+                } else {
+                    window.BotConfig.dropSelectedStats = window.BotConfig.dropSelectedStats.filter(s => s !== stat);
+                }
+            };
+
+            statLabel.appendChild(statCheckbox);
+            statLabel.appendChild(document.createTextNode(stat));
+            statsContainer.appendChild(statLabel);
+        });
+        customSettingsBlock.appendChild(statsContainer);
+
+        // --- Количество статов ---
+        const statsCountLabel = document.createElement('div');
+        statsCountLabel.textContent = 'Минимум статов:';
+        statsCountLabel.style.fontWeight = '600';
+        statsCountLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(statsCountLabel);
+
+        const statsCountInput = document.createElement('input');
+        statsCountInput.type = 'number';
+        statsCountInput.min = '1';
+        statsCountInput.max = '10';
+        statsCountInput.value = window.BotConfig.dropStatsCount;
+        statsCountInput.style.width = '60px';
+        statsCountInput.style.marginBottom = '10px';
+        statsCountInput.onchange = () => {
+            window.BotConfig.dropStatsCount = parseInt(statsCountInput.value, 10);
+        };
+        customSettingsBlock.appendChild(statsCountInput);
+
+        // --- Минимальный ГС ---
+        const gsLabel = document.createElement('div');
+        gsLabel.textContent = 'Минимальный ГС:';
+        gsLabel.style.fontWeight = '600';
+        gsLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(gsLabel);
+
+        const gsInput = document.createElement('input');
+        gsInput.type = 'number';
+        gsInput.min = '100';
+        gsInput.max = '1000';
+        gsInput.value = window.BotConfig.dropMinGearScore;
+        gsInput.style.width = '80px';
+        gsInput.style.marginBottom = '10px';
+        gsInput.onchange = () => {
+            window.BotConfig.dropMinGearScore = parseInt(gsInput.value, 10);
+        };
+        customSettingsBlock.appendChild(gsInput);
+
+        modal.appendChild(customSettingsBlock);
+
+        // --- Кнопки ---
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.justifyContent = 'space-between';
+        buttonsContainer.style.marginTop = '16px';
+        buttonsContainer.style.gap = '10px';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Сохранить';
+        saveBtn.style.flex = '1';
+        saveBtn.style.padding = '8px 16px';
+        saveBtn.style.background = 'var(--gold-base)';
+        saveBtn.style.color = 'var(--black-dark)';
+        saveBtn.style.border = 'none';
+        saveBtn.style.borderRadius = '6px';
+        saveBtn.style.cursor = 'pointer';
+        saveBtn.style.fontWeight = 'bold';
+        saveBtn.onclick = () => {
+            modal.remove();
+            console.log('Настройки дропа сохранены');
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Отмена';
+        cancelBtn.style.flex = '1';
+        cancelBtn.style.padding = '8px 16px';
+        cancelBtn.style.background = 'transparent';
+        cancelBtn.style.color = 'var(--gold-base)';
+        cancelBtn.style.border = '1px solid var(--gold-base)';
+        cancelBtn.style.borderRadius = '6px';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.onclick = () => {
+            modal.remove();
+        };
+
+        buttonsContainer.appendChild(saveBtn);
+        buttonsContainer.appendChild(cancelBtn);
+        modal.appendChild(buttonsContainer);
+
+        document.body.appendChild(modal);
+
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     }
 }; 

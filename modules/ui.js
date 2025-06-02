@@ -174,7 +174,7 @@ window.BotUI = {
         groups.push(this.createRadioGroup({
             label: 'Локация:',
             name: 'location',
-            options: ['Зеленые топи', 'Серые равнины', 'Пустынные дюны', 'Огненные холмы'],
+            options: ['Пригород', 'Проклятый сад', 'Окраина леса', 'Озеро Королей', 'Зеленые топи', 'Старые рудники'],
             selectedValue: window.BotConfig.selectedLocation,
             onChange: (value) => { window.BotConfig.selectedLocation = value; }
         }));

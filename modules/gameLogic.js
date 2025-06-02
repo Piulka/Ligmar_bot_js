@@ -131,11 +131,198 @@ window.BotGameLogic = {
     },
 
     /**
-     * Создание кнопок боссов (упрощенная версия)
+     * Создание кнопок боссов
      */
     async createBossButtons() {
-        // Упрощенная версия кнопок боссов
-        console.log('Кнопки боссов будут добавлены в следующих версиях');
+        // Удаляем старые кнопки, если есть
+        const oldBossVTBtn = document.getElementById('boss-vt-button');
+        const oldBossCHTBtn = document.getElementById('boss-cht-button');
+        if (oldBossVTBtn) oldBossVTBtn.remove();
+        if (oldBossCHTBtn) oldBossCHTBtn.remove();
+
+        // Проверяем, не созданы ли уже новые кнопки
+        if (document.getElementById('boss-vt-button') || document.getElementById('boss-cht-button')) return;
+
+        // Ждём появления системного хедера
+        let header = document.querySelector('app-system-header .header-relative');
+        for (let i = 0; i < 30 && !header; i++) {
+            await window.BotUtils.delay(100);
+            header = document.querySelector('app-system-header .header-relative');
+        }
+        if (!header) return;
+
+        // Находим или создаём контейнер для кнопок по центру
+        let centerContainer = header.querySelector('.header-center-controls');
+        if (!centerContainer) {
+            centerContainer = document.createElement('div');
+            centerContainer.className = 'header-center-controls';
+            Object.assign(centerContainer.style, {
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '10px',
+                position: 'absolute',
+                left: '50%',
+                top: '0',
+                transform: 'translateX(-50%)',
+                height: '100%',
+                zIndex: '1001'
+            });
+            header.appendChild(centerContainer);
+        }
+
+        // Размеры кнопок
+        const btnWidth = '58px';
+        const btnHeight = '21px';
+        const btnFontSize = '11px';
+
+        // --- Кнопка БОСС ВТ ---
+        const bossVTBtn = document.createElement('button');
+        bossVTBtn.id = 'boss-vt-button';
+        bossVTBtn.className = 'control-button-boss-vt';
+        Object.assign(bossVTBtn.style, {
+            width: btnWidth,
+            height: btnHeight,
+            background: 'transparent',
+            color: 'var(--gold-base)',
+            border: '1.5px solid var(--gold-base)',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: btnFontSize,
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)',
+            letterSpacing: '0.5px',
+            fontFamily: 'Segoe UI, Arial, sans-serif',
+            userSelect: 'none',
+            outline: 'none',
+            margin: '0'
+        });
+
+        bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ВТ';
+
+        // События для кнопки ВТ
+        bossVTBtn.addEventListener('mouseenter', () => {
+            bossVTBtn.style.background = 'rgba(255, 215, 0, 0.08)';
+        });
+        
+        bossVTBtn.addEventListener('mouseleave', () => {
+            bossVTBtn.style.background = 'transparent';
+            bossVTBtn.style.transform = 'scale(1)';
+        });
+
+        bossVTBtn.addEventListener('mousedown', () => {
+            bossVTBtn.style.transform = 'scale(0.93)';
+        });
+
+        bossVTBtn.addEventListener('mouseup', () => {
+            bossVTBtn.style.transform = 'scale(1)';
+        });
+
+        let vtAbortController = null;
+        bossVTBtn.addEventListener('click', async () => {
+            if (!vtAbortController) {
+                vtAbortController = new AbortController();
+                bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⏸</span>ВТ';
+                
+                try {
+                    await this.bossFarmLoopVT(vtAbortController.signal);
+                } catch (error) {
+                    if (error.message.includes('aborted')) {
+                        console.log('Фарм босса ВТ остановлен');
+                    } else {
+                        console.error('Ошибка фарма босса ВТ:', error);
+                    }
+                } finally {
+                    vtAbortController = null;
+                    bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ВТ';
+                }
+            } else {
+                vtAbortController.abort();
+                vtAbortController = null;
+                bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ВТ';
+            }
+        });
+
+        // --- Кнопка БОСС ЧТ ---
+        const bossCHTBtn = document.createElement('button');
+        bossCHTBtn.id = 'boss-cht-button';
+        bossCHTBtn.className = 'control-button-boss-cht';
+        Object.assign(bossCHTBtn.style, {
+            width: btnWidth,
+            height: btnHeight,
+            background: 'transparent',
+            color: 'var(--gold-base)',
+            border: '1.5px solid var(--gold-base)',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: btnFontSize,
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)',
+            letterSpacing: '0.5px',
+            fontFamily: 'Segoe UI, Arial, sans-serif',
+            userSelect: 'none',
+            outline: 'none',
+            margin: '0'
+        });
+
+        bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ЧТ';
+
+        // События для кнопки ЧТ
+        bossCHTBtn.addEventListener('mouseenter', () => {
+            bossCHTBtn.style.background = 'rgba(255, 215, 0, 0.08)';
+        });
+        
+        bossCHTBtn.addEventListener('mouseleave', () => {
+            bossCHTBtn.style.background = 'transparent';
+            bossCHTBtn.style.transform = 'scale(1)';
+        });
+
+        bossCHTBtn.addEventListener('mousedown', () => {
+            bossCHTBtn.style.transform = 'scale(0.93)';
+        });
+
+        bossCHTBtn.addEventListener('mouseup', () => {
+            bossCHTBtn.style.transform = 'scale(1)';
+        });
+
+        let chtAbortController = null;
+        bossCHTBtn.addEventListener('click', async () => {
+            if (!chtAbortController) {
+                chtAbortController = new AbortController();
+                bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⏸</span>ЧТ';
+                
+                try {
+                    await this.bossFarmLoopCHT(chtAbortController.signal);
+                } catch (error) {
+                    if (error.message.includes('aborted')) {
+                        console.log('Фарм босса ЧТ остановлен');
+                    } else {
+                        console.error('Ошибка фарма босса ЧТ:', error);
+                    }
+                } finally {
+                    chtAbortController = null;
+                    bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ЧТ';
+                }
+            } else {
+                chtAbortController.abort();
+                chtAbortController = null;
+                bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ЧТ';
+            }
+        });
+
+        // Добавляем кнопки в контейнер
+        if (!centerContainer.contains(bossVTBtn)) {
+            centerContainer.appendChild(bossVTBtn);
+        }
+        if (!centerContainer.contains(bossCHTBtn)) {
+            centerContainer.appendChild(bossCHTBtn);
+        }
     },
 
     /**
@@ -214,6 +401,100 @@ window.BotGameLogic = {
 
             await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+                const current = document.querySelector('g.hex-box.current polygon.hexagon');
+                return current && current.getAttribute('points') === bossPolygonPoints;
+            }, 200, 10000);
+
+            const aimIcon = document.querySelector('tui-icon.svg-icon[style*="aim.svg"]');
+            if (aimIcon) {
+                aimIcon.click();
+                await window.BotUtils.delay(200);
+            }
+
+            window.BotNavigation.clickPolygon(bossPolygon);
+            await window.BotUtils.delay(200);
+
+            await this.bossFightLoop(abortSignal, bossPolygonPoints);
+        }
+    },
+
+    /**
+     * Фарм босса ЧТ
+     */
+    async bossFarmLoopCHT(abortSignal) {
+        const polygons = [
+            "-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25",
+            "18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5",
+            "37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25",
+            "57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93",
+            "76.5,-126.75 94.5,-137.25 94.5,-158.25 76.5,-168.75 58.5,-158.25 58.5,-137.25 76.5,-126.75"
+        ];
+        const bossPolygonPoints = polygons[polygons.length - 1];
+
+        while (true) {
+            if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+            
+            await window.BotUtils.clickByTextContent('Сражения', 5000);
+            await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
+
+            for (let i = 0; i < polygons.length - 1; ++i) {
+                const polygonPoints = polygons[i];
+                const polygon = await window.BotUtils.waitFor(() => {
+                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                    return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                }, 200, 10000);
+                
+                if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
+                
+                window.BotNavigation.clickPolygon(polygon);
+                await window.BotUtils.delay(300);
+                
+                const goBtn = await window.BotUtils.waitFor(() => {
+                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                    return Array.from(document.querySelectorAll('div.button-content'))
+                        .find(btn => btn.textContent.trim() === 'Перейти');
+                }, 200, 10000);
+                
+                if (goBtn) {
+                    goBtn.click();
+                    await window.BotUtils.delay(500);
+                } else {
+                    throw new Error('Кнопка "Перейти" не найдена');
+                }
+                
+                await window.BotUtils.waitFor(() => {
+                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                    const current = document.querySelector('g.hex-box.current polygon.hexagon');
+                    return current && current.getAttribute('points') === polygonPoints;
+                }, 200, 10000);
+            }
+            
+            if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+
+            // Переход на последний полигон (босс)
+            const bossPolygon = await window.BotUtils.waitFor(() => {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
+            }, 200, 10000);
+            
+            window.BotNavigation.clickPolygon(bossPolygon);
+            await window.BotUtils.delay(300);
+
+            const goBtn = await window.BotUtils.waitFor(() => {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                return Array.from(document.querySelectorAll('div.button-content'))
+                    .find(btn => btn.textContent.trim() === 'Перейти');
+            }, 200, 10000);
+            
+            if (goBtn) {
+                goBtn.click();
+                await window.BotUtils.delay(500);
+            } else {
+                throw new Error('Кнопка "Перейти" не найдена');
+            }
+
+            await window.BotUtils.waitFor(() => {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                 const current = document.querySelector('g.hex-box.current polygon.hexagon');
                 return current && current.getAttribute('points') === bossPolygonPoints;
             }, 200, 10000);
