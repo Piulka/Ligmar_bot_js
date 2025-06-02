@@ -1074,6 +1074,12 @@ window.BotGameLogic = {
             if (response.ok) {
                 const result = await response.json();
                 console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
+                
+                // Выводим ссылку на таблицу если она есть в ответе
+                if (result.spreadsheetUrl) {
+                    console.log(`📊 Ссылка на таблицу: ${result.spreadsheetUrl}`);
+                    console.log(`🎯 Скопируйте ссылку выше для быстрого доступа к таблице`);
+                }
             } else {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
