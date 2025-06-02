@@ -97,62 +97,84 @@ window.BotGameLogic = {
             await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         } else {
-            console.log('🔄 Не-VIP игрок: начинаю ручной поиск врагов');
-            let enemyAppeared = false;
-            let maxTries = 50;
+            console.log('🔄 Не-VIP игрок: начинаю обработку врагов по счетчику');
             
-            while (!enemyAppeared && maxTries-- > 0 && window.BotConfig.isScriptRunning) {
-                await window.BotNavigation.checkAndReturnToCity();
-        
-                const enemyCard = document.querySelector('app-profile-card.target');
-                let needSwitch = false;
-        
-                if (enemyCard) {
-                    const hpText = enemyCard.querySelector('.profile-health .stats-text');
-                    if (hpText) {
-                        const hpMatch = hpText.textContent.trim().match(/^(\d+)\s*\/\s*[\d, ]+$/);
-                        if (hpMatch && parseInt(hpMatch[1], 10) === 0) {
-                            needSwitch = true;
-                            console.log('🔄 Враг мертв, переключаю');
+            // Проверяем счетчик врагов
+            let enemiesCount = 0;
+            const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
+            if (enemiesCountElement) {
+                enemiesCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
+                console.log(`👹 Количество врагов: ${enemiesCount}`);
+            }
+            
+            if (enemiesCount > 0) {
+                // Есть враги - начинаем цикл боя
+                while (enemiesCount > 0 && window.BotConfig.isScriptRunning) {
+                    await window.BotNavigation.checkAndReturnToCity();
+                    
+                    // Обновляем счетчик врагов
+                    const currentEnemiesElement = document.querySelector('div.battle-bar-enemies-value');
+                    if (currentEnemiesElement) {
+                        enemiesCount = parseInt(currentEnemiesElement.textContent.trim(), 10) || 0;
+                        console.log(`👹 Текущее количество врагов: ${enemiesCount}`);
+                        
+                        if (enemiesCount === 0) {
+                            console.log('✅ Все враги повержены');
+                            break;
                         }
                     }
                     
-                    const deadIcon = enemyCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
-                    if (deadIcon) {
-                        needSwitch = true;
-                        console.log('🔄 Найдена иконка мертвого врага, переключаю');
+                    // Нажимаем на switch для переключения на следующего врага
+                    const switchIcon = document.querySelector('tui-icon.svg-icon[style*="assets/icons/switch.svg"]');
+                    if (switchIcon) {
+                        console.log('🔄 Переключаюсь на следующего врага');
+                        switchIcon.click();
+                        await window.BotUtils.delay(300);
+                    } else {
+                        console.log('⚠️ Кнопка переключения не найдена');
+                        await window.BotUtils.delay(300);
                     }
                     
-                    if (!needSwitch) {
-                        console.log('✅ Найден живой враг');
-                        enemyAppeared = true;
+                    // Ждем появления врага и следим за его ХП
+                    let enemyDefeated = false;
+                    let maxAttackRounds = 100; // Защита от бесконечного цикла
+                    
+                    while (!enemyDefeated && maxAttackRounds-- > 0 && window.BotConfig.isScriptRunning) {
+                        await window.BotNavigation.checkAndReturnToCity();
+                        
+                        // Проверяем ХП врага
+                        const enemyHealthElement = document.querySelector('app-general-stat.profile-health.enemy .stats-text');
+                        if (enemyHealthElement) {
+                            const healthText = enemyHealthElement.textContent.trim();
+                            const healthMatch = healthText.match(/^(\d[\d,\s]*)\s*\/\s*[\d,\s]+$/);
+                            
+                            if (healthMatch) {
+                                const currentHP = parseInt(healthMatch[1].replace(/[,\s]/g, ''), 10);
+                                console.log(`❤️ ХП врага: ${currentHP}`);
+                                
+                                if (currentHP === 0) {
+                                    console.log('💀 Враг повержен');
+                                    enemyDefeated = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Используем навыки для атаки
+                        await this.performNonVipCombat();
+                        await window.BotUtils.delay(200);
+                    }
+                    
+                    if (maxAttackRounds <= 0) {
+                        console.log('⚠️ Превышено максимальное количество раундов атаки');
                         break;
                     }
-                } else {
-                    console.log('🔄 Нет карточки врага, переключаю');
                 }
-        
-                const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
-                if (switchBtn) {
-                    console.log(`🔄 Нажимаю кнопку переключения (попыток осталось: ${maxTries})`);
-                    switchBtn.closest('div.button-icon-content').click();
-                    await window.BotUtils.delay(300);
-                } else {
-                    console.log('⚠️ Кнопка переключения не найдена, жду');
-                    await window.BotUtils.delay(300);
-                }
+                
+                console.log('🎉 Бой завершен для не-VIP игрока');
+            } else {
+                console.log('👹 Нет врагов для боя');
             }
-            
-            if (!enemyAppeared) {
-                console.log('❌ Враг не найден после переключений');
-                return;
-            }
-            
-            console.log('🎯 Начинаю бой с найденным врагом');
-            // Определяем тип боя и вызываем соответствующую функцию
-            const isChampion = hexagonResult.type === 'champion';
-            await window.BotCombat.fightEnemies(isChampion);
-            await window.BotUtils.delay(100);
         }
     },
 
@@ -1690,5 +1712,54 @@ googleSheetsUrl: 'ВАШ_URL_СЮДА',
         text += `Сгенерировано ботом Ligmar v.${window.BotConfig.SCRIPT_COMMIT}`;
         
         return text;
+    },
+
+    /**
+     * Выполнение боевых действий для не-VIP игроков
+     */
+    async performNonVipCombat() {
+        try {
+            // Проверяем здоровье и ману
+            if (window.BotCombat && window.BotCombat.checkManaAndHealth) {
+                await window.BotCombat.checkManaAndHealth();
+                await window.BotUtils.delay(100);
+            }
+            
+            // Проверяем баффы
+            if (window.BotCombat && window.BotCombat.checkAndActivateDefenseBuff) {
+                await window.BotCombat.checkAndActivateDefenseBuff();
+                await window.BotUtils.delay(100);
+            }
+            
+            // Используем боевые навыки
+            window.BotConfig.selectedClass = window.BotUtils.detectPlayerClass();
+            const skills = window.BotConfig.CLASS_SKILLS[window.BotConfig.selectedClass];
+            
+            if (skills && skills.attack && skills.attack.length) {
+                for (const skill of skills.attack) {
+                    if (window.BotCombat && window.BotCombat.useSkill) {
+                        await window.BotCombat.useSkill(skill);
+                        await window.BotUtils.delay(100);
+                    }
+                }
+            }
+            
+            // Для лучника используем мультискилл если нужно
+            if (window.BotConfig.selectedClass === 'Лучник' && skills && skills.multitarget) {
+                const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
+                if (enemiesCountElement) {
+                    const enemiesCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
+                    if (enemiesCount >= 2) {
+                        if (window.BotCombat && window.BotCombat.useSkill) {
+                            await window.BotCombat.useSkill(skills.multitarget);
+                            await window.BotUtils.delay(100);
+                        }
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('Ошибка в performNonVipCombat:', error);
+        }
     },
 }; 
