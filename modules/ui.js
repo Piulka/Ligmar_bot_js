@@ -8,48 +8,38 @@ window.BotUI = {
     async createAuthButton() {
         if (document.getElementById('auth-button') || this.isAuthorized) return;
 
-        let header = document.querySelector('app-system-header .header-relative');
-        for (let i = 0; i < 30 && !header; i++) {
-            await window.BotUtils.delay(100);
-            header = document.querySelector('app-system-header .header-relative');
-        }
-        if (!header) return;
-
-        // Находим или создаем контейнер для кнопок по центру
-        let centerContainer = header.querySelector('.header-center-controls');
-        if (!centerContainer) {
-            centerContainer = document.createElement('div');
-            centerContainer.className = 'header-center-controls';
-            Object.assign(centerContainer.style, {
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                gap: '8px',
-                position: 'fixed',
-                left: '50%',
-                top: '2px',
-                transform: 'translateX(-50%)',
-                height: 'auto',
-                zIndex: '1001'
-            });
-            document.body.appendChild(centerContainer);
+        // Находим элемент с пингом для позиционирования
+        const pingElement = document.querySelector('.header-ping');
+        let baseLeftPosition = 350; // Значение по умолчанию
+        
+        if (pingElement) {
+            const pingRect = pingElement.getBoundingClientRect();
+            // Кнопка алмаза на 5px правее кнопки активности (которая на 5px правее пинга)
+            // Кнопка активности: pingRect.right + 5
+            // Кнопка алмаза: pingRect.right + 5 + 80 (ширина кнопки активности) + 5
+            baseLeftPosition = pingRect.right + 90;
         }
 
         // Создание кнопки авторизации с алмазиком
         const authButton = this.createStyledButton('auth-button', '💎');
+        authButton.style.position = 'fixed';
+        authButton.style.left = baseLeftPosition + 'px';
+        authButton.style.top = '2px';
+        authButton.style.zIndex = '1001';
+        
         authButton.addEventListener('click', async () => {
             // Проверяем пароль
             const isAuthorized = await window.BotSecurity.showPasswordModal('авторизации');
             if (isAuthorized) {
                 this.isAuthorized = true;
                 // Удаляем кнопку авторизации
-                centerContainer.removeChild(authButton);
+                document.body.removeChild(authButton);
                 // Создаем основные кнопки
                 await this.createMainButtons();
             }
         });
 
-        centerContainer.appendChild(authButton);
+        document.body.appendChild(authButton);
     },
 
     /**
@@ -58,11 +48,6 @@ window.BotUI = {
     async createMainButtons() {
         await this.createSettingsButton();
         await this.createControlButton();
-        
-        // Создание кнопок боссов (если есть функция)
-        if (window.BotGameLogic && window.BotGameLogic.createBossButtons) {
-            await window.BotGameLogic.createBossButtons();
-        }
         
         // Обновляем видимость кнопок в меню боссов после авторизации
         if (window.BotGameLogic && window.BotGameLogic.updateBossButtonsVisibility) {
@@ -76,11 +61,25 @@ window.BotUI = {
     async createSettingsButton() {
         if (document.getElementById('settings-button')) return;
 
-        let centerContainer = document.querySelector('.header-center-controls');
-        if (!centerContainer) return;
+        // Находим элемент с пингом для позиционирования
+        const pingElement = document.querySelector('.header-ping');
+        let baseLeftPosition = 350; // Значение по умолчанию
+        
+        if (pingElement) {
+            const pingRect = pingElement.getBoundingClientRect();
+            // Кнопка настроек на 5px правее кнопки активности
+            // Кнопка активности: pingRect.right + 5
+            // Кнопка настроек: pingRect.right + 5 + 80 (ширина кнопки активности) + 5
+            baseLeftPosition = pingRect.right + 90;
+        }
 
         // Создание кнопки настроек
         const button = this.createStyledButton('settings-button', '⚙');
+        button.style.position = 'fixed';
+        button.style.left = baseLeftPosition + 'px';
+        button.style.top = '2px';
+        button.style.zIndex = '1001';
+        
         button.addEventListener('click', () => {
             const settingsWindow = document.getElementById('settings-window');
             if (settingsWindow) {
@@ -89,7 +88,7 @@ window.BotUI = {
             }
         });
 
-        centerContainer.appendChild(button);
+        document.body.appendChild(button);
     },
 
     /**
@@ -381,10 +380,24 @@ window.BotUI = {
     async createControlButton() {
         if (document.getElementById('control-button')) return;
 
-        let centerContainer = document.querySelector('.header-center-controls');
-        if (!centerContainer) return;
+        // Находим элемент с пингом для позиционирования
+        const pingElement = document.querySelector('.header-ping');
+        let baseLeftPosition = 350; // Значение по умолчанию
+        
+        if (pingElement) {
+            const pingRect = pingElement.getBoundingClientRect();
+            // Кнопка плей на 5px правее кнопки настроек
+            // Кнопка активности: pingRect.right + 5
+            // Кнопка настроек: pingRect.right + 5 + 80 + 5 = pingRect.right + 90
+            // Кнопка плей: pingRect.right + 90 + 40 (ширина кнопки настроек) + 5
+            baseLeftPosition = pingRect.right + 135;
+        }
 
         const controlButton = this.createStyledButton('control-button', '▶');
+        controlButton.style.position = 'fixed';
+        controlButton.style.left = baseLeftPosition + 'px';
+        controlButton.style.top = '2px';
+        controlButton.style.zIndex = '1001';
 
         controlButton.addEventListener('click', async () => {
             const iconSpan = controlButton.querySelector('span');
@@ -397,7 +410,7 @@ window.BotUI = {
                 window.BotConfig.lastStartTime = Date.now();
                 iconSpan.textContent = '⏸';
                 
-                // Добавляем визуальную индикацию активности
+                // Добавляем визуальную индикацию активности - зеленое свечение
                 controlButton.style.background = 'radial-gradient(circle, rgba(30,40,15,0.95) 0%, rgba(15,20,8,0.98) 100%)';
                 controlButton.style.boxShadow = '0 2px 8px rgba(0, 255, 0, 0.5)';
                 
@@ -409,7 +422,7 @@ window.BotUI = {
                 window.BotConfig.isScriptRunning = false;
                 iconSpan.textContent = '▶';
                 
-                // Возвращаем обычный стиль
+                // Убираем зеленое свечение, возвращаем обычный стиль
                 controlButton.style.background = 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)';
                 controlButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
                 
@@ -417,7 +430,7 @@ window.BotUI = {
             }
         });
 
-        centerContainer.appendChild(controlButton);
+        document.body.appendChild(controlButton);
     },
 
     /**
@@ -431,6 +444,9 @@ window.BotUI = {
             if (iconSpan && iconSpan.textContent === '⏸') {
                 window.BotConfig.isScriptRunning = false;
                 iconSpan.textContent = '▶';
+                // Убираем зеленое свечение при деактивации
+                controlButton.style.background = 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)';
+                controlButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
                 console.log('⏸️ Основной скрипт остановлен');
             }
         }

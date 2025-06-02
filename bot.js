@@ -1,13 +1,13 @@
 /**
  * Ligmar Bot - Модульная версия
  * Главный файл-загрузчик модулей
- * Версия: v.3.5.0
+ * Версия: v.3.6.0
  */
 
 (async function() {
     'use strict';
     
-    console.log('🤖 Ligmar Bot v.3.5.0 - Запуск модульной версии...');
+    console.log('🤖 Ligmar Bot v.3.6.0 - Запуск модульной версии...');
     
     // Базовый URL для загрузки модулей
     const BASE_URL = 'https://raw.githubusercontent.com/Piulka/Ligmar_bot_js/main';
@@ -92,6 +92,11 @@
         console.log('🚀 Инициализация бота...');
         
         try {
+            // Создание кнопки боссов (доступна до авторизации)
+            if (window.BotGameLogic && window.BotGameLogic.createBossButtons) {
+                await window.BotGameLogic.createBossButtons();
+            }
+            
             // Создание кнопки авторизации
             await window.BotUI.createAuthButton();
             

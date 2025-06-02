@@ -148,32 +148,13 @@ window.BotGameLogic = {
         // Проверяем, не создана ли уже новая кнопка
         if (document.getElementById('boss-dropdown-button')) return;
 
-        // Ждём появления системного хедера
-        let header = document.querySelector('app-system-header .header-relative');
-        for (let i = 0; i < 30 && !header; i++) {
-            await window.BotUtils.delay(100);
-            header = document.querySelector('app-system-header .header-relative');
-        }
-        if (!header) return;
-
-        // Находим или создаём контейнер для кнопок по центру
-        let centerContainer = header.querySelector('.header-center-controls');
-        if (!centerContainer) {
-            centerContainer = document.createElement('div');
-            centerContainer.className = 'header-center-controls';
-            Object.assign(centerContainer.style, {
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                gap: '8px',
-                position: 'fixed',
-                left: '50%',
-                top: '2px',
-                transform: 'translateX(-50%)',
-                height: 'auto',
-                zIndex: '1001'
-            });
-            document.body.appendChild(centerContainer);
+        // Находим элемент с пингом для позиционирования
+        const pingElement = document.querySelector('.header-ping');
+        let baseLeftPosition = 350; // Значение по умолчанию, если элемент пинга не найден
+        
+        if (pingElement) {
+            const pingRect = pingElement.getBoundingClientRect();
+            baseLeftPosition = pingRect.right + 5; // 5px правее элемента пинга
         }
 
         // Размеры кнопки
@@ -181,12 +162,7 @@ window.BotGameLogic = {
         const btnHeight = '33px';
         const btnFontSize = '10px';
 
-        // Создаем контейнер для кнопки и выпадающего меню
-        const bossContainer = document.createElement('div');
-        bossContainer.style.position = 'relative';
-        bossContainer.style.display = 'inline-block';
-
-        // --- Основная кнопка БОССЫ ---
+        // --- Основная кнопка АКТИВНОСТИ ---
         const bossDropdownBtn = document.createElement('button');
         bossDropdownBtn.id = 'boss-dropdown-button';
         bossDropdownBtn.className = 'control-button-boss-dropdown';
@@ -211,7 +187,10 @@ window.BotGameLogic = {
             userSelect: 'none',
             outline: 'none',
             margin: '0',
-            position: 'relative',
+            position: 'fixed',
+            left: baseLeftPosition + 'px',
+            top: '2px',
+            zIndex: '1001',
             overflow: 'hidden'
         });
 
@@ -241,7 +220,7 @@ window.BotGameLogic = {
         });
 
         const iconSpan = document.createElement('span');
-        iconSpan.textContent = 'БОССЫ';
+        iconSpan.textContent = 'АКТИВНОСТИ';
         iconSpan.style.fontSize = btnFontSize;
         iconSpan.style.lineHeight = '1';
 
@@ -267,10 +246,10 @@ window.BotGameLogic = {
         const dropdown = document.createElement('div');
         dropdown.id = 'boss-dropdown-menu';
         Object.assign(dropdown.style, {
-            position: 'absolute',
-            top: '100%',
-            left: '0',
-            width: '100%',
+            position: 'fixed',
+            left: baseLeftPosition + 'px',
+            top: '37px',
+            width: btnWidth,
             background: '#2c2c2c',
             border: '1px solid rgba(128,128,128,0.3)',
             borderRadius: '4px',
@@ -380,7 +359,7 @@ window.BotGameLogic = {
 
         // Функция сброса кнопки к исходному состоянию
         const resetButton = () => {
-            iconSpan.textContent = 'БОССЫ';
+            iconSpan.textContent = 'АКТИВНОСТИ';
             bossDropdownBtn.style.background = 'radial-gradient(circle, rgba(40,25,15,0.95) 0%, rgba(20,12,8,0.98) 100%)';
             bossDropdownBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
             this.activeBossType = null;
@@ -490,19 +469,14 @@ window.BotGameLogic = {
 
         // Закрытие меню при клике вне его
         document.addEventListener('click', (e) => {
-            if (!bossContainer.contains(e.target)) {
+            if (!bossDropdownBtn.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.style.display = 'none';
             }
         });
 
-        // Сборка компонента
-        bossContainer.appendChild(bossDropdownBtn);
-        bossContainer.appendChild(dropdown);
-
-        // Добавляем в контейнер
-        if (!centerContainer.contains(bossContainer)) {
-            centerContainer.appendChild(bossContainer);
-        }
+        // Сборка компонента - добавляем кнопку и выпадающее меню в body
+        document.body.appendChild(bossDropdownBtn);
+        document.body.appendChild(dropdown);
 
         // Функция для обновления видимости кнопок после авторизации
         this.updateBossButtonsVisibility = () => {
