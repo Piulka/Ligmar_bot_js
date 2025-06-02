@@ -225,4 +225,146 @@ setInterval(() => {
     if (window.BotStatistics) {
         window.BotStatistics.updateRuntimeDisplay();
     }
-}, 5000); 
+}, 5000);
+
+// Логика автоматического показа статистики при открытии карты
+(function() {
+    let lastShrinkedPanel = null;
+    let lastPanelVisible = false;
+
+    /**
+     * Открытие панели статистики и привязка к карте
+     */
+    function openStatisticsPanelAndAttach() {
+        const statsContainer = document.getElementById('statistics-container');
+        const mapWrapper = document.querySelector('.auto-map-wrapper');
+        if (!statsContainer || !mapWrapper) return;
+    
+        // Показываем окно статистики
+        statsContainer.style.opacity = '1';
+        statsContainer.style.visibility = 'visible';
+    
+        // Позиционируем окно статистики справа от карты
+        positionStatisticsPanel(statsContainer, mapWrapper);
+    
+        // Следим за изменением размера/позиции карты (например, при ресайзе окна)
+        window.addEventListener('resize', () => positionStatisticsPanel(statsContainer, mapWrapper));
+    }
+
+    /**
+     * Закрытие панели статистики
+     */
+    function closeStatisticsPanel() {
+        const statsContainer = document.getElementById('statistics-container');
+        if (!statsContainer) return;
+    
+        statsContainer.style.transition = 'none';
+        statsContainer.style.opacity = '0';
+        statsContainer.style.visibility = 'hidden';
+    }
+
+    /**
+     * Позиционирование панели статистики рядом с картой
+     */
+    function positionStatisticsPanel(statsContainer, mapWrapper) {
+        // Получаем координаты и размеры карты
+        const rect = mapWrapper.getBoundingClientRect();
+    
+        // Получаем контейнер battle-top
+        const battleTop = document.querySelector('.battle-top.page-container.ng-tns-c3091494937-7');
+        if (!battleTop) return;
+        const battleRect = battleTop.getBoundingClientRect();
+    
+        // Высота окна статистики = высота карты (без дополнительных пикселей)
+        const statsHeight = rect.height + 10;
+    
+        // Левая граница окна статистики = правый край карты + 10px
+        const statsLeft = rect.right + 10;
+    
+        // Правая граница окна статистики = правый край battle-top - 30px (оставляем отступ)
+        const statsRight = battleRect.right - 10;
+    
+        // Ширина окна статистики = statsRight - statsLeft
+        const statsWidth = Math.max(0, statsRight - statsLeft);
+    
+        // Позиционируем statsContainer фиксировано справа от карты
+        statsContainer.style.position = 'fixed';
+        statsContainer.style.left = statsLeft + 'px';
+        statsContainer.style.top = (rect.top - 5) + 'px'; // на 5px ниже карты
+        statsContainer.style.width = statsWidth + 'px';
+        statsContainer.style.height = statsHeight + 'px';
+        statsContainer.style.minWidth = statsWidth + 'px';
+        statsContainer.style.maxWidth = statsWidth + 'px';
+        statsContainer.style.minHeight = statsHeight + 'px';
+        statsContainer.style.maxHeight = statsHeight + 'px';
+        statsContainer.style.overflowY = 'auto';
+        statsContainer.style.transition = 'left 0.7s cubic-bezier(.4,2,.6,1), width 0.7s cubic-bezier(.4,2,.6,1), height 0.7s cubic-bezier(.4,2,.6,1), opacity 0.3s, visibility 0.3s';
+        statsContainer.style.zIndex = '1002';
+    }
+
+    /**
+     * Уменьшение панели карты для освобождения места под статистику
+     */
+    function shrinkBattleMapPanel(panel) {
+        if (!panel) return;
+        if (lastShrinkedPanel === panel) return;
+        lastShrinkedPanel = panel;
+
+        const map = panel.querySelector('app-battle-map');
+        if (!map) return;
+
+        if (map.parentNode && map.parentNode.classList && map.parentNode.classList.contains('auto-map-wrapper')) {
+            panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+            panel.style.marginRight = '240px';
+            panel.style.width = '40%';
+            // После анимации позиционируем статистику
+            setTimeout(openStatisticsPanelAndAttach, 700);
+            return;
+        }
+
+        const mapWrapper = document.createElement('div');
+        mapWrapper.className = 'auto-map-wrapper';
+        mapWrapper.style.width = '100%';
+        mapWrapper.style.height = '100%';
+        mapWrapper.style.overflow = 'hidden';
+
+        map.parentNode.insertBefore(mapWrapper, map);
+        mapWrapper.appendChild(map);
+
+        panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+        panel.style.marginRight = '';
+        panel.style.width = '';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                panel.style.marginRight = '240px';
+                panel.style.width = '40%';
+                // После анимации позиционируем статистику
+                setTimeout(openStatisticsPanelAndAttach, 700);
+            });
+        });
+    }
+
+    // MutationObserver для отслеживания появления и исчезновения карты
+    const observer = new MutationObserver(() => {
+        const panel = document.querySelector('app-battle-middle-panel');
+        const panelVisible = panel && panel.offsetParent !== null;
+
+        if (panelVisible) {
+            shrinkBattleMapPanel(panel);
+            lastPanelVisible = true;
+        } else if (lastPanelVisible) {
+            closeStatisticsPanel();
+            lastPanelVisible = false;
+            lastShrinkedPanel = null;
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Если карта уже есть при загрузке
+    const initialPanel = document.querySelector('app-battle-middle-panel');
+    if (initialPanel && initialPanel.offsetParent !== null) {
+        shrinkBattleMapPanel(initialPanel);
+        lastPanelVisible = true;
+    }
+})(); 
