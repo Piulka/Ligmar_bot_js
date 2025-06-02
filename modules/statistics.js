@@ -24,6 +24,7 @@ window.BotStatistics = {
     observer: null,
     lastShrinkedPanel: null,
     lastPanelVisible: false,
+    positionCheckInterval: null,
 
     initializeStatistics() {
         this.stats = {
@@ -348,8 +349,14 @@ window.BotStatistics = {
             // Позиционируем окно статистики справа от карты
             self.positionStatisticsPanel(statsContainer, mapWrapper);
         
-            // Следим за изменением размера/позиции карты (например, при ресайзе окна)
-            window.addEventListener('resize', () => self.positionStatisticsPanel(statsContainer, mapWrapper));
+            // Постоянно следим за изменением размера/позиции карты
+            const repositionStats = () => self.positionStatisticsPanel(statsContainer, mapWrapper);
+            window.removeEventListener('resize', repositionStats);
+            window.addEventListener('resize', repositionStats);
+            
+            // Дополнительно проверяем позицию каждые 100мс
+            if (self.positionCheckInterval) clearInterval(self.positionCheckInterval);
+            self.positionCheckInterval = setInterval(repositionStats, 100);
         }
 
         /**
@@ -362,6 +369,12 @@ window.BotStatistics = {
             statsContainer.style.transition = 'none';
             statsContainer.style.opacity = '0';
             statsContainer.style.visibility = 'hidden';
+            
+            // Останавливаем проверку позиции
+            if (self.positionCheckInterval) {
+                clearInterval(self.positionCheckInterval);
+                self.positionCheckInterval = null;
+            }
         }
 
         /**
@@ -376,11 +389,11 @@ window.BotStatistics = {
             if (!map) return;
 
             if (map.parentNode && map.parentNode.classList && map.parentNode.classList.contains('auto-map-wrapper')) {
-                panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+                panel.style.transition = 'width 0.14s cubic-bezier(.4,2,.6,1), margin-right 0.14s cubic-bezier(.4,2,.6,1)';
                 panel.style.marginRight = '240px';
                 panel.style.width = '40%';
                 // После анимации позиционируем статистику
-                setTimeout(openStatisticsPanelAndAttach, 700);
+                setTimeout(openStatisticsPanelAndAttach, 140);
                 return;
             }
 
@@ -393,7 +406,7 @@ window.BotStatistics = {
             map.parentNode.insertBefore(mapWrapper, map);
             mapWrapper.appendChild(map);
 
-            panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+            panel.style.transition = 'width 0.14s cubic-bezier(.4,2,.6,1), margin-right 0.14s cubic-bezier(.4,2,.6,1)';
             panel.style.marginRight = '';
             panel.style.width = '';
             requestAnimationFrame(() => {
@@ -401,7 +414,7 @@ window.BotStatistics = {
                     panel.style.marginRight = '240px';
                     panel.style.width = '40%';
                     // После анимации позиционируем статистику
-                    setTimeout(openStatisticsPanelAndAttach, 700);
+                    setTimeout(openStatisticsPanelAndAttach, 140);
                 });
             });
         }
@@ -417,7 +430,9 @@ window.BotStatistics = {
             const panelVisible = panel && 
                                 panel.offsetParent !== null && 
                                 getComputedStyle(panel).display !== 'none' &&
-                                getComputedStyle(panel).visibility !== 'hidden';
+                                getComputedStyle(panel).visibility !== 'hidden' &&
+                                panel.getBoundingClientRect().width > 0 &&
+                                panel.getBoundingClientRect().height > 0;
 
             if (panelVisible && !self.lastPanelVisible) {
                 console.log('🗺️ Карта обнаружена, активирую статистику');
@@ -428,6 +443,23 @@ window.BotStatistics = {
                 closeStatisticsPanel();
                 self.lastPanelVisible = false;
                 self.lastShrinkedPanel = null;
+            }
+            
+            // Дополнительная проверка статистики если карта видна
+            if (panelVisible) {
+                const statsContainer = document.getElementById('statistics-container');
+                const mapWrapper = document.querySelector('.auto-map-wrapper');
+                if (statsContainer && mapWrapper) {
+                    // Проверяем что статистика правильно позиционирована
+                    const statsRect = statsContainer.getBoundingClientRect();
+                    const mapRect = mapWrapper.getBoundingClientRect();
+                    
+                    // Если статистика слишком далеко от карты - перепозиционируем
+                    if (Math.abs(statsRect.left - mapRect.right) > 50 || statsRect.width < 100) {
+                        console.log('📊 Перепозиционирую статистику');
+                        self.positionStatisticsPanel(statsContainer, mapWrapper);
+                    }
+                }
             }
         });
 
@@ -448,7 +480,9 @@ window.BotStatistics = {
         if (initialPanel && 
             initialPanel.offsetParent !== null &&
             getComputedStyle(initialPanel).display !== 'none' &&
-            getComputedStyle(initialPanel).visibility !== 'hidden') {
+            getComputedStyle(initialPanel).visibility !== 'hidden' &&
+            initialPanel.getBoundingClientRect().width > 0 &&
+            initialPanel.getBoundingClientRect().height > 0) {
             console.log('🗺️ Карта уже присутствует при инициализации');
             shrinkBattleMapPanel(initialPanel);
             self.lastPanelVisible = true;
@@ -459,39 +493,68 @@ window.BotStatistics = {
      * Позиционирование панели статистики рядом с картой
      */
     positionStatisticsPanel(statsContainer, mapWrapper) {
-        // Получаем координаты и размеры карты
-        const rect = mapWrapper.getBoundingClientRect();
-    
-        // Получаем контейнер battle-top
-        const battleTop = document.querySelector('.battle-top.page-container.ng-tns-c3091494937-7');
-        if (!battleTop) return;
-        const battleRect = battleTop.getBoundingClientRect();
-    
-        // Высота окна статистики = высота карты (без дополнительных пикселей)
-        const statsHeight = rect.height + 10;
-    
-        // Левая граница окна статистики = правый край карты + 10px
-        const statsLeft = rect.right + 10;
-    
-        // Правая граница окна статистики = правый край battle-top - 30px (оставляем отступ)
-        const statsRight = battleRect.right - 10;
-    
-        // Ширина окна статистики = statsRight - statsLeft
-        const statsWidth = Math.max(0, statsRight - statsLeft);
-    
-        // Позиционируем statsContainer фиксировано справа от карты
-        statsContainer.style.position = 'fixed';
-        statsContainer.style.left = statsLeft + 'px';
-        statsContainer.style.top = (rect.top - 5) + 'px'; // на 5px ниже карты
-        statsContainer.style.width = statsWidth + 'px';
-        statsContainer.style.height = statsHeight + 'px';
-        statsContainer.style.minWidth = statsWidth + 'px';
-        statsContainer.style.maxWidth = statsWidth + 'px';
-        statsContainer.style.minHeight = statsHeight + 'px';
-        statsContainer.style.maxHeight = statsHeight + 'px';
-        statsContainer.style.overflowY = 'auto';
-        statsContainer.style.transition = 'left 0.7s cubic-bezier(.4,2,.6,1), width 0.7s cubic-bezier(.4,2,.6,1), height 0.7s cubic-bezier(.4,2,.6,1), opacity 0.3s, visibility 0.3s';
-        statsContainer.style.zIndex = '1002';
+        try {
+            // Получаем координаты и размеры карты
+            const rect = mapWrapper.getBoundingClientRect();
+            
+            // Проверяем что карта видна
+            if (rect.width === 0 || rect.height === 0) {
+                console.log('⚠️ Карта не видна, скрываем статистику');
+                statsContainer.style.opacity = '0';
+                statsContainer.style.visibility = 'hidden';
+                return;
+            }
+        
+            // Получаем контейнер battle-top
+            const battleTop = document.querySelector('.battle-top.page-container.ng-tns-c3091494937-7') ||
+                             document.querySelector('.battle-top') ||
+                             document.querySelector('[class*="battle-top"]') ||
+                             document.body;
+            
+            const battleRect = battleTop ? battleTop.getBoundingClientRect() : { right: window.innerWidth };
+        
+            // Высота окна статистики = высота карты
+            const statsHeight = rect.height + 10;
+        
+            // Левая граница окна статистики = правый край карты + 10px
+            const statsLeft = rect.right + 10;
+        
+            // Правая граница окна статистики = правый край battle-top - 10px
+            const statsRight = battleRect.right - 10;
+        
+            // Ширина окна статистики = statsRight - statsLeft
+            const statsWidth = Math.max(280, Math.min(400, statsRight - statsLeft));
+        
+            // Позиционируем statsContainer фиксировано справа от карты
+            statsContainer.style.position = 'fixed';
+            statsContainer.style.left = statsLeft + 'px';
+            statsContainer.style.top = (rect.top - 5) + 'px';
+            statsContainer.style.width = statsWidth + 'px';
+            statsContainer.style.height = statsHeight + 'px';
+            statsContainer.style.minWidth = statsWidth + 'px';
+            statsContainer.style.maxWidth = statsWidth + 'px';
+            statsContainer.style.minHeight = statsHeight + 'px';
+            statsContainer.style.maxHeight = statsHeight + 'px';
+            statsContainer.style.overflowY = 'auto';
+            statsContainer.style.transition = 'left 0.14s cubic-bezier(.4,2,.6,1), width 0.14s cubic-bezier(.4,2,.6,1), height 0.14s cubic-bezier(.4,2,.6,1), opacity 0.06s, visibility 0.06s';
+            statsContainer.style.zIndex = '1002';
+            
+            // Принудительно показываем статистику если карта видна
+            if (rect.width > 0 && rect.height > 0) {
+                statsContainer.style.opacity = '1';
+                statsContainer.style.visibility = 'visible';
+            }
+            
+            console.log('📊 Статистика позиционирована:', {
+                left: statsLeft,
+                top: rect.top - 5,
+                width: statsWidth,
+                height: statsHeight,
+                mapVisible: rect.width > 0 && rect.height > 0
+            });
+        } catch (error) {
+            console.error('❌ Ошибка позиционирования статистики:', error);
+        }
     },
 
     /**
