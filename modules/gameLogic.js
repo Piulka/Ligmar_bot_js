@@ -1200,7 +1200,8 @@ window.BotGameLogic = {
             
             // Показываем инструкции
             this.showGoogleSheetsSetupInstructions();
-        },
+        }
+    },
 
     /**
      * Получение URL таблицы из URL Google Apps Script
