@@ -86,6 +86,18 @@ window.BotStatistics = {
         if (element) element.textContent = value;
     },
 
+    /**
+     * Обновление статистики (для совместимости с оригинальным кодом)
+     * @param {string} stat - название статистики
+     * @param {number} value - значение
+     */
+    updateStatistics(stat, value) {
+        const statElement = document.getElementById(stat);
+        if (statElement) {
+            statElement.textContent = value;
+        }
+    },
+
     async createStatisticsElement() {
         const oldStats = document.getElementById('statistics-container');
         if (oldStats) oldStats.remove();

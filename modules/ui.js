@@ -64,45 +64,92 @@ window.BotUI = {
         button.id = id;
         
         Object.assign(button.style, {
-            width: '99px',
-            height: '21px',
-            background: 'transparent',
+            width: '48px',
+            height: '48px',
+            background: 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)',
             color: 'var(--gold-base)',
-            border: '1.5px solid var(--gold-base)',
-            borderRadius: '6px',
+            border: '2px solid transparent',
+            borderImage: 'linear-gradient(135deg, var(--gold-base), #8B6914, var(--gold-base)) 1',
+            borderRadius: '50%',
             cursor: 'pointer',
-            fontSize: '13px',
+            fontSize: '11px',
             fontWeight: 'bold',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: 'none',
-            transition: 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)',
+            boxShadow: '0 0 15px rgba(255, 215, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
             userSelect: 'none',
             outline: 'none',
-            margin: '0'
+            margin: '0',
+            position: 'relative',
+            overflow: 'hidden'
         });
 
-        button.innerHTML = `<span style="font-size:15px;margin-right:6px;">${icon}</span>${text}`;
+        // Создаем внутренний градиент
+        const innerGlow = document.createElement('div');
+        Object.assign(innerGlow.style, {
+            position: 'absolute',
+            top: '2px',
+            left: '2px',
+            right: '2px',
+            bottom: '2px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.1) 0%, transparent 70%)',
+            pointerEvents: 'none'
+        });
+        button.appendChild(innerGlow);
+
+        // Контейнер для контента
+        const content = document.createElement('div');
+        Object.assign(content.style, {
+            position: 'relative',
+            zIndex: '2',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '2px'
+        });
+
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = icon;
+        iconSpan.style.fontSize = '16px';
+        iconSpan.style.lineHeight = '1';
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = text;
+        textSpan.style.fontSize = '8px';
+        textSpan.style.lineHeight = '1';
+        textSpan.style.textTransform = 'uppercase';
+
+        content.appendChild(iconSpan);
+        content.appendChild(textSpan);
+        button.appendChild(content);
 
         // Добавление эффектов наведения и нажатия
         button.addEventListener('mouseenter', () => {
-            button.style.background = 'rgba(255, 215, 0, 0.08)';
+            button.style.transform = 'scale(1.05)';
+            button.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+            button.style.background = 'radial-gradient(circle, rgba(30,25,40,0.95) 0%, rgba(15,12,20,0.98) 100%)';
         });
         
         button.addEventListener('mouseleave', () => {
-            button.style.background = 'transparent';
             button.style.transform = 'scale(1)';
+            button.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+            button.style.background = 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)';
         });
 
         button.addEventListener('mousedown', () => {
-            button.style.transform = 'scale(0.93)';
+            button.style.transform = 'scale(0.95)';
+            button.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(0, 0, 0, 0.3)';
         });
 
         button.addEventListener('mouseup', () => {
-            button.style.transform = 'scale(1)';
+            button.style.transform = 'scale(1.05)';
         });
 
         return button;
@@ -332,20 +379,25 @@ window.BotUI = {
             header.appendChild(centerContainer);
         }
 
-        const controlButton = this.createStyledButton('control-button', '▶', 'Запустить');
+        const controlButton = this.createStyledButton('control-button', '▶', 'Старт');
         
         controlButton.addEventListener('click', async () => {
+            const iconSpan = controlButton.querySelector('span:first-child');
+            const textSpan = controlButton.querySelector('span:last-child');
+            
             if (!window.BotConfig.isScriptRunning) {
                 window.BotConfig.isScriptRunning = true;
                 window.BotConfig.lastStartTime = Date.now();
-                controlButton.innerHTML = '<span style="font-size:15px;margin-right:6px;">⏸</span>Остановить';
+                iconSpan.textContent = '⏸';
+                textSpan.textContent = 'СТОП';
                 
                 if (window.BotGameLogic && window.BotGameLogic.runScript) {
                     await window.BotGameLogic.runScript();
                 }
             } else {
                 window.BotConfig.isScriptRunning = false;
-                controlButton.innerHTML = '<span style="font-size:15px;margin-right:6px;">▶</span>Запустить';
+                iconSpan.textContent = '▶';
+                textSpan.textContent = 'СТАРТ';
             }
         });
 

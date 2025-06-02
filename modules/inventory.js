@@ -265,6 +265,24 @@ window.BotInventory = {
         return false;
     },
 
+    /**
+     * Получение количества предметов в рюкзаке
+     */
+    async getBackpackItemCount() {
+        const equipmentGroup = Array.from(document.querySelectorAll('app-items-group')).find(group => {
+            const nameElement = group.querySelector('.items-group-name');
+            return nameElement && nameElement.textContent.trim() === 'Снаряжение';
+        });
+
+        if (!equipmentGroup) {
+            console.error('Вкладка "Снаряжение" не найдена');
+            return 0;
+        }
+
+        const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
+        return items.length;
+    },
+
     showDropSettingsModal() {
         // Удалить старое окно, если оно есть
         let oldModal = document.getElementById('drop-settings-modal');
@@ -394,6 +412,13 @@ window.BotInventory = {
         });
         customSettingsBlock.appendChild(typesContainer);
 
+        // Разделитель между типами и статами
+        const separator2 = document.createElement('div');
+        separator2.style.borderTop = '1px solid var(--gold-base)';
+        separator2.style.margin = '10px 0';
+        separator2.style.opacity = '0.3';
+        customSettingsBlock.appendChild(separator2);
+
         // --- Выбор статов ---
         const statsLabel = document.createElement('div');
         statsLabel.textContent = 'Статы:';
@@ -435,6 +460,13 @@ window.BotInventory = {
         });
         customSettingsBlock.appendChild(statsContainer);
 
+        // Разделитель между статами и полями настроек
+        const separator3 = document.createElement('div');
+        separator3.style.borderTop = '1px solid var(--gold-base)';
+        separator3.style.margin = '10px 0';
+        separator3.style.opacity = '0.3';
+        customSettingsBlock.appendChild(separator3);
+
         // --- Количество статов ---
         const statsCountLabel = document.createElement('div');
         statsCountLabel.textContent = 'Минимум статов:';
@@ -447,12 +479,27 @@ window.BotInventory = {
         statsCountInput.min = '1';
         statsCountInput.max = '10';
         statsCountInput.value = window.BotConfig.dropStatsCount;
-        statsCountInput.style.width = '60px';
-        statsCountInput.style.marginBottom = '10px';
+        Object.assign(statsCountInput.style, {
+            width: '60px',
+            marginBottom: '10px',
+            background: 'white',
+            color: 'black',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            padding: '4px 6px',
+            fontSize: '12px'
+        });
         statsCountInput.onchange = () => {
             window.BotConfig.dropStatsCount = parseInt(statsCountInput.value, 10);
         };
         customSettingsBlock.appendChild(statsCountInput);
+
+        // Разделитель
+        const separator1 = document.createElement('div');
+        separator1.style.borderTop = '1px solid var(--gold-base)';
+        separator1.style.margin = '10px 0';
+        separator1.style.opacity = '0.3';
+        customSettingsBlock.appendChild(separator1);
 
         // --- Минимальный ГС ---
         const gsLabel = document.createElement('div');
@@ -466,8 +513,16 @@ window.BotInventory = {
         gsInput.min = '100';
         gsInput.max = '1000';
         gsInput.value = window.BotConfig.dropMinGearScore;
-        gsInput.style.width = '80px';
-        gsInput.style.marginBottom = '10px';
+        Object.assign(gsInput.style, {
+            width: '80px',
+            marginBottom: '10px',
+            background: 'white',
+            color: 'black',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            padding: '4px 6px',
+            fontSize: '12px'
+        });
         gsInput.onchange = () => {
             window.BotConfig.dropMinGearScore = parseInt(gsInput.value, 10);
         };

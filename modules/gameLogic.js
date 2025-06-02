@@ -172,8 +172,8 @@ window.BotGameLogic = {
         }
 
         // Размеры кнопок
-        const btnWidth = '58px';
-        const btnHeight = '21px';
+        const btnWidth = '48px';
+        const btnHeight = '48px';
         const btnFontSize = '11px';
 
         // --- Кнопка БОСС ВТ ---
@@ -183,49 +183,75 @@ window.BotGameLogic = {
         Object.assign(bossVTBtn.style, {
             width: btnWidth,
             height: btnHeight,
-            background: 'transparent',
-            color: 'var(--gold-base)',
-            border: '1.5px solid var(--gold-base)',
-            borderRadius: '6px',
+            background: 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)',
+            color: '#FFD700',
+            border: '2px solid transparent',
+            borderImage: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700) 1',
+            borderRadius: '50%',
             cursor: 'pointer',
             fontSize: btnFontSize,
             fontWeight: 'bold',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)',
+            boxShadow: '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
             userSelect: 'none',
             outline: 'none',
-            margin: '0'
+            margin: '0',
+            position: 'relative',
+            overflow: 'hidden'
         });
 
-        bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ВТ';
+        // Внутренний контент для ВТ
+        const vtContent = document.createElement('div');
+        Object.assign(vtContent.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2px'
+        });
+
+        const vtIcon = document.createElement('span');
+        vtIcon.textContent = '⚔';
+        vtIcon.style.fontSize = '16px';
+
+        const vtText = document.createElement('span');
+        vtText.textContent = 'ВТ';
+        vtText.style.fontSize = '8px';
+        vtText.style.textTransform = 'uppercase';
+
+        vtContent.appendChild(vtIcon);
+        vtContent.appendChild(vtText);
+        bossVTBtn.appendChild(vtContent);
 
         // События для кнопки ВТ
         bossVTBtn.addEventListener('mouseenter', () => {
-            bossVTBtn.style.background = 'rgba(255, 215, 0, 0.08)';
+            bossVTBtn.style.transform = 'scale(1.05)';
+            bossVTBtn.style.boxShadow = '0 0 20px rgba(255, 69, 0, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
         });
         
         bossVTBtn.addEventListener('mouseleave', () => {
-            bossVTBtn.style.background = 'transparent';
             bossVTBtn.style.transform = 'scale(1)';
+            bossVTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
         });
 
         bossVTBtn.addEventListener('mousedown', () => {
-            bossVTBtn.style.transform = 'scale(0.93)';
+            bossVTBtn.style.transform = 'scale(0.95)';
         });
 
         bossVTBtn.addEventListener('mouseup', () => {
-            bossVTBtn.style.transform = 'scale(1)';
+            bossVTBtn.style.transform = 'scale(1.05)';
         });
 
         let vtAbortController = null;
         bossVTBtn.addEventListener('click', async () => {
             if (!vtAbortController) {
                 vtAbortController = new AbortController();
-                bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⏸</span>ВТ';
+                vtIcon.textContent = '⏸';
                 
                 try {
                     await this.bossFarmLoopVT(vtAbortController.signal);
@@ -237,12 +263,12 @@ window.BotGameLogic = {
                     }
                 } finally {
                     vtAbortController = null;
-                    bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ВТ';
+                    vtIcon.textContent = '⚔';
                 }
             } else {
                 vtAbortController.abort();
                 vtAbortController = null;
-                bossVTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ВТ';
+                vtIcon.textContent = '⚔';
             }
         });
 
@@ -253,49 +279,75 @@ window.BotGameLogic = {
         Object.assign(bossCHTBtn.style, {
             width: btnWidth,
             height: btnHeight,
-            background: 'transparent',
-            color: 'var(--gold-base)',
-            border: '1.5px solid var(--gold-base)',
-            borderRadius: '6px',
+            background: 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)',
+            color: '#FFD700',
+            border: '2px solid transparent',
+            borderImage: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700) 1',
+            borderRadius: '50%',
             cursor: 'pointer',
             fontSize: btnFontSize,
             fontWeight: 'bold',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background 0.2s, color 0.2s, border 0.2s, transform 0.12s cubic-bezier(.4,2,.6,1)',
+            boxShadow: '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
             userSelect: 'none',
             outline: 'none',
-            margin: '0'
+            margin: '0',
+            position: 'relative',
+            overflow: 'hidden'
         });
 
-        bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ЧТ';
+        // Внутренний контент для ЧТ
+        const chtContent = document.createElement('div');
+        Object.assign(chtContent.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2px'
+        });
+
+        const chtIcon = document.createElement('span');
+        chtIcon.textContent = '⚔';
+        chtIcon.style.fontSize = '16px';
+
+        const chtText = document.createElement('span');
+        chtText.textContent = 'ЧТ';
+        chtText.style.fontSize = '8px';
+        chtText.style.textTransform = 'uppercase';
+
+        chtContent.appendChild(chtIcon);
+        chtContent.appendChild(chtText);
+        bossCHTBtn.appendChild(chtContent);
 
         // События для кнопки ЧТ
         bossCHTBtn.addEventListener('mouseenter', () => {
-            bossCHTBtn.style.background = 'rgba(255, 215, 0, 0.08)';
+            bossCHTBtn.style.transform = 'scale(1.05)';
+            bossCHTBtn.style.boxShadow = '0 0 20px rgba(255, 69, 0, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
         });
         
         bossCHTBtn.addEventListener('mouseleave', () => {
-            bossCHTBtn.style.background = 'transparent';
             bossCHTBtn.style.transform = 'scale(1)';
+            bossCHTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
         });
 
         bossCHTBtn.addEventListener('mousedown', () => {
-            bossCHTBtn.style.transform = 'scale(0.93)';
+            bossCHTBtn.style.transform = 'scale(0.95)';
         });
 
         bossCHTBtn.addEventListener('mouseup', () => {
-            bossCHTBtn.style.transform = 'scale(1)';
+            bossCHTBtn.style.transform = 'scale(1.05)';
         });
 
         let chtAbortController = null;
         bossCHTBtn.addEventListener('click', async () => {
             if (!chtAbortController) {
                 chtAbortController = new AbortController();
-                bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⏸</span>ЧТ';
+                chtIcon.textContent = '⏸';
                 
                 try {
                     await this.bossFarmLoopCHT(chtAbortController.signal);
@@ -307,12 +359,12 @@ window.BotGameLogic = {
                     }
                 } finally {
                     chtAbortController = null;
-                    bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ЧТ';
+                    chtIcon.textContent = '⚔';
                 }
             } else {
                 chtAbortController.abort();
                 chtAbortController = null;
-                bossCHTBtn.innerHTML = '<span style="font-size:13px;margin-right:3px;">⚔</span>ЧТ';
+                chtIcon.textContent = '⚔';
             }
         });
 

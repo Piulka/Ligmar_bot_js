@@ -79,6 +79,43 @@ window.BotCombat = {
         return false;
     },
 
+    /**
+     * Проверка и активация баффов
+     */
+    async checkAndActivateDefenseBuff() {
+        const skills = window.BotConfig.CLASS_SKILLS[window.BotConfig.selectedClass];
+        if (!skills || !skills.buff) return;
+        
+        try {
+            // Для лучника проверяем оба баффа
+            if (window.BotConfig.selectedClass === 'Лучник') {
+                // Проверяем первый бафф (увеличение магического урона)
+                const magicDamageBuff = document.querySelector('tui-icon.svg-icon[style*="magicGearDamageArcher.svg"]');
+                if (!magicDamageBuff && skills.buff[0]) {
+                    await this.useSkill(skills.buff[0].skill);
+                    await window.BotUtils.delay(300);
+                }
+                
+                // Проверяем второй бафф (увеличение уклонения)
+                const evasionBuff = document.querySelector('tui-icon.svg-icon[style*="upEvasionArcher.svg"]');
+                if (!evasionBuff && skills.buff[1]) {
+                    await this.useSkill(skills.buff[1].skill);
+                    await window.BotUtils.delay(300);
+                }
+            } 
+            // Для воина оставляем старую логику
+            else if (window.BotConfig.selectedClass === 'Воин') {
+                const defenseIcon = document.querySelector('tui-icon.svg-icon[style*="upDefenseWarrior.svg"]');
+                if (!defenseIcon && skills.buff) {
+                    await this.useSkill(skills.buff);
+                    await window.BotUtils.delay(100);
+                }
+            }
+        } catch(error) {
+            console.error('Ошибка при активации баффа:', error);
+        }
+    },
+
     async waitForEnemy(timeout = 7000) {
         const start = Date.now();
         while (Date.now() - start < timeout) {
@@ -171,6 +208,8 @@ window.BotCombat = {
             }
 
             await this.checkManaAndHealth();
+            await window.BotUtils.delay(100);
+            await this.checkAndActivateDefenseBuff();
             await window.BotUtils.delay(100);
             await this.useSkills();
             await window.BotUtils.delay(100);
