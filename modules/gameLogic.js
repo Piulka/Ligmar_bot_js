@@ -1002,9 +1002,12 @@ window.BotGameLogic = {
      */
     async createGoogleDocWithItems(itemsData) {
         try {
-            console.log('📝 Создание Google документа с результатами...');
+            console.log('📝 Создание документа с результатами...');
             
-            // Создаем HTML для Google Docs
+            // Пытаемся отправить в Google Sheets (если настроен)
+            await this.sendToGoogleSheets(itemsData);
+            
+            // Создаем HTML для локального просмотра
             const htmlContent = this.generateItemsTableHTML(itemsData);
             
             // Открываем новое окно с результатами
@@ -1013,7 +1016,7 @@ window.BotGameLogic = {
             if (newWindow) {
                 newWindow.document.write(htmlContent);
                 newWindow.document.close();
-                console.log('✅ Результаты открыты в новом окне. Скопируйте содержимое в Google Docs');
+                console.log('✅ Результаты открыты в новом окне');
                 
                 // Также сохраняем в буфер обмена (если поддерживается)
                 try {
@@ -1030,6 +1033,196 @@ window.BotGameLogic = {
         } catch (error) {
             console.error('❌ Ошибка при создании документа:', error);
         }
+    },
+
+    /**
+     * Отправка данных в Google Sheets
+     * @param {Array} itemsData - массив данных о предметах
+     */
+    async sendToGoogleSheets(itemsData) {
+        try {
+            // Проверяем, настроен ли Google Apps Script URL
+            const gasUrl = window.BotConfig.googleSheetsUrl;
+            if (!gasUrl) {
+                console.log('📊 Google Sheets не настроен. Для настройки смотрите инструкцию в консоли.');
+                this.showGoogleSheetsSetupInstructions();
+                return;
+            }
+
+            console.log('📤 Отправка данных в Google Sheets...');
+
+            // Создаем уникальные идентификаторы для предметов
+            const itemsWithIds = itemsData.map(item => ({
+                ...item,
+                uniqueId: this.generateItemId(item),
+                analysisDate: new Date().toISOString(),
+                botVersion: window.BotConfig.SCRIPT_COMMIT
+            }));
+
+            // Отправляем данные
+            const response = await fetch(gasUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'addItems',
+                    items: itemsWithIds
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Ошибка отправки в Google Sheets:', error);
+            console.log('💡 Данные сохранены локально. Проверьте настройки Google Sheets.');
+        }
+    },
+
+    /**
+     * Генерация уникального ID для предмета
+     * @param {Object} item - данные предмета
+     */
+    generateItemId(item) {
+        // Создаем уникальный ID на основе основных характеристик предмета
+        const baseString = [
+            item.name || '',
+            item.type || '',
+            item.quality || '',
+            item.tier || '',
+            item.gearScore || 0,
+            item.stats.map(s => `${s.name}:${s.value}`).sort().join('|'),
+            item.magicProps.map(p => `${p.name}:${p.value}:${p.percent}`).sort().join('|')
+        ].join('::');
+        
+        // Простая хеш-функция
+        let hash = 0;
+        for (let i = 0; i < baseString.length; i++) {
+            const char = baseString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Конвертируем в 32-битное число
+        }
+        
+        return Math.abs(hash).toString(36);
+    },
+
+    /**
+     * Показ инструкций по настройке Google Sheets
+     */
+    showGoogleSheetsSetupInstructions() {
+        console.log(`
+📊 === ИНСТРУКЦИЯ ПО НАСТРОЙКЕ GOOGLE SHEETS ===
+
+🔧 Шаг 1: Создайте Google Apps Script
+1. Перейдите на https://script.google.com
+2. Создайте новый проект
+3. Вставьте код Google Apps Script (см. ниже)
+4. Опубликуйте как веб-приложение
+
+🔧 Шаг 2: Настройте доступ
+1. Выберите "Выполнить как: Я"
+2. Выберите "Кто имеет доступ: Все"
+3. Скопируйте URL веб-приложения
+
+🔧 Шаг 3: Добавьте URL в конфиг
+Добавьте строку в modules/config.js:
+googleSheetsUrl: 'ВАШ_URL_СЮДА',
+
+📝 КОД ДЛЯ GOOGLE APPS SCRIPT:
+========================================
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    
+    if (data.action === 'addItems') {
+      return addItemsToSheet(data.items);
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({error: 'Unknown action'}))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function addItemsToSheet(items) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName('Арсенал');
+  
+  // Создаем лист если не существует
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('Арсенал');
+    // Добавляем заголовки
+    const headers = [
+      'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', 
+      'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования'
+    ];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.getRange(1, 1, 1, headers.length).setBackground('#4285f4');
+    sheet.getRange(1, 1, 1, headers.length).setFontColor('white');
+  }
+  
+  // Получаем существующие ID
+  const existingData = sheet.getDataRange().getValues();
+  const existingIds = new Set();
+  for (let i = 1; i < existingData.length; i++) {
+    if (existingData[i][0]) {
+      existingIds.add(existingData[i][0]);
+    }
+  }
+  
+  // Фильтруем новые предметы
+  const newItems = items.filter(item => !existingIds.has(item.uniqueId));
+  
+  if (newItems.length > 0) {
+    // Добавляем новые предметы
+    const newRows = newItems.map(item => [
+      item.uniqueId,
+      new Date(item.analysisDate),
+      item.botVersion,
+      item.name || '',
+      item.type || '',
+      item.quality || '',
+      item.tier || '',
+      item.gearScore || 0,
+      item.stats.map(s => s.name + ': ' + s.value).join(', '),
+      item.magicProps.map(p => p.name + ': ' + p.value + ' ' + p.percent).join(', '),
+      item.requirements.map(r => r.key + ' ' + r.value).join(', ')
+    ]);
+    
+    const startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
+    
+    // Применяем форматирование
+    const dataRange = sheet.getRange(startRow, 1, newRows.length, newRows[0].length);
+    dataRange.setBorder(true, true, true, true, true, true);
+    
+    // Автоматическая ширина колонок
+    sheet.autoResizeColumns(1, newRows[0].length);
+  }
+  
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      addedCount: newItems.length,
+      duplicatesCount: items.length - newItems.length,
+      totalItems: sheet.getLastRow() - 1
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+========================================
+
+✅ После настройки ваши данные будут автоматически добавляться в Google Sheets!
+        `);
     },
 
     /**

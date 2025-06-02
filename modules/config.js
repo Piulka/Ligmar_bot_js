@@ -30,7 +30,10 @@ window.BotConfig = {
     dropPotionEnabled: false,
 
     // Версия скрипта
-    SCRIPT_COMMIT: 'v.3.7.2',
+    SCRIPT_COMMIT: 'v.3.7.3',
+
+    // Google Sheets интеграция (оставьте пустым если не используете)
+    googleSheetsUrl: '', // URL Google Apps Script веб-приложения
 
     // Навыки для каждого класса
     CLASS_SKILLS: {
