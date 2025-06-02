@@ -70,4 +70,141 @@ window.BotConfig = {
             buff: null
         }
     }
+};
+
+// Модуль конфигурации безопасности
+window.BotSecurity = {
+    // Зашифрованный пароль (base64 от "qweqw")
+    encryptedPassword: 'cXdlcXc=',
+    
+    /**
+     * Проверка пароля
+     * @param {string} inputPassword - введенный пароль
+     */
+    checkPassword(inputPassword) {
+        const correctPassword = atob(this.encryptedPassword);
+        return inputPassword === correctPassword;
+    },
+
+    /**
+     * Показать модальное окно для ввода пароля
+     */
+    async showPasswordModal(action = 'доступа') {
+        return new Promise((resolve) => {
+            // Создаем модальное окно
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                font-family: Arial, sans-serif;
+            `;
+
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: #2c2c2c;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+                text-align: center;
+                color: white;
+                min-width: 300px;
+            `;
+
+            const title = document.createElement('h3');
+            title.textContent = `Введите пароль для ${action}`;
+            title.style.cssText = 'margin: 0 0 20px 0; color: #ffd700;';
+
+            const input = document.createElement('input');
+            input.type = 'password';
+            input.placeholder = 'Пароль';
+            input.style.cssText = `
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #555;
+                border-radius: 4px;
+                background: #1a1a1a;
+                color: white;
+                font-size: 14px;
+                margin-bottom: 20px;
+                box-sizing: border-box;
+            `;
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: center;';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Подтвердить';
+            confirmBtn.style.cssText = `
+                padding: 10px 20px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Отмена';
+            cancelBtn.style.cssText = `
+                padding: 10px 20px;
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+
+            // События
+            const handleConfirm = () => {
+                const password = input.value;
+                if (this.checkPassword(password)) {
+                    document.body.removeChild(modal);
+                    resolve(true);
+                } else {
+                    input.style.borderColor = '#f44336';
+                    input.value = '';
+                    input.placeholder = 'Неверный пароль!';
+                    setTimeout(() => {
+                        input.style.borderColor = '#555';
+                        input.placeholder = 'Пароль';
+                    }, 2000);
+                }
+            };
+
+            const handleCancel = () => {
+                document.body.removeChild(modal);
+                resolve(false);
+            };
+
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleConfirm();
+                }
+            });
+
+            // Сборка модального окна
+            buttonContainer.appendChild(confirmBtn);
+            buttonContainer.appendChild(cancelBtn);
+            modalContent.appendChild(title);
+            modalContent.appendChild(input);
+            modalContent.appendChild(buttonContainer);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // Фокус на поле ввода
+            setTimeout(() => input.focus(), 100);
+        });
+    }
 }; 

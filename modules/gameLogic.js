@@ -162,22 +162,22 @@ window.BotGameLogic = {
             Object.assign(centerContainer.style, {
                 display: 'flex',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: '8px',
-                position: 'absolute',
+                position: 'fixed',
                 left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
+                top: '10px',
+                transform: 'translateX(-50%)',
                 height: 'auto',
                 zIndex: '1001'
             });
-            header.appendChild(centerContainer);
+            document.body.appendChild(centerContainer);
         }
 
         // Размеры кнопок
-        const btnWidth = '40px';
-        const btnHeight = '40px';
-        const btnFontSize = '11px';
+        const btnWidth = '80px';
+        const btnHeight = '33px';
+        const btnFontSize = '10px';
 
         // --- Кнопка БОСС ВТ ---
         const bossVTBtn = document.createElement('button');
@@ -188,9 +188,8 @@ window.BotGameLogic = {
             height: btnHeight,
             background: 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)',
             color: '#FFD700',
-            border: '2px solid transparent',
-            borderImage: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700) 1',
-            borderRadius: '12px',
+            border: '1px solid rgba(128,128,128,0.3)',
+            borderRadius: '4px',
             cursor: 'pointer',
             fontSize: btnFontSize,
             fontWeight: 'bold',
@@ -198,8 +197,8 @@ window.BotGameLogic = {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            transition: 'all 0.2s ease',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
             userSelect: 'none',
@@ -213,11 +212,11 @@ window.BotGameLogic = {
         const innerGlowVT = document.createElement('div');
         Object.assign(innerGlowVT.style, {
             position: 'absolute',
-            top: '2px',
-            left: '2px',
-            right: '2px',
-            bottom: '2px',
-            borderRadius: '10px',
+            top: '1px',
+            left: '1px',
+            right: '1px',
+            bottom: '1px',
+            borderRadius: '3px',
             background: 'radial-gradient(circle at 30% 30%, rgba(255, 69, 0, 0.1) 0%, transparent 70%)',
             pointerEvents: 'none'
         });
@@ -235,8 +234,8 @@ window.BotGameLogic = {
         });
 
         const iconVT = document.createElement('span');
-        iconVT.textContent = '🔥';
-        iconVT.style.fontSize = '16px';
+        iconVT.textContent = 'БОСС ВТ';
+        iconVT.style.fontSize = btnFontSize;
         iconVT.style.lineHeight = '1';
 
         contentVT.appendChild(iconVT);
@@ -244,21 +243,21 @@ window.BotGameLogic = {
 
         // События для кнопки ВТ
         bossVTBtn.addEventListener('mouseenter', () => {
-            bossVTBtn.style.transform = 'scale(1.05)';
-            bossVTBtn.style.boxShadow = '0 0 20px rgba(255, 69, 0, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+            bossVTBtn.style.transform = 'translateY(-1px)';
+            bossVTBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
         });
         
         bossVTBtn.addEventListener('mouseleave', () => {
-            bossVTBtn.style.transform = 'scale(1)';
-            bossVTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+            bossVTBtn.style.transform = 'translateY(0)';
+            bossVTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         });
 
         bossVTBtn.addEventListener('mousedown', () => {
-            bossVTBtn.style.transform = 'scale(0.95)';
+            bossVTBtn.style.transform = 'translateY(1px)';
         });
 
         bossVTBtn.addEventListener('mouseup', () => {
-            bossVTBtn.style.transform = 'scale(1.05)';
+            bossVTBtn.style.transform = 'translateY(-1px)';
         });
 
         bossVTBtn.addEventListener('click', async () => {
@@ -269,11 +268,11 @@ window.BotGameLogic = {
                 }
                 
                 this.vtAbortController = new AbortController();
-                iconVT.textContent = '⏸';
+                iconVT.textContent = 'СТОП ВТ';
                 
                 // Добавляем визуальную индикацию активности
                 bossVTBtn.style.background = 'radial-gradient(circle, rgba(60,25,25,0.95) 0%, rgba(30,12,12,0.98) 100%)';
-                bossVTBtn.style.boxShadow = '0 0 25px rgba(255, 69, 0, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+                bossVTBtn.style.boxShadow = '0 2px 8px rgba(255, 69, 0, 0.5)';
                 
                 try {
                     await this.bossFarmLoopVT(this.vtAbortController.signal);
@@ -285,20 +284,20 @@ window.BotGameLogic = {
                     }
                 } finally {
                     this.vtAbortController = null;
-                    iconVT.textContent = '🔥';
+                    iconVT.textContent = 'БОСС ВТ';
                     
                     // Возвращаем обычный стиль
                     bossVTBtn.style.background = 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)';
-                    bossVTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+                    bossVTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
                 }
             } else {
                 this.vtAbortController.abort();
                 this.vtAbortController = null;
-                iconVT.textContent = '🔥';
+                iconVT.textContent = 'БОСС ВТ';
                 
                 // Возвращаем обычный стиль
                 bossVTBtn.style.background = 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)';
-                bossVTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+                bossVTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
             }
         });
 
@@ -311,9 +310,8 @@ window.BotGameLogic = {
             height: btnHeight,
             background: 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)',
             color: '#FFD700',
-            border: '2px solid transparent',
-            borderImage: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700) 1',
-            borderRadius: '12px',
+            border: '1px solid rgba(128,128,128,0.3)',
+            borderRadius: '4px',
             cursor: 'pointer',
             fontSize: btnFontSize,
             fontWeight: 'bold',
@@ -321,8 +319,8 @@ window.BotGameLogic = {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(138, 43, 226, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            transition: 'all 0.2s ease',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
             userSelect: 'none',
@@ -336,11 +334,11 @@ window.BotGameLogic = {
         const innerGlowCHT = document.createElement('div');
         Object.assign(innerGlowCHT.style, {
             position: 'absolute',
-            top: '2px',
-            left: '2px',
-            right: '2px',
-            bottom: '2px',
-            borderRadius: '10px',
+            top: '1px',
+            left: '1px',
+            right: '1px',
+            bottom: '1px',
+            borderRadius: '3px',
             background: 'radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.1) 0%, transparent 70%)',
             pointerEvents: 'none'
         });
@@ -358,8 +356,8 @@ window.BotGameLogic = {
         });
 
         const iconCHT = document.createElement('span');
-        iconCHT.textContent = '⚡';
-        iconCHT.style.fontSize = '16px';
+        iconCHT.textContent = 'БОСС ЧТ';
+        iconCHT.style.fontSize = btnFontSize;
         iconCHT.style.lineHeight = '1';
 
         contentCHT.appendChild(iconCHT);
@@ -367,21 +365,21 @@ window.BotGameLogic = {
 
         // События для кнопки ЧТ
         bossCHTBtn.addEventListener('mouseenter', () => {
-            bossCHTBtn.style.transform = 'scale(1.05)';
-            bossCHTBtn.style.boxShadow = '0 0 20px rgba(255, 69, 0, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+            bossCHTBtn.style.transform = 'translateY(-1px)';
+            bossCHTBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
         });
         
         bossCHTBtn.addEventListener('mouseleave', () => {
-            bossCHTBtn.style.transform = 'scale(1)';
-            bossCHTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+            bossCHTBtn.style.transform = 'translateY(0)';
+            bossCHTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         });
 
         bossCHTBtn.addEventListener('mousedown', () => {
-            bossCHTBtn.style.transform = 'scale(0.95)';
+            bossCHTBtn.style.transform = 'translateY(1px)';
         });
 
         bossCHTBtn.addEventListener('mouseup', () => {
-            bossCHTBtn.style.transform = 'scale(1.05)';
+            bossCHTBtn.style.transform = 'translateY(-1px)';
         });
 
         bossCHTBtn.addEventListener('click', async () => {
@@ -392,11 +390,11 @@ window.BotGameLogic = {
                 }
                 
                 this.chtAbortController = new AbortController();
-                iconCHT.textContent = '⏸';
+                iconCHT.textContent = 'СТОП ЧТ';
                 
                 // Добавляем визуальную индикацию активности
                 bossCHTBtn.style.background = 'radial-gradient(circle, rgba(45,25,60,0.95) 0%, rgba(25,15,40,0.98) 100%)';
-                bossCHTBtn.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+                bossCHTBtn.style.boxShadow = '0 2px 8px rgba(138, 43, 226, 0.5)';
                 
                 try {
                     await this.bossFarmLoopCHT(this.chtAbortController.signal);
@@ -408,20 +406,20 @@ window.BotGameLogic = {
                     }
                 } finally {
                     this.chtAbortController = null;
-                    iconCHT.textContent = '⚡';
+                    iconCHT.textContent = 'БОСС ЧТ';
                     
                     // Возвращаем обычный стиль
                     bossCHTBtn.style.background = 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)';
-                    bossCHTBtn.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+                    bossCHTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
                 }
             } else {
                 this.chtAbortController.abort();
                 this.chtAbortController = null;
-                iconCHT.textContent = '⚡';
+                iconCHT.textContent = 'БОСС ЧТ';
                 
                 // Возвращаем обычный стиль
                 bossCHTBtn.style.background = 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)';
-                bossCHTBtn.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+                bossCHTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
             }
         });
 

@@ -22,21 +22,27 @@ window.BotUI = {
             Object.assign(centerContainer.style, {
                 display: 'flex',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: '8px',
-                position: 'absolute',
+                position: 'fixed',
                 left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
+                top: '10px',
+                transform: 'translateX(-50%)',
                 height: 'auto',
                 zIndex: '1001'
             });
-            header.appendChild(centerContainer);
+            document.body.appendChild(centerContainer);
         }
 
         // Создание кнопки настроек
         const button = this.createStyledButton('settings-button', '⚙');
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
+            // Проверяем пароль перед открытием настроек
+            const isAuthorized = await window.BotSecurity.showPasswordModal('открытия настроек');
+            if (!isAuthorized) {
+                return;
+            }
+            
             const settingsWindow = document.getElementById('settings-window');
             if (settingsWindow) {
                 const isVisible = settingsWindow.style.display !== 'none';
@@ -60,12 +66,11 @@ window.BotUI = {
         
         Object.assign(button.style, {
             width: '40px',
-            height: '40px',
+            height: '33px',
             background: 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)',
             color: 'var(--gold-base)',
-            border: '2px solid transparent',
-            borderImage: 'linear-gradient(135deg, var(--gold-base), #8B6914, var(--gold-base)) 1',
-            borderRadius: '12px',
+            border: '1px solid rgba(128,128,128,0.3)',
+            borderRadius: '4px',
             cursor: 'pointer',
             fontSize: '11px',
             fontWeight: 'bold',
@@ -73,8 +78,8 @@ window.BotUI = {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(255, 215, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            transition: 'all 0.2s ease',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
             userSelect: 'none',
@@ -88,11 +93,11 @@ window.BotUI = {
         const innerGlow = document.createElement('div');
         Object.assign(innerGlow.style, {
             position: 'absolute',
-            top: '2px',
-            left: '2px',
-            right: '2px',
-            bottom: '2px',
-            borderRadius: '10px',
+            top: '1px',
+            left: '1px',
+            right: '1px',
+            bottom: '1px',
+            borderRadius: '3px',
             background: 'radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.1) 0%, transparent 70%)',
             pointerEvents: 'none'
         });
@@ -119,24 +124,23 @@ window.BotUI = {
 
         // Добавление эффектов наведения и нажатия
         button.addEventListener('mouseenter', () => {
-            button.style.transform = 'scale(1.05)';
-            button.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+            button.style.transform = 'translateY(-1px)';
+            button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
             button.style.background = 'radial-gradient(circle, rgba(30,25,40,0.95) 0%, rgba(15,12,20,0.98) 100%)';
         });
         
         button.addEventListener('mouseleave', () => {
-            button.style.transform = 'scale(1)';
-            button.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+            button.style.transform = 'translateY(0)';
+            button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
             button.style.background = 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)';
         });
 
         button.addEventListener('mousedown', () => {
-            button.style.transform = 'scale(0.95)';
-            button.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(0, 0, 0, 0.3)';
+            button.style.transform = 'translateY(1px)';
         });
 
         button.addEventListener('mouseup', () => {
-            button.style.transform = 'scale(1.05)';
+            button.style.transform = 'translateY(-1px)';
         });
 
         return button;
@@ -354,16 +358,16 @@ window.BotUI = {
             Object.assign(centerContainer.style, {
                 display: 'flex',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: '8px',
-                position: 'absolute',
+                position: 'fixed',
                 left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
+                top: '10px',
+                transform: 'translateX(-50%)',
                 height: 'auto',
                 zIndex: '1001'
             });
-            header.appendChild(centerContainer);
+            document.body.appendChild(centerContainer);
         }
 
         const controlButton = this.createStyledButton('control-button', '▶');
@@ -372,6 +376,12 @@ window.BotUI = {
             const iconSpan = controlButton.querySelector('span');
             
             if (!window.BotConfig.isScriptRunning) {
+                // Проверяем пароль перед запуском автофарма
+                const isAuthorized = await window.BotSecurity.showPasswordModal('запуска автофарма');
+                if (!isAuthorized) {
+                    return;
+                }
+                
                 // Деактивируем все другие кнопки перед запуском
                 this.deactivateAllButtons();
                 
@@ -381,7 +391,7 @@ window.BotUI = {
                 
                 // Добавляем визуальную индикацию активности
                 controlButton.style.background = 'radial-gradient(circle, rgba(30,40,15,0.95) 0%, rgba(15,20,8,0.98) 100%)';
-                controlButton.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+                controlButton.style.boxShadow = '0 2px 8px rgba(0, 255, 0, 0.5)';
                 
                 console.log('▶️ Запуск основного бота...');
                 if (window.BotGameLogic && window.BotGameLogic.runScript) {
@@ -393,7 +403,7 @@ window.BotUI = {
                 
                 // Возвращаем обычный стиль
                 controlButton.style.background = 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)';
-                controlButton.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+                controlButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
                 
                 console.log('⏸️ Остановка основного бота...');
             }
@@ -425,7 +435,7 @@ window.BotUI = {
             window.BotGameLogic.vtAbortController.abort();
             window.BotGameLogic.vtAbortController = null;
             const iconSpan = bossVTButton.querySelector('span');
-            if (iconSpan) iconSpan.textContent = '🔥';
+            if (iconSpan) iconSpan.textContent = 'БОСС ВТ';
             console.log('⏸️ Фарм босса ВТ остановлен');
         }
 
@@ -435,7 +445,7 @@ window.BotUI = {
             window.BotGameLogic.chtAbortController.abort();
             window.BotGameLogic.chtAbortController = null;
             const iconSpan = bossCHTButton.querySelector('span');
-            if (iconSpan) iconSpan.textContent = '⚡';
+            if (iconSpan) iconSpan.textContent = 'БОСС ЧТ';
             console.log('⏸️ Фарм босса ЧТ остановлен');
         }
     }

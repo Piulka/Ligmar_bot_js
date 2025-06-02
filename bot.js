@@ -1,13 +1,13 @@
 /**
  * Ligmar Bot - Модульная версия
  * Главный файл-загрузчик модулей
- * Версия: v.3.1.0
+ * Версия: v.3.2.0
  */
 
 (async function() {
     'use strict';
     
-    console.log('🤖 Ligmar Bot v.3.1.0 - Запуск модульной версии...');
+    console.log('🤖 Ligmar Bot v.3.2.0 - Запуск модульной версии...');
     
     // Базовый URL для загрузки модулей
     const BASE_URL = 'https://raw.githubusercontent.com/Piulka/Ligmar_bot_js/main';
@@ -64,6 +64,7 @@
     function verifyModules() {
         const requiredModules = [
             'BotConfig',
+            'BotSecurity',
             'BotUtils', 
             'BotUI',
             'BotNavigation',

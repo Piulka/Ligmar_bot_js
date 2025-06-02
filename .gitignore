@@ -1,0 +1,24 @@
+# Файлы с паролями и конфиденциальными данными
+.env
+*.env
+config/.env
+secrets/
+*.secret
+
+# MacOS
+.DS_Store
+
+# Временные файлы
+*.tmp
+*.temp
+*.log
+
+# IDE файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Пользовательские конфигурации
+user_config.js
+local_config.js 
