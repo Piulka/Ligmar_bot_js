@@ -133,6 +133,8 @@ window.BotCombat = {
     },
 
     async fightEnemies(isChampionHexagon = false) {
+        console.log(`⚔️ Начинаю бой (чемпион: ${isChampionHexagon})`);
+        
         window.BotConfig.vipStatus = window.BotUtils.autoDetectVipStatus();
         window.BotConfig.selectedClass = window.BotUtils.detectPlayerClass();
         
@@ -142,6 +144,7 @@ window.BotCombat = {
         const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
         if (enemiesCountElement) {
             initialEnemyCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
+            console.log(`👹 Количество врагов: ${initialEnemyCount}`);
         }
 
         if (window.BotConfig.selectedClass === 'Лучник') {
@@ -151,6 +154,7 @@ window.BotCombat = {
                 hasChampion = !!currentHexagon.querySelector('use[href="#champion"], use[xlink\\:href="#champion"]');
             }
             if (initialEnemyCount >= 2 || hasChampion) {
+                console.log(`🏹 Использую мультискилл лучника`);
                 await this.useSkill(window.BotConfig.CLASS_SKILLS['Лучник'].multitarget);
                 await window.BotUtils.delay(100);
             }
@@ -158,14 +162,22 @@ window.BotCombat = {
 
         if (isChampionHexagon && window.BotConfig.selectedClass === 'Лучник' && 
             window.BotConfig.CLASS_SKILLS[window.BotConfig.selectedClass].championSkill) {
+            console.log(`👑 Использую скилл против чемпиона`);
             await this.useSkill(window.BotConfig.CLASS_SKILLS[window.BotConfig.selectedClass].championSkill);
             await window.BotUtils.delay(1500);
         }
 
+        console.log(`🎯 Начинаю основной цикл боя (VIP: ${window.BotConfig.vipStatus})`);
+        let fightRounds = 0;
+        
         while (window.BotConfig.isScriptRunning) {
+            fightRounds++;
+            console.log(`⚔️ Раунд боя #${fightRounds}`);
+            
             if (window.BotConfig.vipStatus === 'Не VIP') {
                 const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
                 if (enemiesCountElement && enemiesCountElement.textContent.trim() === '0') {
+                    console.log(`✅ Все враги побеждены (счетчик: 0)`);
                     break;
                 }
 
@@ -186,12 +198,14 @@ window.BotCombat = {
                 }
                 
                 if ((!enemyCard || needSwitch)) {
+                    console.log(`🔄 Переключаю врага (нет карточки: ${!enemyCard}, нужно переключить: ${needSwitch})`);
                     const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
                     if (switchBtn) {
                         switchBtn.closest('div.button-icon-content').click();
                         await window.BotUtils.delay(300);
                         continue;
                     } else {
+                        console.log(`⚠️ Кнопка переключения не найдена`);
                         await window.BotUtils.delay(300);
                         continue;
                     }
@@ -200,20 +214,37 @@ window.BotCombat = {
 
             const enemyIcon = document.querySelector('app-icon.profile-class tui-icon[style*="mob-class-"]');
             await window.BotNavigation.checkAndReturnToCity();
-            if (!enemyIcon) break;
-
-            const enemiesCountElement2 = document.querySelector('div.battle-bar-enemies-value');
-            if (enemiesCountElement2 && enemiesCountElement2.textContent.trim() === '0') {
+            if (!enemyIcon) {
+                console.log(`✅ Враг не найден, бой завершен`);
                 break;
             }
 
+            const enemiesCountElement2 = document.querySelector('div.battle-bar-enemies-value');
+            if (enemiesCountElement2 && enemiesCountElement2.textContent.trim() === '0') {
+                console.log(`✅ Все враги побеждены (финальная проверка)`);
+                break;
+            }
+
+            console.log(`🩺 Проверяю здоровье и ману`);
             await this.checkManaAndHealth();
             await window.BotUtils.delay(100);
+            
+            console.log(`💪 Проверяю баффы`);
             await this.checkAndActivateDefenseBuff();
             await window.BotUtils.delay(100);
+            
+            console.log(`⚔️ Использую боевые навыки`);
             await this.useSkills();
             await window.BotUtils.delay(100);
+            
+            // Защита от бесконечного цикла
+            if (fightRounds > 100) {
+                console.log(`⚠️ Слишком много раундов боя (${fightRounds}), принудительно завершаю`);
+                break;
+            }
         }
+
+        console.log(`🎉 Бой завершен после ${fightRounds} раундов`);
 
         // Обновляем статистику
         if (window.BotStatistics) {
@@ -225,6 +256,7 @@ window.BotCombat = {
 
         const isSpecial = await window.BotNavigation.isSpecialHexagon();
         if (isSpecial) {
+            console.log(`🎁 Специальный гексагон, жду 5 секунд`);
             await window.BotUtils.delay(5000);
         }
     }

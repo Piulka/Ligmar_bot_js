@@ -39,8 +39,8 @@ window.BotGameLogic = {
         window.BotConfig.vipStatus = window.BotUtils.autoDetectVipStatus();
 
         // 1. Всегда ищем и переходим на гексагон по приоритету
-        const hexagonFound = await window.BotNavigation.clickHexagonWithPriority(window.BotNavigation.getPriorities());
-        if (!hexagonFound) return;
+        const hexagonResult = await window.BotNavigation.clickHexagonWithPriority(window.BotNavigation.getPriorities());
+        if (!hexagonResult.found) return;
 
         const transitionSuccess = await window.BotUtils.clickByTextContent('Перейти');
         await window.BotUtils.delay(100);
@@ -62,7 +62,9 @@ window.BotGameLogic = {
                         return;
                     }
                     
-                    await window.BotCombat.fightEnemies();
+                    // Определяем тип боя и вызываем соответствующую функцию
+                    const isChampion = hexagonResult.type === 'champion';
+                    await window.BotCombat.fightEnemies(isChampion);
                 } else {
                     console.error('Кнопка закрытия не найдена');
                     return;
@@ -82,7 +84,10 @@ window.BotGameLogic = {
             const enemyAppeared = await window.BotCombat.waitForEnemy();
             await window.BotUtils.delay(100);
             if (!enemyAppeared) return;
-            await window.BotCombat.fightEnemies();
+            
+            // Определяем тип боя и вызываем соответствующую функцию
+            const isChampion = hexagonResult.type === 'champion';
+            await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         } else {
             let enemyAppeared = false;
@@ -128,7 +133,9 @@ window.BotGameLogic = {
                 return;
             }
             
-            await window.BotCombat.fightEnemies();
+            // Определяем тип боя и вызываем соответствующую функцию
+            const isChampion = hexagonResult.type === 'champion';
+            await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         }
     },

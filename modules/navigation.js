@@ -75,24 +75,15 @@ window.BotNavigation = {
                     this.clickHexagon(hexagon);
                     await window.BotUtils.delay(100);
 
-                    if (priority.type === 'champion') {
-                        if (window.BotCombat && window.BotCombat.fightEnemies) {
-                            await window.BotCombat.fightEnemies(true);
-                        }
-                    } else {
-                        if (window.BotCombat && window.BotCombat.fightEnemies) {
-                            await window.BotCombat.fightEnemies(false);
-                        }
-                    }
-
-                    return true;
+                    // Возвращаем true и информацию о типе гексагона для mainLoop
+                    return { found: true, type: priority.type };
                 }
             }
 
             await window.BotUtils.delay(100);
         }
 
-        return false;
+        return { found: false, type: null };
     },
 
     /**
