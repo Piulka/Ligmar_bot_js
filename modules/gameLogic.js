@@ -458,7 +458,11 @@ window.BotGameLogic = {
                 
                 const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                    const foundPolygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                    if (foundPolygon) {
+                        console.log(`✅ Найден полигон ${i + 1}: ${polygonPoints}`);
+                    }
+                    return foundPolygon;
                 }, 200, 10000);
                 
                 if (!polygon) {
@@ -467,15 +471,15 @@ window.BotGameLogic = {
                 }
                 
                 console.log(`🔥 Кликаю на полигон ${i + 1}...`);
-                window.BotNavigation.clickPolygon(polygon);
+                const clickResult = window.BotNavigation.clickPolygon(polygon);
+                if (!clickResult) {
+                    console.error(`❌ Ошибка клика на полигон ${i + 1}`);
+                    throw new Error(`Ошибка клика на полигон ${i + 1}`);
+                }
                 await window.BotUtils.delay(300);
                 
                 console.log(`🔥 Ищу кнопку "Перейти"...`);
-                const goBtn = await window.BotUtils.waitFor(() => {
-                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    return Array.from(document.querySelectorAll('div.button-content'))
-                        .find(btn => btn.textContent.trim() === 'Перейти');
-                }, 200, 10000);
+                const goBtn = await window.BotUtils.findGoButton(10000);
                 
                 if (goBtn) {
                     console.log(`🔥 Нажимаю "Перейти" для полигона ${i + 1}...`);
@@ -483,6 +487,8 @@ window.BotGameLogic = {
                     await window.BotUtils.delay(500);
                 } else {
                     console.error('❌ Кнопка "Перейти" не найдена');
+                    const allButtons = Array.from(document.querySelectorAll('div.button-content, button, [role="button"]'));
+                    console.error('Доступные кнопки:', allButtons.map(btn => btn.textContent.trim()));
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
                 
@@ -514,11 +520,7 @@ window.BotGameLogic = {
             await window.BotUtils.delay(300);
 
             console.log('🔥 Ищу кнопку "Перейти" к боссу...');
-            const goBtn = await window.BotUtils.waitFor(() => {
-                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                return Array.from(document.querySelectorAll('div.button-content'))
-                    .find(btn => btn.textContent.trim() === 'Перейти');
-            }, 200, 10000);
+            const goBtn = await window.BotUtils.findGoButton(10000);
             
             if (goBtn) {
                 console.log('🔥 Перехожу к боссу ВТ...');
@@ -526,6 +528,8 @@ window.BotGameLogic = {
                 await window.BotUtils.delay(500);
             } else {
                 console.error('❌ Кнопка "Перейти" к боссу не найдена');
+                const allButtons = Array.from(document.querySelectorAll('div.button-content, button, [role="button"]'));
+                console.error('Доступные кнопки к боссу:', allButtons.map(btn => btn.textContent.trim()));
                 throw new Error('Кнопка "Перейти" не найдена');
             }
 
@@ -583,11 +587,7 @@ window.BotGameLogic = {
                 window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
-                const goBtn = await window.BotUtils.waitFor(() => {
-                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                    return Array.from(document.querySelectorAll('div.button-content'))
-                        .find(btn => btn.textContent.trim() === 'Перейти');
-                }, 200, 10000);
+                const goBtn = await window.BotUtils.findGoButton(10000);
                 
                 if (goBtn) {
                     goBtn.click();
@@ -614,11 +614,7 @@ window.BotGameLogic = {
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
-            const goBtn = await window.BotUtils.waitFor(() => {
-                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                return Array.from(document.querySelectorAll('div.button-content'))
-                    .find(btn => btn.textContent.trim() === 'Перейти');
-            }, 200, 10000);
+            const goBtn = await window.BotUtils.findGoButton(10000);
             
             if (goBtn) {
                 goBtn.click();

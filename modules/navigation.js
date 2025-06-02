@@ -117,33 +117,57 @@ window.BotNavigation = {
             return false;
         }
         
-        if (!polygon.getBoundingClientRect || typeof polygon.getBoundingClientRect !== 'function') {
-            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect', polygon);
+        // Если это полигон, ищем родительский g.hex-box
+        let targetElement = polygon;
+        if (polygon.tagName && polygon.tagName.toLowerCase() === 'polygon') {
+            const hexBox = polygon.closest('g.hex-box');
+            if (hexBox) {
+                targetElement = hexBox;
+                console.log('🔄 Переключаюсь с полигона на g.hex-box для клика');
+            }
+        }
+        
+        if (!targetElement.getBoundingClientRect || typeof targetElement.getBoundingClientRect !== 'function') {
+            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect', targetElement);
             return false;
         }
         
         try {
-            const rect = polygon.getBoundingClientRect();
+            const rect = targetElement.getBoundingClientRect();
             
             // Проверяем, что элемент имеет размеры
             if (rect.width === 0 && rect.height === 0) {
-                console.warn('⚠️ clickPolygon: элемент имеет нулевые размеры', polygon);
+                console.warn('⚠️ clickPolygon: элемент имеет нулевые размеры', targetElement);
                 return false;
             }
             
-            const clickEvent = new MouseEvent('click', {
+            // Создаем события мыши для более надежного клика
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const createMouseEvent = (type) => new MouseEvent(type, {
                 bubbles: true,
                 cancelable: true,
                 view: window,
-                clientX: rect.left + rect.width / 2,
-                clientY: rect.top + rect.height / 2
+                clientX: centerX,
+                clientY: centerY
             });
             
-            polygon.dispatchEvent(clickEvent);
+            // Последовательность событий мыши
+            targetElement.dispatchEvent(createMouseEvent('mousedown'));
+            targetElement.dispatchEvent(createMouseEvent('mouseup'));
+            targetElement.dispatchEvent(createMouseEvent('click'));
+            
+            // Дополнительно вызываем Angular click если есть appSmartClick
+            if (targetElement.hasAttribute && targetElement.hasAttribute('appSmartClick')) {
+                console.log('🎯 Обнаружен appSmartClick, выполняю дополнительный клик');
+                targetElement.click();
+            }
+            
             console.log('✅ Клик по полигону выполнен');
             return true;
         } catch (error) {
-            console.error('❌ Ошибка клика по полигону:', error, polygon);
+            console.error('❌ Ошибка клика по полигону:', error, targetElement);
             return false;
         }
     },

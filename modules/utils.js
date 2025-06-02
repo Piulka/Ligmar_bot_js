@@ -163,5 +163,37 @@ window.BotUtils = {
         setTimeout(() => {
             document.addEventListener('click', handler);
         }, 100);
+    },
+
+    /**
+     * Универсальный поиск кнопки "Перейти" с расширенными селекторами
+     * @param {number} timeout - таймаут в миллисекундах
+     */
+    async findGoButton(timeout = 10000) {
+        const start = Date.now();
+        const selectors = [
+            'div.button-content',
+            'button',
+            '[role="button"]',
+            '.btn',
+            '.button',
+            'tui-button',
+            'app-button'
+        ];
+
+        while (Date.now() - start < timeout) {
+            for (const selector of selectors) {
+                const elements = Array.from(document.querySelectorAll(selector));
+                for (const element of elements) {
+                    const text = element.textContent.trim();
+                    if (text === 'Перейти' || text === 'Go' || text === 'Move') {
+                        console.log(`✅ Найдена кнопка "Перейти" через селектор: ${selector}`);
+                        return element;
+                    }
+                }
+            }
+            await this.delay(200);
+        }
+        return null;
     }
 }; 
