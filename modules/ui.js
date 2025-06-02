@@ -68,7 +68,7 @@ window.BotUI = {
             width: '40px',
             height: '33px',
             background: 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)',
-            color: 'var(--gold-base)',
+            color: '#FFD700',
             border: '1px solid rgba(128,128,128,0.3)',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -160,9 +160,9 @@ window.BotUI = {
             top: '110px',
             left: '10px',
             width: '170px',
-            background: 'linear-gradient(135deg, var(--black-dark) 85%, var(--gold-base) 100%)',
-            color: 'var(--white)',
-            border: '1.5px solid var(--gold-base)',
+            background: 'linear-gradient(135deg, #1a1a1a 85%, #FFD700 100%)',
+            color: '#ffffff',
+            border: '1.5px solid #FFD700',
             borderRadius: '12px',
             padding: '10px 8px 8px 8px',
             boxShadow: '0 6px 24px 0 rgba(0,0,0,0.18)',
@@ -197,7 +197,7 @@ window.BotUI = {
         title.style.fontWeight = 'bold';
         title.style.marginBottom = '8px';
         title.style.fontSize = '12px';
-        title.style.color = 'var(--gold-base)';
+        title.style.color = '#FFD700';
         title.innerHTML = `⚙ Настройки ${window.BotConfig.SCRIPT_COMMIT}`;
         return title;
     },
@@ -321,8 +321,8 @@ window.BotUI = {
             width: '100%',
             padding: '4px',
             fontSize: '9px',
-            background: 'var(--gold-base)',
-            color: 'var(--black-dark)',
+            background: '#FFD700',
+            color: '#1a1a1a',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',

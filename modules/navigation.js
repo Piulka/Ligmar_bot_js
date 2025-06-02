@@ -112,24 +112,51 @@ window.BotNavigation = {
      * @param {HTMLElement} polygon - элемент полигона
      */
     clickPolygon(polygon) {
+        console.log('🎯 clickPolygon: попытка клика по полигону');
+        
         if (!polygon) {
             console.error('❌ clickPolygon: полигон не найден или равен null');
             return false;
         }
         
-        // Если это полигон, ищем родительский g.hex-box
+        // Стратегия поиска кликабельного элемента
         let targetElement = polygon;
+        
+        // 1. Если это полигон, ищем родительский g.hex-box
         if (polygon.tagName && polygon.tagName.toLowerCase() === 'polygon') {
             const hexBox = polygon.closest('g.hex-box');
             if (hexBox) {
                 targetElement = hexBox;
-                console.log('🔄 Переключаюсь с полигона на g.hex-box для клика');
+                console.log('🔄 Найден g.hex-box для клика');
             }
         }
         
+        // 2. Проверяем, поддерживает ли элемент getBoundingClientRect
         if (!targetElement.getBoundingClientRect || typeof targetElement.getBoundingClientRect !== 'function') {
-            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect', targetElement);
-            return false;
+            console.log('⚠️ Элемент не поддерживает getBoundingClientRect, ищем альтернативы...');
+            
+            // Пытаемся найти любой кликабельный элемент в родителе
+            const clickableParent = targetElement.closest('g, svg, div');
+            if (clickableParent && clickableParent.getBoundingClientRect) {
+                targetElement = clickableParent;
+                console.log('✅ Найден кликабельный родительский элемент');
+            } else {
+                // Последняя попытка - простой клик по оригинальному элементу
+                console.log('🔄 Выполняю простой клик по оригинальному элементу');
+                try {
+                    if (targetElement.click) {
+                        targetElement.click();
+                        return true;
+                    }
+                    // Если нет метода click, создаем событие
+                    const clickEvent = new Event('click', { bubbles: true, cancelable: true });
+                    targetElement.dispatchEvent(clickEvent);
+                    return true;
+                } catch (error) {
+                    console.error('❌ Не удалось выполнить простой клик:', error);
+                    return false;
+                }
+            }
         }
         
         try {
@@ -137,8 +164,11 @@ window.BotNavigation = {
             
             // Проверяем, что элемент имеет размеры
             if (rect.width === 0 && rect.height === 0) {
-                console.warn('⚠️ clickPolygon: элемент имеет нулевые размеры', targetElement);
-                return false;
+                console.warn('⚠️ clickPolygon: элемент имеет нулевые размеры, пробую простой клик');
+                if (targetElement.click) {
+                    targetElement.click();
+                    return true;
+                }
             }
             
             // Создаем события мыши для более надежного клика
@@ -167,7 +197,17 @@ window.BotNavigation = {
             console.log('✅ Клик по полигону выполнен');
             return true;
         } catch (error) {
-            console.error('❌ Ошибка клика по полигону:', error, targetElement);
+            console.error('❌ Ошибка клика по полигону:', error);
+            // Последняя попытка - простой клик
+            try {
+                if (targetElement.click) {
+                    targetElement.click();
+                    console.log('✅ Выполнен fallback клик');
+                    return true;
+                }
+            } catch (fallbackError) {
+                console.error('❌ Fallback клик также не удался:', fallbackError);
+            }
             return false;
         }
     },
