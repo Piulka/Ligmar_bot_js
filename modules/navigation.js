@@ -112,15 +112,40 @@ window.BotNavigation = {
      * @param {HTMLElement} polygon - элемент полигона
      */
     clickPolygon(polygon) {
-        const rect = polygon.getBoundingClientRect();
-        const clickEvent = new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            clientX: rect.left + rect.width / 2,
-            clientY: rect.top + rect.height / 2
-        });
-        polygon.dispatchEvent(clickEvent);
+        if (!polygon) {
+            console.error('❌ clickPolygon: полигон не найден или равен null');
+            return false;
+        }
+        
+        if (!polygon.getBoundingClientRect || typeof polygon.getBoundingClientRect !== 'function') {
+            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect', polygon);
+            return false;
+        }
+        
+        try {
+            const rect = polygon.getBoundingClientRect();
+            
+            // Проверяем, что элемент имеет размеры
+            if (rect.width === 0 && rect.height === 0) {
+                console.warn('⚠️ clickPolygon: элемент имеет нулевые размеры', polygon);
+                return false;
+            }
+            
+            const clickEvent = new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.top + rect.height / 2
+            });
+            
+            polygon.dispatchEvent(clickEvent);
+            console.log('✅ Клик по полигону выполнен');
+            return true;
+        } catch (error) {
+            console.error('❌ Ошибка клика по полигону:', error, polygon);
+            return false;
+        }
     },
 
     /**

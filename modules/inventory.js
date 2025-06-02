@@ -27,13 +27,17 @@ window.BotInventory = {
                         backpackTab.click();
                         await window.BotUtils.delay(100);
 
-                        if (window.BotConfig.sellItemsSetting === 'Не продавать вещи') {
-                            console.log('Режим "Не продавать вещи" - скрипт приостановлен');
+                        if (window.BotConfig.sellItemsSetting === 'Не продавать') {
+                            console.log('Режим "Не продавать" - скрипт приостановлен');
+                            window.BotConfig.isScriptRunning = false;
                             const controlButton = document.getElementById('control-button');
                             if (controlButton) {
-                                controlButton.click();
+                                const iconSpan = controlButton.querySelector('span');
+                                if (iconSpan) {
+                                    iconSpan.textContent = '▶';
+                                }
                             }
-                            alert('Рюкзак полон! Скрипт приостановлен. Режим "Не продавать вещи"');
+                            alert('Рюкзак полон! Скрипт приостановлен. Режим "Не продавать"');
                             return;
                         }
                         
@@ -96,7 +100,7 @@ window.BotInventory = {
 
         console.log(`Сохранено предметов: ${storedCount}, продано: ${items.length - storedCount}`);
 
-        if (window.BotConfig.sellItemsSetting === 'Продавать вещи') {
+        if (window.BotConfig.sellItemsSetting === 'Продавать') {
             await this.navigateToSellItems();
         }
     },

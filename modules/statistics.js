@@ -233,7 +233,8 @@ window.BotStatistics = {
             padding: '12px 0 16px 0',
             boxSizing: 'border-box',
             background: 'rgba(0,0,0,0.10)',
-            borderTop: '1px solid var(--black-light)'
+            borderTop: '1px solid var(--black-light)',
+            position: 'relative'
         });
 
         const runtimeDisplay = document.createElement('div');
@@ -246,7 +247,21 @@ window.BotStatistics = {
             textAlign: 'center'
         });
 
+        // Версия коммита в правом нижнем углу
+        const versionDisplay = document.createElement('div');
+        versionDisplay.textContent = window.BotConfig.SCRIPT_COMMIT;
+        Object.assign(versionDisplay.style, {
+            position: 'absolute',
+            bottom: '4px',
+            right: '8px',
+            color: 'var(--gray-light)',
+            fontSize: '10px',
+            fontWeight: 'normal',
+            opacity: '0.7'
+        });
+
         bottomRow.appendChild(runtimeDisplay);
+        bottomRow.appendChild(versionDisplay);
         statsContainer.appendChild(mainRow);
         statsContainer.appendChild(bottomRow);
         document.body.appendChild(statsContainer);

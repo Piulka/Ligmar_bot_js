@@ -23,12 +23,12 @@ window.BotUI = {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 position: 'absolute',
                 left: '50%',
-                top: '0',
-                transform: 'translateX(-50%)',
-                height: '100%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                height: 'auto',
                 zIndex: '1001'
             });
             header.appendChild(centerContainer);
@@ -59,8 +59,8 @@ window.BotUI = {
         button.id = id;
         
         Object.assign(button.style, {
-            width: '48px',
-            height: '48px',
+            width: '40px',
+            height: '40px',
             background: 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)',
             color: 'var(--gold-base)',
             border: '2px solid transparent',
@@ -111,7 +111,7 @@ window.BotUI = {
 
         const iconSpan = document.createElement('span');
         iconSpan.textContent = icon;
-        iconSpan.style.fontSize = '20px';
+        iconSpan.style.fontSize = '16px';
         iconSpan.style.lineHeight = '1';
 
         content.appendChild(iconSpan);
@@ -355,12 +355,12 @@ window.BotUI = {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 position: 'absolute',
                 left: '50%',
-                top: '0',
-                transform: 'translateX(-50%)',
-                height: '100%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                height: 'auto',
                 zIndex: '1001'
             });
             header.appendChild(centerContainer);
@@ -372,23 +372,71 @@ window.BotUI = {
             const iconSpan = controlButton.querySelector('span');
             
             if (!window.BotConfig.isScriptRunning) {
+                // Деактивируем все другие кнопки перед запуском
+                this.deactivateAllButtons();
+                
                 window.BotConfig.isScriptRunning = true;
                 window.BotConfig.lastStartTime = Date.now();
                 iconSpan.textContent = '⏸';
                 
-                console.log('▶️ Запуск бота...');
+                // Добавляем визуальную индикацию активности
+                controlButton.style.background = 'radial-gradient(circle, rgba(30,40,15,0.95) 0%, rgba(15,20,8,0.98) 100%)';
+                controlButton.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+                
+                console.log('▶️ Запуск основного бота...');
                 if (window.BotGameLogic && window.BotGameLogic.runScript) {
                     window.BotGameLogic.runScript();
                 }
             } else {
                 window.BotConfig.isScriptRunning = false;
                 iconSpan.textContent = '▶';
-                console.log('⏸️ Остановка бота...');
+                
+                // Возвращаем обычный стиль
+                controlButton.style.background = 'radial-gradient(circle, rgba(20,15,30,0.95) 0%, rgba(10,8,15,0.98) 100%)';
+                controlButton.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
+                
+                console.log('⏸️ Остановка основного бота...');
             }
         });
 
         if (!centerContainer.contains(controlButton)) {
             centerContainer.appendChild(controlButton);
+        }
+    },
+
+    /**
+     * Деактивация всех кнопок управления
+     */
+    deactivateAllButtons() {
+        // Деактивируем кнопку плей
+        const controlButton = document.getElementById('control-button');
+        if (controlButton) {
+            const iconSpan = controlButton.querySelector('span');
+            if (iconSpan && iconSpan.textContent === '⏸') {
+                window.BotConfig.isScriptRunning = false;
+                iconSpan.textContent = '▶';
+                console.log('⏸️ Основной скрипт остановлен');
+            }
+        }
+
+        // Деактивируем кнопку босса ВТ
+        const bossVTButton = document.getElementById('boss-vt-button');
+        if (bossVTButton && window.BotGameLogic.vtAbortController) {
+            window.BotGameLogic.vtAbortController.abort();
+            window.BotGameLogic.vtAbortController = null;
+            const iconSpan = bossVTButton.querySelector('span');
+            if (iconSpan) iconSpan.textContent = '🔥';
+            console.log('⏸️ Фарм босса ВТ остановлен');
+        }
+
+        // Деактивируем кнопку босса ЧТ
+        const bossCHTButton = document.getElementById('boss-cht-button');
+        if (bossCHTButton && window.BotGameLogic.chtAbortController) {
+            window.BotGameLogic.chtAbortController.abort();
+            window.BotGameLogic.chtAbortController = null;
+            const iconSpan = bossCHTButton.querySelector('span');
+            if (iconSpan) iconSpan.textContent = '⚡';
+            console.log('⏸️ Фарм босса ЧТ остановлен');
         }
     }
 }; 

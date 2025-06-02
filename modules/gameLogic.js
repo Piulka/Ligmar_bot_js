@@ -1,5 +1,8 @@
 // Модуль основной игровой логики
 window.BotGameLogic = {
+    vtAbortController: null,
+    chtAbortController: null,
+
     /**
      * Запуск основного скрипта
      */
@@ -160,20 +163,20 @@ window.BotGameLogic = {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '10px',
+                gap: '8px',
                 position: 'absolute',
                 left: '50%',
-                top: '0',
-                transform: 'translateX(-50%)',
-                height: '100%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                height: 'auto',
                 zIndex: '1001'
             });
             header.appendChild(centerContainer);
         }
 
         // Размеры кнопок
-        const btnWidth = '48px';
-        const btnHeight = '48px';
+        const btnWidth = '40px';
+        const btnHeight = '40px';
         const btnFontSize = '11px';
 
         // --- Кнопка БОСС ВТ ---
@@ -233,7 +236,7 @@ window.BotGameLogic = {
 
         const iconVT = document.createElement('span');
         iconVT.textContent = '🔥';
-        iconVT.style.fontSize = '20px';
+        iconVT.style.fontSize = '16px';
         iconVT.style.lineHeight = '1';
 
         contentVT.appendChild(iconVT);
@@ -258,14 +261,22 @@ window.BotGameLogic = {
             bossVTBtn.style.transform = 'scale(1.05)';
         });
 
-        let vtAbortController = null;
         bossVTBtn.addEventListener('click', async () => {
-            if (!vtAbortController) {
-                vtAbortController = new AbortController();
+            if (!this.vtAbortController) {
+                // Деактивируем все другие кнопки
+                if (window.BotUI && window.BotUI.deactivateAllButtons) {
+                    window.BotUI.deactivateAllButtons();
+                }
+                
+                this.vtAbortController = new AbortController();
                 iconVT.textContent = '⏸';
                 
+                // Добавляем визуальную индикацию активности
+                bossVTBtn.style.background = 'radial-gradient(circle, rgba(60,25,25,0.95) 0%, rgba(30,12,12,0.98) 100%)';
+                bossVTBtn.style.boxShadow = '0 0 25px rgba(255, 69, 0, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+                
                 try {
-                    await this.bossFarmLoopVT(vtAbortController.signal);
+                    await this.bossFarmLoopVT(this.vtAbortController.signal);
                 } catch (error) {
                     if (error.message.includes('aborted')) {
                         console.log('Фарм босса ВТ остановлен');
@@ -273,13 +284,21 @@ window.BotGameLogic = {
                         console.error('Ошибка фарма босса ВТ:', error);
                     }
                 } finally {
-                    vtAbortController = null;
+                    this.vtAbortController = null;
                     iconVT.textContent = '🔥';
+                    
+                    // Возвращаем обычный стиль
+                    bossVTBtn.style.background = 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)';
+                    bossVTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
                 }
             } else {
-                vtAbortController.abort();
-                vtAbortController = null;
+                this.vtAbortController.abort();
+                this.vtAbortController = null;
                 iconVT.textContent = '🔥';
+                
+                // Возвращаем обычный стиль
+                bossVTBtn.style.background = 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)';
+                bossVTBtn.style.boxShadow = '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
             }
         });
 
@@ -340,7 +359,7 @@ window.BotGameLogic = {
 
         const iconCHT = document.createElement('span');
         iconCHT.textContent = '⚡';
-        iconCHT.style.fontSize = '20px';
+        iconCHT.style.fontSize = '16px';
         iconCHT.style.lineHeight = '1';
 
         contentCHT.appendChild(iconCHT);
@@ -365,14 +384,22 @@ window.BotGameLogic = {
             bossCHTBtn.style.transform = 'scale(1.05)';
         });
 
-        let chtAbortController = null;
         bossCHTBtn.addEventListener('click', async () => {
-            if (!chtAbortController) {
-                chtAbortController = new AbortController();
+            if (!this.chtAbortController) {
+                // Деактивируем все другие кнопки
+                if (window.BotUI && window.BotUI.deactivateAllButtons) {
+                    window.BotUI.deactivateAllButtons();
+                }
+                
+                this.chtAbortController = new AbortController();
                 iconCHT.textContent = '⏸';
                 
+                // Добавляем визуальную индикацию активности
+                bossCHTBtn.style.background = 'radial-gradient(circle, rgba(45,25,60,0.95) 0%, rgba(25,15,40,0.98) 100%)';
+                bossCHTBtn.style.boxShadow = '0 0 25px rgba(138, 43, 226, 0.7), inset 0 2px 0 rgba(255, 255, 255, 0.2)';
+                
                 try {
-                    await this.bossFarmLoopCHT(chtAbortController.signal);
+                    await this.bossFarmLoopCHT(this.chtAbortController.signal);
                 } catch (error) {
                     if (error.message.includes('aborted')) {
                         console.log('Фарм босса ЧТ остановлен');
@@ -380,13 +407,21 @@ window.BotGameLogic = {
                         console.error('Ошибка фарма босса ЧТ:', error);
                     }
                 } finally {
-                    chtAbortController = null;
+                    this.chtAbortController = null;
                     iconCHT.textContent = '⚡';
+                    
+                    // Возвращаем обычный стиль
+                    bossCHTBtn.style.background = 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)';
+                    bossCHTBtn.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
                 }
             } else {
-                chtAbortController.abort();
-                chtAbortController = null;
+                this.chtAbortController.abort();
+                this.chtAbortController = null;
                 iconCHT.textContent = '⚡';
+                
+                // Возвращаем обычный стиль
+                bossCHTBtn.style.background = 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)';
+                bossCHTBtn.style.boxShadow = '0 0 15px rgba(138, 43, 226, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)';
             }
         });
 
