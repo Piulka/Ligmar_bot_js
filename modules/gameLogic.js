@@ -53,13 +53,61 @@ window.BotGameLogic = {
                     closeButton.click();
                     await window.BotUtils.delay(100);
                     
-                    const autoSwitchIcon = document.querySelector('tui-icon.svg-icon[style*="switch-auto.svg"]');
-                    if (autoSwitchIcon) {
-                        autoSwitchIcon.click();
-                        await window.BotUtils.delay(100);
+                    // Определяем VIP статус для выбора стратегии
+                    window.BotConfig.vipStatus = window.BotUtils.autoDetectVipStatus();
+                    
+                    if (window.BotConfig.vipStatus === 'VIP') {
+                        // Для VIP игроков включаем автопоиск
+                        const autoSwitchIcon = document.querySelector('tui-icon.svg-icon[style*="switch-auto.svg"]');
+                        if (autoSwitchIcon) {
+                            autoSwitchIcon.click();
+                            await window.BotUtils.delay(100);
+                        } else {
+                            console.error('Иконка автоматического режима не найдена');
+                            return;
+                        }
                     } else {
-                        console.error('Иконка автоматического режима не найдена');
-                        return;
+                        // Для не-VIP игроков используем ручное переключение
+                        console.log('🔄 Не-VIP игрок: использую ручное переключение врагов');
+                        let enemyFound = false;
+                        let attempts = 0;
+                        const maxAttempts = 10;
+                        
+                        while (!enemyFound && attempts < maxAttempts && window.BotConfig.isScriptRunning) {
+                            await window.BotNavigation.checkAndReturnToCity();
+                            
+                            const enemyCard = document.querySelector('app-profile-card.target');
+                            if (enemyCard) {
+                                const hpText = enemyCard.querySelector('.profile-health .stats-text');
+                                const deadIcon = enemyCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
+                                
+                                if (!deadIcon && hpText) {
+                                    const hpMatch = hpText.textContent.trim().match(/^(\d+)\s*\/\s*[\d, ]+$/);
+                                    if (hpMatch && parseInt(hpMatch[1], 10) > 0) {
+                                        enemyFound = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Нажимаем кнопку переключения
+                            const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
+                            if (switchBtn) {
+                                console.log(`🔄 Переключаю врага (попытка ${attempts + 1}/${maxAttempts})`);
+                                switchBtn.closest('div.button-icon-content').click();
+                                await window.BotUtils.delay(300);
+                            } else {
+                                console.log('⚠️ Кнопка переключения не найдена');
+                                await window.BotUtils.delay(300);
+                            }
+                            
+                            attempts++;
+                        }
+                        
+                        if (!enemyFound) {
+                            console.log('⚠️ Не удалось найти живого врага после переключений');
+                            return;
+                        }
                     }
                     
                     // Определяем тип боя и вызываем соответствующую функцию
@@ -90,6 +138,7 @@ window.BotGameLogic = {
             await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         } else {
+            console.log('🔄 Не-VIP игрок: начинаю ручной поиск врагов');
             let enemyAppeared = false;
             let maxTries = 50;
             
@@ -105,34 +154,42 @@ window.BotGameLogic = {
                         const hpMatch = hpText.textContent.trim().match(/^(\d+)\s*\/\s*[\d, ]+$/);
                         if (hpMatch && parseInt(hpMatch[1], 10) === 0) {
                             needSwitch = true;
+                            console.log('🔄 Враг мертв, переключаю');
                         }
                     }
                     
                     const deadIcon = enemyCard.querySelector('tui-icon.svg-icon[style*="dead.svg"]');
                     if (deadIcon) {
                         needSwitch = true;
+                        console.log('🔄 Найдена иконка мертвого врага, переключаю');
                     }
                     
                     if (!needSwitch) {
+                        console.log('✅ Найден живой враг');
                         enemyAppeared = true;
                         break;
                     }
+                } else {
+                    console.log('🔄 Нет карточки врага, переключаю');
                 }
         
                 const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
                 if (switchBtn) {
+                    console.log(`🔄 Нажимаю кнопку переключения (попыток осталось: ${maxTries})`);
                     switchBtn.closest('div.button-icon-content').click();
                     await window.BotUtils.delay(300);
                 } else {
+                    console.log('⚠️ Кнопка переключения не найдена, жду');
                     await window.BotUtils.delay(300);
                 }
             }
             
             if (!enemyAppeared) {
-                console.log('Враг не найден после переключений');
+                console.log('❌ Враг не найден после переключений');
                 return;
             }
             
+            console.log('🎯 Начинаю бой с найденным врагом');
             // Определяем тип боя и вызываем соответствующую функцию
             const isChampion = hexagonResult.type === 'champion';
             await window.BotCombat.fightEnemies(isChampion);
