@@ -1046,6 +1046,7 @@ window.BotGameLogic = {
             }
 
             console.log('📤 Отправка данных в Google Sheets...');
+            console.log('🔗 URL:', gasUrl);
 
             // Создаем уникальные идентификаторы для предметов
             const itemsWithIds = itemsData.map(item => ({
@@ -1055,113 +1056,151 @@ window.BotGameLogic = {
                 botVersion: window.BotConfig.SCRIPT_COMMIT
             }));
 
-            // Попробуем несколько подходов для отправки
-            let response;
-            let success = false;
+            const payload = {
+                action: 'addItems',
+                items: itemsWithIds
+            };
 
-            // Подход 1: Обычный POST запрос
+            console.log('📦 Отправляем данных:', itemsWithIds.length, 'предметов');
+
+            // Попробуем несколько подходов
+            let success = false;
+            let lastError = null;
+
+            // Подход 1: Прямой POST без CORS проблем - используем content-type: text/plain
             try {
-                response = await fetch(gasUrl, {
+                console.log('🔄 Попытка 1: text/plain запрос...');
+                const response = await fetch(gasUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain',
                     },
-                    body: JSON.stringify({
-                        action: 'addItems',
-                        items: itemsWithIds
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
+                console.log('📡 Статус ответа:', response.status, response.statusText);
+                
                 if (response.ok) {
-                    success = true;
-                    console.log('✅ Успешная отправка (обычный режим)');
-                }
-            } catch (error) {
-                console.log('⚠️ Обычный режим не сработал:', error.message);
-            }
-
-            // Подход 2: Если первый не сработал, попробуем no-cors
-            if (!success) {
-                try {
-                    response = await fetch(gasUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            action: 'addItems',
-                            items: itemsWithIds
-                        })
-                    });
-                    success = true;
-                    console.log('✅ Успешная отправка (no-cors режим)');
-                } catch (error) {
-                    console.log('⚠️ No-cors режим не сработал:', error.message);
-                }
-            }
-
-            // Подход 3: Если ничего не работает, попробуем как form data
-            if (!success) {
-                try {
-                    const formData = new FormData();
-                    formData.append('data', JSON.stringify({
-                        action: 'addItems',
-                        items: itemsWithIds
-                    }));
-
-                    response = await fetch(gasUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: formData
-                    });
-                    success = true;
-                    console.log('✅ Успешная отправка (form data режим)');
-                } catch (error) {
-                    console.log('⚠️ Form data режим не сработал:', error.message);
-                }
-            }
-
-            // Анализируем результат
-            if (response) {
-                if (response.type === 'opaque') {
-                    console.log(`✅ Данные отправлены в Google Sheets (режим no-cors).`);
-                    console.log(`📊 Отправлено ${itemsWithIds.length} предметов. Проверьте таблицу вручную.`);
-                    
-                    // Пытаемся извлечь ID таблицы из URL
-                    const spreadsheetUrl = this.getSpreadsheetUrlFromGasUrl(gasUrl);
-                    if (spreadsheetUrl) {
-                        console.log(`🔗 Ссылка на Google Sheets: ${spreadsheetUrl}`);
-                    }
-                } else if (response.ok) {
                     try {
-                        const result = await response.json();
-                        console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
+                        const result = await response.text();
+                        console.log('✅ Успешная отправка! Ответ от сервера:', result);
                         
-                        if (result.spreadsheetUrl) {
-                            console.log(`📊 Ссылка на таблицу: ${result.spreadsheetUrl}`);
-                            console.log(`🎯 Скопируйте ссылку выше для быстрого доступа к таблице`);
+                        // Пытаемся парсить как JSON
+                        try {
+                            const jsonResult = JSON.parse(result);
+                            console.log(`📊 Добавлено новых предметов: ${jsonResult.addedCount}, пропущено дублей: ${jsonResult.duplicatesCount}`);
+                            if (jsonResult.spreadsheetUrl) {
+                                console.log(`🔗 Ссылка на таблицу: ${jsonResult.spreadsheetUrl}`);
+                            }
+                        } catch (parseError) {
+                            console.log('📝 Ответ (не JSON):', result);
                         }
-                    } catch (jsonError) {
-                        console.log('✅ Данные отправлены, но не удалось прочитать ответ');
+                        success = true;
+                    } catch (readError) {
+                        console.log('⚠️ Запрос отправлен, но не удалось прочитать ответ:', readError.message);
+                        success = true; // считаем успешным, если статус 200
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-            } else {
-                throw new Error('Не удалось отправить данные ни одним из способов');
+            } catch (error) {
+                console.log('⚠️ Попытка 1 не удалась:', error.message);
+                lastError = error;
+            }
+
+            // Подход 2: Если первый не сработал, попробуем через form data
+            if (!success) {
+                try {
+                    console.log('🔄 Попытка 2: form data...');
+                    const formData = new FormData();
+                    formData.append('data', JSON.stringify(payload));
+
+                    const response = await fetch(gasUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    console.log('📡 Статус ответа (form):', response.status, response.statusText);
+                    
+                    if (response.ok) {
+                        const result = await response.text();
+                        console.log('✅ Успешная отправка через form data! Ответ:', result);
+                        success = true;
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.log('⚠️ Попытка 2 не удалась:', error.message);
+                    lastError = error;
+                }
+            }
+
+            // Подход 3: No-CORS как крайний случай
+            if (!success) {
+                try {
+                    console.log('🔄 Попытка 3: no-cors режим (отправка вслепую)...');
+                    const response = await fetch(gasUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'text/plain',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    console.log('📡 No-CORS ответ получен (type:', response.type, ')');
+                    console.log('✅ Данные отправлены в no-cors режиме. Проверьте таблицу вручную.');
+                    console.log(`📊 Отправлено ${itemsWithIds.length} предметов.`);
+                    
+                    // Пытаемся построить ссылку на таблицу
+                    const spreadsheetUrl = this.getSpreadsheetUrlFromGasUrl(gasUrl);
+                    if (spreadsheetUrl) {
+                        console.log(`🔗 Примерная ссылка на проект: ${spreadsheetUrl}`);
+                    }
+                    success = true;
+                } catch (error) {
+                    console.log('⚠️ Попытка 3 не удалась:', error.message);
+                    lastError = error;
+                }
+            }
+
+            if (!success) {
+                throw lastError || new Error('Все попытки отправки завершились неудачей');
             }
 
         } catch (error) {
             console.error('❌ Ошибка отправки в Google Sheets:', error);
-            console.log('💡 Данные сохранены локально. Проверьте настройки Google Sheets.');
-            console.log('🔧 Убедитесь что:');
-            console.log('   1. Google Apps Script развернут с правильными настройками');
-            console.log('   2. "Выполнить как: Я"');
-            console.log('   3. "Кто имеет доступ: Все"');
-            console.log('   4. URL правильный и заканчивается на /exec');
-        }
-    },
+            console.log('');
+            console.log('🔧 === ДИАГНОСТИКА ПРОБЛЕМЫ ===');
+            console.log('');
+            
+            if (error.message.includes('401')) {
+                console.log('🚨 ОШИБКА 401 (Unauthorized):');
+                console.log('   1. Проверьте настройки деплоя в Google Apps Script:');
+                console.log('      • "Execute as" (Выполнить как): Me (Я)');
+                console.log('      • "Who has access" (Кто имеет доступ): Anyone (Все)');
+                console.log('   2. Убедитесь что скрипт развернут правильно');
+                console.log('   3. Попробуйте создать новый деплой');
+            } else if (error.message.includes('CORS')) {
+                console.log('🚨 ОШИБКА CORS:');
+                console.log('   1. Убедитесь что в Google Apps Script есть функция doOptions()');
+                console.log('   2. Проверьте что возвращаются правильные CORS заголовки');
+            } else {
+                console.log('🚨 ОБЩАЯ ОШИБКА:');
+                console.log('   1. Проверьте что URL правильный и заканчивается на /exec');
+                console.log('   2. Убедитесь что Google Apps Script работает');
+                console.log('   3. Попробуйте протестировать скрипт отдельно');
+            }
+            
+            console.log('');
+            console.log('💡 РЕШЕНИЯ:');
+            console.log('   • Данные всё равно сохранены локально');
+            console.log('   • Попробуйте перездеплоить Google Apps Script');
+            console.log('   • Проверьте код Google Apps Script (ниже)');
+            
+            // Показываем инструкции
+            this.showGoogleSheetsSetupInstructions();
+        },
 
     /**
      * Получение URL таблицы из URL Google Apps Script
@@ -1212,6 +1251,163 @@ window.BotGameLogic = {
      * Показ инструкций по настройке Google Sheets
      */
     showGoogleSheetsSetupInstructions() {
+        const googleAppsScriptCode = "// Обработка POST запросов\n" +
+"function doPost(e) {\n" +
+"  try {\n" +
+"    var data;\n" +
+"    \n" +
+"    // Пытаемся получить данные из разных источников\n" +
+"    if (e.postData) {\n" +
+"      if (e.postData.type === 'application/json') {\n" +
+"        data = JSON.parse(e.postData.contents);\n" +
+"      } else if (e.postData.type === 'text/plain') {\n" +
+"        data = JSON.parse(e.postData.contents);\n" +
+"      } else {\n" +
+"        // Form data\n" +
+"        data = JSON.parse(e.parameter.data);\n" +
+"      }\n" +
+"    } else if (e.parameter && e.parameter.data) {\n" +
+"      data = JSON.parse(e.parameter.data);\n" +
+"    } else {\n" +
+"      throw new Error('Нет данных в запросе');\n" +
+"    }\n" +
+"    \n" +
+"    console.log('Получены данные:', data);\n" +
+"    \n" +
+"    if (data.action === 'addItems') {\n" +
+"      return addItemsToSheet(data.items);\n" +
+"    }\n" +
+"    \n" +
+"    return createSuccessResponse({error: 'Неизвестное действие'});\n" +
+"      \n" +
+"  } catch (error) {\n" +
+"    console.error('Ошибка в doPost:', error);\n" +
+"    return createSuccessResponse({error: error.toString()});\n" +
+"  }\n" +
+"}\n" +
+"\n" +
+"// Обработка OPTIONS запросов для CORS\n" +
+"function doOptions() {\n" +
+"  return createSuccessResponse('');\n" +
+"}\n" +
+"\n" +
+"// Создание ответа с правильными заголовками\n" +
+"function createSuccessResponse(data) {\n" +
+"  return ContentService\n" +
+"    .createTextOutput(typeof data === 'string' ? data : JSON.stringify(data))\n" +
+"    .setMimeType(ContentService.MimeType.JSON)\n" +
+"    .setHeaders({\n" +
+"      'Access-Control-Allow-Origin': '*',\n" +
+"      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',\n" +
+"      'Access-Control-Allow-Headers': 'Content-Type, Authorization'\n" +
+"    });\n" +
+"}\n" +
+"\n" +
+"// Добавление предметов в таблицу\n" +
+"function addItemsToSheet(items) {\n" +
+"  try {\n" +
+"    // Создаем или получаем таблицу\n" +
+"    var spreadsheet;\n" +
+"    try {\n" +
+"      spreadsheet = SpreadsheetApp.getActiveSpreadsheet();\n" +
+"    } catch (e) {\n" +
+"      // Если нет привязанной таблицы, создаем новую\n" +
+"      spreadsheet = SpreadsheetApp.create('Арсенал Гильдии Ligmar');\n" +
+"      console.log('Создана новая таблица:', spreadsheet.getUrl());\n" +
+"    }\n" +
+"    \n" +
+"    var sheet = spreadsheet.getSheetByName('Арсенал');\n" +
+"    \n" +
+"    // Создаем лист если не существует\n" +
+"    if (!sheet) {\n" +
+"      sheet = spreadsheet.insertSheet('Арсенал');\n" +
+"      // Добавляем заголовки\n" +
+"      var headers = [\n" +
+"        'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', \n" +
+"        'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования'\n" +
+"      ];\n" +
+"      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);\n" +
+"      \n" +
+"      // Форматирование заголовков\n" +
+"      var headerRange = sheet.getRange(1, 1, 1, headers.length);\n" +
+"      headerRange.setFontWeight('bold');\n" +
+"      headerRange.setBackground('#4285f4');\n" +
+"      headerRange.setFontColor('white');\n" +
+"      headerRange.setBorder(true, true, true, true, true, true);\n" +
+"    }\n" +
+"    \n" +
+"    // Получаем существующие ID для избежания дублей\n" +
+"    var existingData = sheet.getDataRange().getValues();\n" +
+"    var existingIds = [];\n" +
+"    for (var i = 1; i < existingData.length; i++) {\n" +
+"      if (existingData[i][0]) {\n" +
+"        existingIds.push(existingData[i][0]);\n" +
+"      }\n" +
+"    }\n" +
+"    \n" +
+"    // Фильтруем новые предметы\n" +
+"    var newItems = items.filter(function(item) {\n" +
+"      return existingIds.indexOf(item.uniqueId) === -1;\n" +
+"    });\n" +
+"    \n" +
+"    console.log('Обработка: ' + items.length + ' предметов, новых: ' + newItems.length);\n" +
+"    \n" +
+"    if (newItems.length > 0) {\n" +
+"      // Добавляем новые предметы\n" +
+"      var newRows = newItems.map(function(item) {\n" +
+"        return [\n" +
+"          item.uniqueId,\n" +
+"          new Date(item.analysisDate),\n" +
+"          item.botVersion,\n" +
+"          item.name || '',\n" +
+"          item.type || '',\n" +
+"          item.quality || '',\n" +
+"          item.tier || '',\n" +
+"          item.gearScore || 0,\n" +
+"          item.stats.map(function(s) { return s.name + ': ' + s.value; }).join(', '),\n" +
+"          item.magicProps.map(function(p) { return p.name + ': ' + p.value + ' ' + p.percent; }).join(', '),\n" +
+"          item.requirements.map(function(r) { return r.key + ' ' + r.value; }).join(', ')\n" +
+"        ];\n" +
+"      });\n" +
+"      \n" +
+"      var startRow = sheet.getLastRow() + 1;\n" +
+"      sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);\n" +
+"      \n" +
+"      // Применяем форматирование\n" +
+"      var dataRange = sheet.getRange(startRow, 1, newRows.length, newRows[0].length);\n" +
+"      dataRange.setBorder(true, true, true, true, true, true);\n" +
+"      \n" +
+"      // Автоматическая ширина колонок\n" +
+"      sheet.autoResizeColumns(1, newRows[0].length);\n" +
+"    }\n" +
+"    \n" +
+"    var result = {\n" +
+"      success: true,\n" +
+"      addedCount: newItems.length,\n" +
+"      duplicatesCount: items.length - newItems.length,\n" +
+"      totalItems: sheet.getLastRow() - 1,\n" +
+"      spreadsheetUrl: spreadsheet.getUrl(),\n" +
+"      sheetId: spreadsheet.getId()\n" +
+"    };\n" +
+"    \n" +
+"    console.log('Результат:', result);\n" +
+"    return createSuccessResponse(result);\n" +
+"    \n" +
+"  } catch (error) {\n" +
+"    console.error('Ошибка в addItemsToSheet:', error);\n" +
+"    return createSuccessResponse({\n" +
+"      success: false,\n" +
+"      error: error.toString()\n" +
+"    });\n" +
+"  }\n" +
+"}\n" +
+"\n" +
+"// Тестовая функция для проверки работы\n" +
+"function testFunction() {\n" +
+"  console.log('Тест успешен! Скрипт работает.');\n" +
+"  return 'OK';\n" +
+"}";
+
         console.log(`
 📊 === ИНСТРУКЦИЯ ПО НАСТРОЙКЕ GOOGLE SHEETS ===
 
@@ -1219,132 +1415,39 @@ window.BotGameLogic = {
 1. Перейдите на https://script.google.com
 2. Создайте новый проект
 3. Вставьте код Google Apps Script (см. ниже)
-4. Опубликуйте как веб-приложение
+4. Сохраните проект (Ctrl+S)
 
-🔧 Шаг 2: Настройте доступ
-1. Выберите "Выполнить как: Я"
-2. Выберите "Кто имеет доступ: Все"
-3. Скопируйте URL веб-приложения
+🔧 Шаг 2: Разверните как веб-приложение
+1. Нажмите "Deploy" (Развернуть) > "New deployment" (Новый деплой)
+2. Выберите тип: "Web app" (Веб-приложение)
+3. Настройки:
+   • Execute as (Выполнить как): Me (Я)
+   • Who has access (Кто имеет доступ): Anyone (Все)
+4. Нажмите "Deploy" (Развернуть)
+5. Скопируйте URL веб-приложения (заканчивается на /exec)
 
 🔧 Шаг 3: Добавьте URL в конфиг
 Добавьте строку в modules/config.js:
 googleSheetsUrl: 'ВАШ_URL_СЮДА',
 
 📝 КОД ДЛЯ GOOGLE APPS SCRIPT:
-========================================
-function doPost(e) {
-  try {
-    const data = JSON.parse(e.postData.contents);
-    
-    if (data.action === 'addItems') {
-      return addItemsToSheet(data.items);
-    }
-    
-    return ContentService
-      .createTextOutput(JSON.stringify({error: 'Unknown action'}))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      
-  } catch (error) {
-    return ContentService
-      .createTextOutput(JSON.stringify({error: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders({
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-  }
-}
+========================================`);
+        
+        console.log(googleAppsScriptCode);
+        
+        console.log(`========================================
 
-function doOptions() {
-  return ContentService
-    .createTextOutput('')
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
-}
+🧪 Шаг 4: Протестируйте
+1. В редакторе Google Apps Script запустите функцию testFunction()
+2. Проверьте что нет ошибок
+3. Попробуйте анализ арсенала в боте
 
-function addItemsToSheet(items) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = spreadsheet.getSheetByName('Арсенал');
-  
-  // Создаем лист если не существует
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet('Арсенал');
-    // Добавляем заголовки
-    const headers = [
-      'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', 
-      'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования'
-    ];
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-    sheet.getRange(1, 1, 1, headers.length).setBackground('#4285f4');
-    sheet.getRange(1, 1, 1, headers.length).setFontColor('white');
-  }
-  
-  // Получаем существующие ID
-  const existingData = sheet.getDataRange().getValues();
-  const existingIds = new Set();
-  for (let i = 1; i < existingData.length; i++) {
-    if (existingData[i][0]) {
-      existingIds.add(existingData[i][0]);
-    }
-  }
-  
-  // Фильтруем новые предметы
-  const newItems = items.filter(item => !existingIds.has(item.uniqueId));
-  
-  if (newItems.length > 0) {
-    // Добавляем новые предметы
-    const newRows = newItems.map(item => [
-      item.uniqueId,
-      new Date(item.analysisDate),
-      item.botVersion,
-      item.name || '',
-      item.type || '',
-      item.quality || '',
-      item.tier || '',
-      item.gearScore || 0,
-      item.stats.map(s => s.name + ': ' + s.value).join(', '),
-      item.magicProps.map(p => p.name + ': ' + p.value + ' ' + p.percent).join(', '),
-      item.requirements.map(r => r.key + ' ' + r.value).join(', ')
-    ]);
-    
-    const startRow = sheet.getLastRow() + 1;
-    sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);
-    
-    // Применяем форматирование
-    const dataRange = sheet.getRange(startRow, 1, newRows.length, newRows[0].length);
-    dataRange.setBorder(true, true, true, true, true, true);
-    
-    // Автоматическая ширина колонок
-    sheet.autoResizeColumns(1, newRows[0].length);
-  }
-  
-  return ContentService
-    .createTextOutput(JSON.stringify({
-      addedCount: newItems.length,
-      duplicatesCount: items.length - newItems.length,
-      totalItems: sheet.getLastRow() - 1,
-      spreadsheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl()
-    }))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    });
-}
-========================================
+⚠️ ВАЖНО:
+• URL должен заканчиваться на /exec (НЕ /dev)
+• Настройки доступа должны быть "Anyone" (Все)
+• Если не работает, попробуйте создать новый деплой
 
-✅ После настройки ваши данные будут автоматически добавляться в Google Sheets!
+✅ После настройки ваши данные будут автоматически сохраняться в Google Sheets!
         `);
     },
 
