@@ -150,12 +150,14 @@ window.BotGameLogic = {
 
         // Находим элемент с пингом для позиционирования
         const pingElement = document.querySelector('.header-ping');
-        let baseLeftPosition = 350; // Значение по умолчанию, если элемент пинга не найден
-        
-        if (pingElement) {
-            const pingRect = pingElement.getBoundingClientRect();
-            baseLeftPosition = pingRect.right + 5; // 5px правее элемента пинга
+        if (!pingElement) {
+            console.error('Элемент .header-ping не найден');
+            return;
         }
+
+        const pingRect = pingElement.getBoundingClientRect();
+        // Кнопка активности должна быть на 5px левее пинга
+        const baseLeftPosition = pingRect.left - 5;
 
         // Размеры кнопки
         const btnWidth = '80px';

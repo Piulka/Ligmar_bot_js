@@ -61,32 +61,78 @@ window.BotInventory = {
             return;
         }
 
+        const itemsBeforeProcessing = equipmentGroup.querySelectorAll('app-item-card.backpack-item').length;
+        if (itemsBeforeProcessing === 0) {
+            console.log('Предметы не найдены');
+            return;
+        }
+
+        console.log(`Найдено ${itemsBeforeProcessing} предметов`);
+
+        // Сбрасываем счетчики для текущей обработки
+        const currentSessionStats = {
+            stored: 0,
+            ancient: 0,
+            pmaVa: 0,
+            epicStats: 0,
+            highGearScore: 0,
+            dropCustom: 0
+        };
+
         const items = equipmentGroup.querySelectorAll('app-item-card.backpack-item');
-        console.log(`Найдено ${items.length} предметов`);
-
-        let storedCount = 0;
-
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             item.click();
             await window.BotUtils.delay(300);
 
             const dialog = document.querySelector('app-dialog-container.dialog-container-item');
-            if (!dialog) continue;
+            if (!dialog) {
+                console.log('Диалог не открылся');
+                continue;
+            }
 
             let shouldStore = false;
+            let isAncient = false;
+            let isPmaVa = false;
+            let isEpicWithStats = false;
+            let hasHighGearScore = false;
+            let isDropCustom = false;
             
-            if (window.BotConfig.dropFilters.ancient) shouldStore = shouldStore || this.checkAncientItem(dialog);
-            if (window.BotConfig.dropFilters.pmaVa) shouldStore = shouldStore || this.checkPmaVaItem(dialog);
-            if (window.BotConfig.dropFilters.epicStats) shouldStore = shouldStore || this.checkEpicItemWithStats(dialog);
-            if (window.BotConfig.dropFilters.highGearScore) shouldStore = shouldStore || this.checkHighGearScore(dialog);
-            if (window.BotConfig.dropFilters.custom) shouldStore = shouldStore || this.checkDropCustomRules(dialog);
+            if (window.BotConfig.dropFilters.ancient) {
+                isAncient = this.checkAncientItem(dialog);
+                shouldStore = shouldStore || isAncient;
+            }
+            if (window.BotConfig.dropFilters.pmaVa) {
+                isPmaVa = this.checkPmaVaItem(dialog);
+                shouldStore = shouldStore || isPmaVa;
+            }
+            if (window.BotConfig.dropFilters.epicStats) {
+                isEpicWithStats = this.checkEpicItemWithStats(dialog);
+                shouldStore = shouldStore || isEpicWithStats;
+            }
+            if (window.BotConfig.dropFilters.highGearScore) {
+                hasHighGearScore = this.checkHighGearScore(dialog);
+                shouldStore = shouldStore || hasHighGearScore;
+            }
+            if (window.BotConfig.dropFilters.custom) {
+                isDropCustom = this.checkDropCustomRules(dialog);
+                shouldStore = shouldStore || isDropCustom;
+            }
 
             if (shouldStore) {
                 const chestButton = dialog.querySelector('div.put-in-chest .button-content');
                 if (chestButton && chestButton.textContent.trim() === 'В сундук') {
                     chestButton.click();
-                    storedCount++;
+                    console.log('Вещь отправлена в сундук');
+                    
+                    // Обновляем статистику
+                    currentSessionStats.stored++;
+                    if (isAncient) currentSessionStats.ancient++;
+                    if (isPmaVa) currentSessionStats.pmaVa++;
+                    if (isEpicWithStats) currentSessionStats.epicStats++;
+                    if (hasHighGearScore) currentSessionStats.highGearScore++;
+                    if (isDropCustom) currentSessionStats.dropCustom++;
+                    
                     await window.BotUtils.delay(300);
                 }
             }
@@ -98,9 +144,29 @@ window.BotInventory = {
             }
         }
 
-        console.log(`Сохранено предметов: ${storedCount}, продано: ${items.length - storedCount}`);
+        // Обновляем глобальную статистику
+        if (window.BotStatistics) {
+            window.BotStatistics.addStoredItems(currentSessionStats.stored);
+            window.BotStatistics.addAncientItems(currentSessionStats.ancient);
+            window.BotStatistics.addPmaVaItems(currentSessionStats.pmaVa);
+            window.BotStatistics.addEpicStatsItems(currentSessionStats.epicStats);
+            window.BotStatistics.addHighGearScoreItems(currentSessionStats.highGearScore);
+            window.BotStatistics.addCustomDropItems(currentSessionStats.dropCustom);
+        }
+        
+        // Рассчитываем количество проданных предметов
+        const itemsSoldNow = itemsBeforeProcessing - currentSessionStats.stored;
+        if (window.BotStatistics) {
+            window.BotStatistics.addSoldItems(itemsSoldNow);
+        }
+        
+        console.log(`Оставлено: ${currentSessionStats.stored} (Древние: ${currentSessionStats.ancient}, ПМА/ВА: ${currentSessionStats.pmaVa}, 3+ стата: ${currentSessionStats.epicStats}, ГС > ${window.BotConfig.dropMinGearScore}: ${currentSessionStats.highGearScore}, Кастомный дроп: ${currentSessionStats.dropCustom})`);
+        console.log(`Продано: ${itemsSoldNow}`);
 
-        if (window.BotConfig.sellItemsSetting === 'Продавать') {
+        if (window.BotConfig.sellItemsSetting === 'Продавать вещи') {
+            if (window.BotStatistics) {
+                window.BotStatistics.addSellTrip();
+            }
             await this.navigateToSellItems();
         }
     },
@@ -210,41 +276,90 @@ window.BotInventory = {
 
     async navigateToSellItems() {
         try {
+            console.log('🛒 Начинаем процесс продажи предметов...');
+
+            // Нажимаем на "Город"
             const townButton = await window.BotUtils.waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
             if (townButton) {
                 townButton.click();
                 await window.BotUtils.delay(100);
-
-                const buildingsButton = await window.BotUtils.waitForElement('div.button-content', 'Строения', 5000);
-                if (buildingsButton) {
-                    buildingsButton.click();
-                    await window.BotUtils.delay(100);
-
-                    const shopButton = await window.BotUtils.waitForElement('div.location-name', 'Торговая лавка', 5000);
-                    if (shopButton) {
-                        shopButton.click();
-                        await window.BotUtils.delay(100);
-
-                        const sellButton = await window.BotUtils.waitForElement('div.button-content', 'Продать снаряжение', 5000);
-                        if (sellButton) {
-                            sellButton.click();
-                            await window.BotUtils.delay(100);
-
-                            const confirmSellButton = await window.BotUtils.waitForElement('div.button-content', 'Да, продать', 5000);
-                            if (confirmSellButton) {
-                                confirmSellButton.click();
-                                await window.BotUtils.delay(100);
-                            }
-                        }
-                    }
-                }
-
-                const returnToBattleButton = await window.BotUtils.waitForElement('div.button-content', 'Вернуться в бой', 5000);
-                if (returnToBattleButton) {
-                    returnToBattleButton.click();
-                    await window.BotUtils.delay(100);
-                }
+                console.log('Перешли в Город');
+                await this.claimRewardButton();
+            } else {
+                console.error('Кнопка "Город" не найдена');
+                return;
             }
+
+            // Нажимаем на кнопку "Строения"
+            const buildingsButton = await window.BotUtils.waitForElement('div.button-content', 'Строения', 5000);
+            if (buildingsButton) {
+                buildingsButton.click();
+                await window.BotUtils.delay(100);
+                console.log('Нажата кнопка "Строения"');
+            } else {
+                console.error('Кнопка "Строения" не найдена');
+                return;
+            }
+
+            // Нажимаем на "Торговая лавка"
+            const shopButton = await window.BotUtils.waitForElement('div.location-name', 'Торговая лавка', 5000);
+            if (shopButton) {
+                shopButton.click();
+                await window.BotUtils.delay(100);
+                console.log('Перешли в Торговую лавку');
+            } else {
+                console.error('Кнопка "Торговая лавка" не найдена');
+                return;
+            }
+
+            // Нажимаем на "Продать снаряжение"
+            const sellButton = await window.BotUtils.waitForElement('div.button-content', 'Продать снаряжение', 5000);
+            if (sellButton) {
+                sellButton.click();
+                await window.BotUtils.delay(100);
+                console.log('Нажата кнопка "Продать снаряжение"');
+            } else {
+                console.error('Кнопка "Продать снаряжение" не найдена');
+                return;
+            }
+
+            // Подтверждаем продажу
+            const confirmSellButton = await window.BotUtils.waitForElement('div.button-content', 'Да, продать', 5000);
+            if (confirmSellButton) {
+                confirmSellButton.click();
+                await window.BotUtils.delay(100);
+                console.log('Продажа подтверждена');
+            } else {
+                console.error('Кнопка "Да, продать" не найдена');
+                return;
+            }
+
+            // Нажимаем на "Город" перед возвращением в бой
+            const returnToTownButton = await window.BotUtils.waitForElement('div.footer-button-content .footer-button-text', 'Город', 5000);
+            if (returnToTownButton) {
+                returnToTownButton.click();
+                await window.BotUtils.delay(100);
+                console.log('Нажата кнопка "Город" перед возвращением в бой');
+            } else {
+                console.error('Кнопка "Город" не найдена перед возвращением в бой');
+                return;
+            }
+
+            // Нажимаем на кнопку "Вернуться в бой"
+            const returnToBattleButton = await window.BotUtils.waitForElement('div.button-content', 'Вернуться в бой', 5000);
+            if (returnToBattleButton) {
+                returnToBattleButton.click();
+                await window.BotUtils.delay(100);
+                console.log('🎯 Возвращаемся в бой после продажи');
+            } else {
+                console.error('Кнопка "Вернуться в бой" не найдена');
+                // Альтернативный способ возврата в бой
+                await window.BotUtils.clickByTextContent('Сражения');
+                await window.BotUtils.delay(100);
+                await window.BotUtils.clickByLocationName(window.BotConfig.selectedLocation);
+                await window.BotUtils.delay(100);
+            }
+
         } catch (error) {
             console.error('Ошибка при продаже предметов:', error);
         }

@@ -217,11 +217,10 @@ window.BotCombat = {
 
         // Обновляем статистику
         if (window.BotStatistics) {
-            window.BotStatistics.stats.mobsKilled += initialEnemyCount;
+            window.BotStatistics.addMobsKilled(initialEnemyCount);
             if (isChampionHexagon) {
-                window.BotStatistics.stats.championsKilled++;
+                window.BotStatistics.addChampionsKilled();
             }
-            window.BotStatistics.updateStatisticsDisplay();
         }
 
         const isSpecial = await window.BotNavigation.isSpecialHexagon();

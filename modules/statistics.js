@@ -92,6 +92,64 @@ window.BotStatistics = {
     },
 
     /**
+     * Методы для добавления статистики
+     */
+    addMobsKilled(count = 1) {
+        this.stats.mobsKilled += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addChampionsKilled(count = 1) {
+        this.stats.championsKilled += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addDeaths(count = 1) {
+        this.stats.deaths += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addStoredItems(count) {
+        this.stats.items.stored += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addSoldItems(count) {
+        this.stats.items.sold += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addAncientItems(count) {
+        this.stats.items.categories.ancient += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addPmaVaItems(count) {
+        this.stats.items.categories.pmaVa += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addEpicStatsItems(count) {
+        this.stats.items.categories.epicStats += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addHighGearScoreItems(count) {
+        this.stats.items.categories.highGearScore += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addCustomDropItems(count) {
+        this.stats.items.categories.dropCustom += count;
+        this.updateStatisticsDisplay();
+    },
+
+    addSellTrip() {
+        this.stats.sellTrips++;
+        this.updateStatisticsDisplay();
+    },
+
+    /**
      * Обновление статистики (для совместимости с оригинальным кодом)
      * @param {string} stat - название статистики
      * @param {number} value - значение

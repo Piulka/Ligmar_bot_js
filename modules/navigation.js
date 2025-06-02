@@ -261,8 +261,8 @@ window.BotNavigation = {
 
                 // Обновляем статистику смертей
                 window.BotConfig.deaths++;
-                if (window.BotStatistics && window.BotStatistics.updateStatisticsDisplay) {
-                    window.BotStatistics.updateStatisticsDisplay();
+                if (window.BotStatistics) {
+                    window.BotStatistics.addDeaths();
                 }
                 console.log(`Смерть зафиксирована. Всего смертей: ${window.BotConfig.deaths}`);
 
