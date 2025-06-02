@@ -408,8 +408,16 @@ window.BotStatistics = {
 
         // MutationObserver для отслеживания появления и исчезновения карты
         this.observer = new MutationObserver(() => {
-            const panel = document.querySelector('app-battle-middle-panel');
-            const panelVisible = panel && panel.offsetParent !== null;
+            // Пробуем несколько селекторов для обнаружения карты
+            const panel = document.querySelector('app-battle-middle-panel') || 
+                         document.querySelector('.battle-middle-panel') ||
+                         document.querySelector('[class*="battle-middle"]') ||
+                         document.querySelector('app-battle-map')?.closest('.battle-panel, .middle-panel, [class*="panel"]');
+            
+            const panelVisible = panel && 
+                                panel.offsetParent !== null && 
+                                getComputedStyle(panel).display !== 'none' &&
+                                getComputedStyle(panel).visibility !== 'hidden';
 
             if (panelVisible && !self.lastPanelVisible) {
                 console.log('🗺️ Карта обнаружена, активирую статистику');
@@ -423,11 +431,24 @@ window.BotStatistics = {
             }
         });
 
-        this.observer.observe(document.body, { childList: true, subtree: true });
+        this.observer.observe(document.body, { 
+            childList: true, 
+            subtree: true, 
+            attributes: true, 
+            attributeFilter: ['style', 'class'],
+            characterData: false
+        });
 
-        // Если карта уже есть при загрузке
-        const initialPanel = document.querySelector('app-battle-middle-panel');
-        if (initialPanel && initialPanel.offsetParent !== null) {
+        // Если карта уже есть при загрузке - проверяем несколько селекторов
+        const initialPanel = document.querySelector('app-battle-middle-panel') || 
+                           document.querySelector('.battle-middle-panel') ||
+                           document.querySelector('[class*="battle-middle"]') ||
+                           document.querySelector('app-battle-map')?.closest('.battle-panel, .middle-panel, [class*="panel"]');
+        
+        if (initialPanel && 
+            initialPanel.offsetParent !== null &&
+            getComputedStyle(initialPanel).display !== 'none' &&
+            getComputedStyle(initialPanel).visibility !== 'hidden') {
             console.log('🗺️ Карта уже присутствует при инициализации');
             shrinkBattleMapPanel(initialPanel);
             self.lastPanelVisible = true;

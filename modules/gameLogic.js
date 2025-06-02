@@ -526,11 +526,7 @@ window.BotGameLogic = {
                 }
                 
                 console.log(`🔥 Кликаю на полигон ${i + 1}...`);
-                const clickResult = window.BotNavigation.clickPolygon(polygon);
-                if (!clickResult) {
-                    console.error(`❌ Ошибка клика на полигон ${i + 1}`);
-                    throw new Error(`Ошибка клика на полигон ${i + 1}`);
-                }
+                window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
                 // Проверяем кнопку "В город" после клика

@@ -107,7 +107,7 @@ window.BotUI = {
     positionButtonFixed(button, left, top) {
         button.style.position = 'fixed';
         button.style.left = left + 'px';
-        button.style.top = top + 'px';
+        button.style.top = (top - 10) + 'px';
         button.style.zIndex = '1001';
     },
 
