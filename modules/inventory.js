@@ -286,10 +286,40 @@ window.BotInventory = {
             existingModal.remove();
         }
 
-        const modal = this.createDropModal();
-        const content = this.createDropModalContent();
-        
-        // Создаем чекбоксы для фильтров
+        const modal = document.createElement('div');
+        modal.id = 'drop-settings-modal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.background = 'rgba(0, 0, 0, 0.7)';
+        modal.style.zIndex = '2000';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+
+        const content = document.createElement('div');
+        content.style.background = 'var(--black-dark)';
+        content.style.border = '2px solid var(--gold-base)';
+        content.style.borderRadius = '12px';
+        content.style.padding = '18px 20px 16px 20px';
+        content.style.color = 'var(--white)';
+        content.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+        content.style.minWidth = '340px';
+        content.style.boxShadow = '0 8px 32px 0 rgba(0,0,0,0.25)';
+
+        // Заголовок
+        const title = document.createElement('div');
+        title.textContent = 'Настройки дропа';
+        title.style.fontSize = '17px';
+        title.style.fontWeight = 'bold';
+        title.style.color = 'var(--gold-base)';
+        title.style.marginBottom = '12px';
+        title.style.textAlign = 'center';
+        content.appendChild(title);
+
+        // Чекбоксы для фильтров
         const filters = [
             { key: 'ancient', label: 'Древние предметы' },
             { key: 'pmaVa', label: 'ПМА или ВА' },
@@ -298,31 +328,245 @@ window.BotInventory = {
             { key: 'custom', label: 'Кастомные настройки' }
         ];
 
-        // ... остальные части функции ...
-    },
+        filters.forEach(f => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.cursor = 'pointer';
+            label.style.fontSize = '13px';
+            label.style.marginBottom = '4px';
 
-    createDropModal() {
-        const modal = document.createElement('div');
-        modal.id = 'drop-settings-modal';
-        modal.style.position = 'fixed';
-        modal.style.top = '50%';
-        modal.style.left = '50%';
-        modal.style.transform = 'translate(-50%, -50%)';
-        modal.style.background = 'var(--black-dark)';
-        modal.style.border = '2px solid var(--gold-base)';
-        modal.style.borderRadius = '12px';
-        modal.style.padding = '18px 20px 16px 20px';
-        modal.style.zIndex = '2000';
-        modal.style.color = 'var(--white)';
-        modal.style.fontFamily = 'Segoe UI, Arial, sans-serif';
-        modal.style.minWidth = '340px';
-        modal.style.boxShadow = '0 8px 32px 0 rgba(0,0,0,0.25)';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = window.BotConfig.dropFilters[f.key];
+            checkbox.style.marginRight = '6px';
+            checkbox.onchange = () => {
+                window.BotConfig.dropFilters[f.key] = checkbox.checked;
+                if (f.key === 'custom') {
+                    customSettingsBlock.style.display = checkbox.checked ? '' : 'none';
+                }
+            };
 
-        return modal;
-    },
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(f.label));
+            content.appendChild(label);
+        });
 
-    createDropModalContent() {
-        // ... implementation of createDropModalContent method ...
+        // Кастомные настройки
+        const customSettingsBlock = document.createElement('div');
+        customSettingsBlock.style.margin = '10px 0 0 0';
+        customSettingsBlock.style.padding = '10px 0 0 0';
+        customSettingsBlock.style.borderTop = '1px solid var(--gold-base)';
+        customSettingsBlock.style.display = window.BotConfig.dropFilters.custom ? '' : 'none';
+
+        // Выбор типов вещей
+        const typesLabel = document.createElement('div');
+        typesLabel.textContent = 'Типы вещей:';
+        typesLabel.style.fontWeight = '600';
+        typesLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(typesLabel);
+
+        const typesContainer = document.createElement('div');
+        typesContainer.style.display = 'flex';
+        typesContainer.style.flexWrap = 'wrap';
+        typesContainer.style.gap = '8px';
+        typesContainer.style.marginBottom = '10px';
+
+        const allTypes = ['Оружие', 'Плечи', 'Шея', 'Пояс', 'Палец', 'Ступни', 'Ноги', 'Руки', 'Грудь', 'Голова'];
+        allTypes.forEach(type => {
+            const typeLabel = document.createElement('label');
+            typeLabel.style.display = 'flex';
+            typeLabel.style.alignItems = 'center';
+            typeLabel.style.cursor = 'pointer';
+            typeLabel.style.fontSize = '12px';
+            typeLabel.style.width = '48%';
+
+            const typeCheckbox = document.createElement('input');
+            typeCheckbox.type = 'checkbox';
+            typeCheckbox.checked = window.BotConfig.dropSelectedTypes.includes(type);
+            typeCheckbox.style.marginRight = '4px';
+            typeCheckbox.onchange = () => {
+                if (typeCheckbox.checked) {
+                    if (!window.BotConfig.dropSelectedTypes.includes(type)) {
+                        window.BotConfig.dropSelectedTypes.push(type);
+                    }
+                } else {
+                    window.BotConfig.dropSelectedTypes = window.BotConfig.dropSelectedTypes.filter(t => t !== type);
+                }
+            };
+
+            typeLabel.appendChild(typeCheckbox);
+            typeLabel.appendChild(document.createTextNode(type));
+            typesContainer.appendChild(typeLabel);
+        });
+        customSettingsBlock.appendChild(typesContainer);
+
+        // Разделитель
+        const separator2 = document.createElement('div');
+        separator2.style.borderTop = '1px solid var(--gold-base)';
+        separator2.style.margin = '10px 0';
+        separator2.style.opacity = '0.3';
+        customSettingsBlock.appendChild(separator2);
+
+        // Выбор статов
+        const statsLabel = document.createElement('div');
+        statsLabel.textContent = 'Статы:';
+        statsLabel.style.fontWeight = '600';
+        statsLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(statsLabel);
+
+        const statsContainer = document.createElement('div');
+        statsContainer.style.display = 'flex';
+        statsContainer.style.flexWrap = 'wrap';
+        statsContainer.style.gap = '8px';
+        statsContainer.style.marginBottom = '10px';
+
+        window.BotConfig.dropStats.forEach(stat => {
+            const statLabel = document.createElement('label');
+            statLabel.style.display = 'flex';
+            statLabel.style.alignItems = 'center';
+            statLabel.style.cursor = 'pointer';
+            statLabel.style.fontSize = '12px';
+            statLabel.style.width = '48%';
+
+            const statCheckbox = document.createElement('input');
+            statCheckbox.type = 'checkbox';
+            statCheckbox.checked = window.BotConfig.dropSelectedStats.includes(stat);
+            statCheckbox.style.marginRight = '4px';
+            statCheckbox.onchange = () => {
+                if (statCheckbox.checked) {
+                    if (!window.BotConfig.dropSelectedStats.includes(stat)) {
+                        window.BotConfig.dropSelectedStats.push(stat);
+                    }
+                } else {
+                    window.BotConfig.dropSelectedStats = window.BotConfig.dropSelectedStats.filter(s => s !== stat);
+                }
+            };
+
+            statLabel.appendChild(statCheckbox);
+            statLabel.appendChild(document.createTextNode(stat));
+            statsContainer.appendChild(statLabel);
+        });
+        customSettingsBlock.appendChild(statsContainer);
+
+        // Разделитель
+        const separator3 = document.createElement('div');
+        separator3.style.borderTop = '1px solid var(--gold-base)';
+        separator3.style.margin = '10px 0';
+        separator3.style.opacity = '0.3';
+        customSettingsBlock.appendChild(separator3);
+
+        // Количество статов
+        const statsCountLabel = document.createElement('div');
+        statsCountLabel.textContent = 'Минимум статов:';
+        statsCountLabel.style.fontWeight = '600';
+        statsCountLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(statsCountLabel);
+
+        const statsCountInput = document.createElement('input');
+        statsCountInput.type = 'number';
+        statsCountInput.min = '1';
+        statsCountInput.max = '10';
+        statsCountInput.value = window.BotConfig.dropStatsCount;
+        Object.assign(statsCountInput.style, {
+            width: '60px',
+            marginBottom: '10px',
+            background: 'white',
+            color: 'black',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            padding: '4px 6px',
+            fontSize: '12px'
+        });
+        statsCountInput.onchange = () => {
+            window.BotConfig.dropStatsCount = parseInt(statsCountInput.value, 10);
+        };
+        customSettingsBlock.appendChild(statsCountInput);
+
+        // Разделитель
+        const separator1 = document.createElement('div');
+        separator1.style.borderTop = '1px solid var(--gold-base)';
+        separator1.style.margin = '10px 0';
+        separator1.style.opacity = '0.3';
+        customSettingsBlock.appendChild(separator1);
+
+        // Минимальный ГС
+        const gsLabel = document.createElement('div');
+        gsLabel.textContent = 'Минимальный ГС:';
+        gsLabel.style.fontWeight = '600';
+        gsLabel.style.marginBottom = '4px';
+        customSettingsBlock.appendChild(gsLabel);
+
+        const gsInput = document.createElement('input');
+        gsInput.type = 'number';
+        gsInput.min = '100';
+        gsInput.max = '1000';
+        gsInput.value = window.BotConfig.dropMinGearScore;
+        Object.assign(gsInput.style, {
+            width: '80px',
+            marginBottom: '10px',
+            background: 'white',
+            color: 'black',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            padding: '4px 6px',
+            fontSize: '12px'
+        });
+        gsInput.onchange = () => {
+            window.BotConfig.dropMinGearScore = parseInt(gsInput.value, 10);
+        };
+        customSettingsBlock.appendChild(gsInput);
+
+        content.appendChild(customSettingsBlock);
+
+        // Кнопки
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.justifyContent = 'space-between';
+        buttonsContainer.style.marginTop = '16px';
+        buttonsContainer.style.gap = '10px';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Сохранить';
+        saveBtn.style.flex = '1';
+        saveBtn.style.padding = '8px 16px';
+        saveBtn.style.background = 'var(--gold-base)';
+        saveBtn.style.color = 'var(--black-dark)';
+        saveBtn.style.border = 'none';
+        saveBtn.style.borderRadius = '6px';
+        saveBtn.style.cursor = 'pointer';
+        saveBtn.style.fontWeight = 'bold';
+        saveBtn.onclick = () => {
+            modal.remove();
+            console.log('Настройки дропа сохранены');
+        };
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Отмена';
+        cancelBtn.style.flex = '1';
+        cancelBtn.style.padding = '8px 16px';
+        cancelBtn.style.background = 'transparent';
+        cancelBtn.style.color = 'var(--gold-base)';
+        cancelBtn.style.border = '1px solid var(--gold-base)';
+        cancelBtn.style.borderRadius = '6px';
+        cancelBtn.style.cursor = 'pointer';
+        cancelBtn.onclick = () => {
+            modal.remove();
+        };
+
+        buttonsContainer.appendChild(saveBtn);
+        buttonsContainer.appendChild(cancelBtn);
+        content.appendChild(buttonsContainer);
+
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     },
 
     getGearScore(dialog) {

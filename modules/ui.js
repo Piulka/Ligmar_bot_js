@@ -37,14 +37,10 @@ window.BotUI = {
         // Создание кнопки настроек
         const button = this.createStyledButton('settings-button', '⚙');
         button.addEventListener('click', () => {
-            const settingsContainer = document.getElementById('settings-container');
-            if (!settingsContainer) return;
-            
-            if (settingsContainer.style.display === 'none' || settingsContainer.style.display === '') {
-                settingsContainer.style.display = 'block';
-                window.BotUtils.addOutsideClickListener(settingsContainer);
-            } else {
-                settingsContainer.style.display = 'none';
+            const settingsWindow = document.getElementById('settings-window');
+            if (settingsWindow) {
+                const isVisible = settingsWindow.style.display !== 'none';
+                settingsWindow.style.display = isVisible ? 'none' : 'block';
             }
         });
 
@@ -69,7 +65,7 @@ window.BotUI = {
             color: 'var(--gold-base)',
             border: '2px solid transparent',
             borderImage: 'linear-gradient(135deg, var(--gold-base), #8B6914, var(--gold-base)) 1',
-            borderRadius: '50%',
+            borderRadius: '12px',
             cursor: 'pointer',
             fontSize: '11px',
             fontWeight: 'bold',
@@ -96,7 +92,7 @@ window.BotUI = {
             left: '2px',
             right: '2px',
             bottom: '2px',
-            borderRadius: '50%',
+            borderRadius: '10px',
             background: 'radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.1) 0%, transparent 70%)',
             pointerEvents: 'none'
         });
@@ -150,12 +146,12 @@ window.BotUI = {
      * Создание окна настроек
      */
     async createSettingsWindow() {
-        if (document.getElementById('settings-container')) return;
+        if (document.getElementById('settings-window')) return;
 
-        const settingsContainer = document.createElement('div');
-        settingsContainer.id = 'settings-container';
+        const settingsWindow = document.createElement('div');
+        settingsWindow.id = 'settings-window';
         
-        Object.assign(settingsContainer.style, {
+        Object.assign(settingsWindow.style, {
             position: 'fixed',
             top: '110px',
             left: '10px',
@@ -175,17 +171,17 @@ window.BotUI = {
 
         // Заголовок
         const title = this.createTitle();
-        settingsContainer.appendChild(title);
+        settingsWindow.appendChild(title);
 
         // Группы настроек
         const settingsGroups = this.createSettingsGroups();
-        settingsGroups.forEach(group => settingsContainer.appendChild(group));
+        settingsGroups.forEach(group => settingsWindow.appendChild(group));
 
         // Кнопки управления
         const controlButtons = this.createControlButtons();
-        controlButtons.forEach(button => settingsContainer.appendChild(button));
+        controlButtons.forEach(button => settingsWindow.appendChild(button));
 
-        document.body.appendChild(settingsContainer);
+        document.body.appendChild(settingsWindow);
     },
 
     /**
@@ -380,12 +376,14 @@ window.BotUI = {
                 window.BotConfig.lastStartTime = Date.now();
                 iconSpan.textContent = '⏸';
                 
-                if (window.BotGameLogic && window.BotGameLogic.runMainGameLoop) {
-                    window.BotGameLogic.runMainGameLoop();
+                console.log('▶️ Запуск бота...');
+                if (window.BotGameLogic && window.BotGameLogic.runScript) {
+                    window.BotGameLogic.runScript();
                 }
             } else {
                 window.BotConfig.isScriptRunning = false;
                 iconSpan.textContent = '▶';
+                console.log('⏸️ Остановка бота...');
             }
         });
 

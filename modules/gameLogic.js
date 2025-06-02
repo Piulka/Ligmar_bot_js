@@ -187,7 +187,7 @@ window.BotGameLogic = {
             color: '#FFD700',
             border: '2px solid transparent',
             borderImage: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700) 1',
-            borderRadius: '50%',
+            borderRadius: '12px',
             cursor: 'pointer',
             fontSize: btnFontSize,
             fontWeight: 'bold',
@@ -206,27 +206,38 @@ window.BotGameLogic = {
             overflow: 'hidden'
         });
 
-        // Внутренний контент для ВТ
-        const vtContent = document.createElement('div');
-        Object.assign(vtContent.style, {
+        // Создаем внутренний градиент для VT
+        const innerGlowVT = document.createElement('div');
+        Object.assign(innerGlowVT.style, {
+            position: 'absolute',
+            top: '2px',
+            left: '2px',
+            right: '2px',
+            bottom: '2px',
+            borderRadius: '10px',
+            background: 'radial-gradient(circle at 30% 30%, rgba(255, 69, 0, 0.1) 0%, transparent 70%)',
+            pointerEvents: 'none'
+        });
+        bossVTBtn.appendChild(innerGlowVT);
+
+        // Контейнер для контента VT
+        const contentVT = document.createElement('div');
+        Object.assign(contentVT.style, {
+            position: 'relative',
+            zIndex: '2',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '2px'
+            justifyContent: 'center'
         });
 
-        const vtIcon = document.createElement('span');
-        vtIcon.textContent = '⚔';
-        vtIcon.style.fontSize = '16px';
+        const iconVT = document.createElement('span');
+        iconVT.textContent = '🔥';
+        iconVT.style.fontSize = '20px';
+        iconVT.style.lineHeight = '1';
 
-        const vtText = document.createElement('span');
-        vtText.textContent = 'ВТ';
-        vtText.style.fontSize = '8px';
-        vtText.style.textTransform = 'uppercase';
-
-        vtContent.appendChild(vtIcon);
-        vtContent.appendChild(vtText);
-        bossVTBtn.appendChild(vtContent);
+        contentVT.appendChild(iconVT);
+        bossVTBtn.appendChild(contentVT);
 
         // События для кнопки ВТ
         bossVTBtn.addEventListener('mouseenter', () => {
@@ -251,7 +262,7 @@ window.BotGameLogic = {
         bossVTBtn.addEventListener('click', async () => {
             if (!vtAbortController) {
                 vtAbortController = new AbortController();
-                vtIcon.textContent = '⏸';
+                iconVT.textContent = '⏸';
                 
                 try {
                     await this.bossFarmLoopVT(vtAbortController.signal);
@@ -263,12 +274,12 @@ window.BotGameLogic = {
                     }
                 } finally {
                     vtAbortController = null;
-                    vtIcon.textContent = '⚔';
+                    iconVT.textContent = '🔥';
                 }
             } else {
                 vtAbortController.abort();
                 vtAbortController = null;
-                vtIcon.textContent = '⚔';
+                iconVT.textContent = '🔥';
             }
         });
 
@@ -279,11 +290,11 @@ window.BotGameLogic = {
         Object.assign(bossCHTBtn.style, {
             width: btnWidth,
             height: btnHeight,
-            background: 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)',
+            background: 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)',
             color: '#FFD700',
             border: '2px solid transparent',
             borderImage: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700) 1',
-            borderRadius: '50%',
+            borderRadius: '12px',
             cursor: 'pointer',
             fontSize: btnFontSize,
             fontWeight: 'bold',
@@ -291,7 +302,7 @@ window.BotGameLogic = {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(255, 69, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 0 15px rgba(138, 43, 226, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1)',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             letterSpacing: '0.5px',
             fontFamily: 'Segoe UI, Arial, sans-serif',
@@ -302,27 +313,38 @@ window.BotGameLogic = {
             overflow: 'hidden'
         });
 
-        // Внутренний контент для ЧТ
-        const chtContent = document.createElement('div');
-        Object.assign(chtContent.style, {
+        // Создаем внутренний градиент для ЧТ
+        const innerGlowCHT = document.createElement('div');
+        Object.assign(innerGlowCHT.style, {
+            position: 'absolute',
+            top: '2px',
+            left: '2px',
+            right: '2px',
+            bottom: '2px',
+            borderRadius: '10px',
+            background: 'radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.1) 0%, transparent 70%)',
+            pointerEvents: 'none'
+        });
+        bossCHTBtn.appendChild(innerGlowCHT);
+
+        // Контейнер для контента ЧТ
+        const contentCHT = document.createElement('div');
+        Object.assign(contentCHT.style, {
+            position: 'relative',
+            zIndex: '2',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '2px'
+            justifyContent: 'center'
         });
 
-        const chtIcon = document.createElement('span');
-        chtIcon.textContent = '⚔';
-        chtIcon.style.fontSize = '16px';
+        const iconCHT = document.createElement('span');
+        iconCHT.textContent = '⚡';
+        iconCHT.style.fontSize = '20px';
+        iconCHT.style.lineHeight = '1';
 
-        const chtText = document.createElement('span');
-        chtText.textContent = 'ЧТ';
-        chtText.style.fontSize = '8px';
-        chtText.style.textTransform = 'uppercase';
-
-        chtContent.appendChild(chtIcon);
-        chtContent.appendChild(chtText);
-        bossCHTBtn.appendChild(chtContent);
+        contentCHT.appendChild(iconCHT);
+        bossCHTBtn.appendChild(contentCHT);
 
         // События для кнопки ЧТ
         bossCHTBtn.addEventListener('mouseenter', () => {
@@ -347,7 +369,7 @@ window.BotGameLogic = {
         bossCHTBtn.addEventListener('click', async () => {
             if (!chtAbortController) {
                 chtAbortController = new AbortController();
-                chtIcon.textContent = '⏸';
+                iconCHT.textContent = '⏸';
                 
                 try {
                     await this.bossFarmLoopCHT(chtAbortController.signal);
@@ -359,12 +381,12 @@ window.BotGameLogic = {
                     }
                 } finally {
                     chtAbortController = null;
-                    chtIcon.textContent = '⚔';
+                    iconCHT.textContent = '⚡';
                 }
             } else {
                 chtAbortController.abort();
                 chtAbortController = null;
-                chtIcon.textContent = '⚔';
+                iconCHT.textContent = '⚡';
             }
         });
 
@@ -381,32 +403,39 @@ window.BotGameLogic = {
      * Фарм босса ВТ
      */
     async bossFarmLoopVT(abortSignal) {
+        console.log('🔥 Запуск фарма босса ВТ...');
         const polygons = [
-            "-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25",
             "18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5",
-            "37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25",
-            "57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"
+            "37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25"
         ];
         const bossPolygonPoints = polygons[polygons.length - 1];
 
         while (true) {
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
             
+            console.log('🔥 Переход в локацию для босса ВТ...');
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
 
             for (let i = 0; i < polygons.length - 1; ++i) {
                 const polygonPoints = polygons[i];
+                console.log(`🔥 Переход на полигон ${i + 1}/${polygons.length - 1}: ${polygonPoints}`);
+                
                 const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                     return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
                 }, 200, 10000);
                 
-                if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
+                if (!polygon) {
+                    console.error(`❌ Не найден полигон для босса: ${polygonPoints}`);
+                    throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
+                }
                 
+                console.log(`🔥 Кликаю на полигон ${i + 1}...`);
                 window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
+                console.log(`🔥 Ищу кнопку "Перейти"...`);
                 const goBtn = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                     return Array.from(document.querySelectorAll('div.button-content'))
@@ -414,30 +443,42 @@ window.BotGameLogic = {
                 }, 200, 10000);
                 
                 if (goBtn) {
+                    console.log(`🔥 Нажимаю "Перейти" для полигона ${i + 1}...`);
                     goBtn.click();
                     await window.BotUtils.delay(500);
                 } else {
+                    console.error('❌ Кнопка "Перейти" не найдена');
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
                 
+                console.log(`🔥 Жду подтверждения перехода на полигон ${i + 1}...`);
                 await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                     const current = document.querySelector('g.hex-box.current polygon.hexagon');
                     return current && current.getAttribute('points') === polygonPoints;
                 }, 200, 10000);
+                console.log(`✅ Переход на полигон ${i + 1} завершен`);
             }
             
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
 
             // Переход на последний полигон (босс)
+            console.log('🔥 Переход к боссу ВТ...');
             const bossPolygon = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
             }, 200, 10000);
             
+            if (!bossPolygon) {
+                console.error(`❌ Не найден полигон босса: ${bossPolygonPoints}`);
+                throw new Error(`Не найден полигон босса: ${bossPolygonPoints}`);
+            }
+            
+            console.log('🔥 Кликаю на босса ВТ...');
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
+            console.log('🔥 Ищу кнопку "Перейти" к боссу...');
             const goBtn = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 return Array.from(document.querySelectorAll('div.button-content'))
@@ -445,27 +486,33 @@ window.BotGameLogic = {
             }, 200, 10000);
             
             if (goBtn) {
+                console.log('🔥 Перехожу к боссу ВТ...');
                 goBtn.click();
                 await window.BotUtils.delay(500);
             } else {
+                console.error('❌ Кнопка "Перейти" к боссу не найдена');
                 throw new Error('Кнопка "Перейти" не найдена');
             }
 
+            console.log('🔥 Жду подтверждения перехода к боссу...');
             await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 const current = document.querySelector('g.hex-box.current polygon.hexagon');
                 return current && current.getAttribute('points') === bossPolygonPoints;
             }, 200, 10000);
 
+            console.log('🔥 Активирую прицел...');
             const aimIcon = document.querySelector('tui-icon.svg-icon[style*="aim.svg"]');
             if (aimIcon) {
                 aimIcon.click();
                 await window.BotUtils.delay(200);
             }
 
+            console.log('🔥 Кликаю на босса для атаки...');
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(200);
 
+            console.log('🔥 Начинаю бой с боссом ВТ...');
             await this.bossFightLoop(abortSignal, bossPolygonPoints);
         }
     },
