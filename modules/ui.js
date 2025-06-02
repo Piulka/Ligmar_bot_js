@@ -20,37 +20,72 @@ window.BotUI = {
             centerContainer = document.createElement('div');
             centerContainer.className = 'header-center-controls';
             Object.assign(centerContainer.style, {
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '10px',
                 position: 'absolute',
                 left: '50%',
-                top: '0',
-                transform: 'translateX(-50%)',
-                height: '100%',
-                zIndex: '1001'
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                zIndex: '1000'
             });
             header.appendChild(centerContainer);
         }
 
-        // Создание кнопки настроек
-        const button = this.createStyledButton('settings-button', '⚙', 'Настройки');
-        button.addEventListener('click', () => {
-            const settingsContainer = document.getElementById('settings-container');
-            if (!settingsContainer) return;
-            
-            if (settingsContainer.style.display === 'none' || settingsContainer.style.display === '') {
-                settingsContainer.style.display = 'block';
-                window.BotUtils.addOutsideClickListener(settingsContainer);
-            } else {
-                settingsContainer.style.display = 'none';
+        const settingsButton = document.createElement('button');
+        settingsButton.id = 'settings-button';
+        settingsButton.innerHTML = '⚙️';
+        
+        Object.assign(settingsButton.style, {
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            border: 'none',
+            background: 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+            color: '#fff',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 2px 8px rgba(74, 144, 226, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            zIndex: '1001',
+            outline: 'none'
+        });
+
+        // Эффекты при наведении и клике
+        settingsButton.addEventListener('mouseenter', () => {
+            settingsButton.style.transform = 'scale(1.1)';
+            settingsButton.style.boxShadow = '0 4px 16px rgba(74, 144, 226, 0.4)';
+            settingsButton.style.background = 'linear-gradient(135deg, #5ba0f2 0%, #4080cd 100%)';
+        });
+
+        settingsButton.addEventListener('mouseleave', () => {
+            settingsButton.style.transform = 'scale(1)';
+            settingsButton.style.boxShadow = '0 2px 8px rgba(74, 144, 226, 0.3)';
+            settingsButton.style.background = 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)';
+        });
+
+        settingsButton.addEventListener('mousedown', () => {
+            settingsButton.style.transform = 'scale(0.95)';
+        });
+
+        settingsButton.addEventListener('mouseup', () => {
+            settingsButton.style.transform = 'scale(1.1)';
+        });
+
+        settingsButton.addEventListener('click', () => {
+            const settingsWindow = document.getElementById('settings-window');
+            if (settingsWindow) {
+                const isVisible = settingsWindow.style.display !== 'none';
+                settingsWindow.style.display = isVisible ? 'none' : 'block';
             }
         });
 
-        if (!centerContainer.contains(button)) {
-            centerContainer.appendChild(button);
-        }
+        centerContainer.appendChild(settingsButton);
     },
 
     /**
@@ -353,6 +388,7 @@ window.BotUI = {
     async createControlButton() {
         if (document.getElementById('control-button')) return;
 
+        // Ждем появления системного хедера
         let header = document.querySelector('app-system-header .header-relative');
         for (let i = 0; i < 30 && !header; i++) {
             await window.BotUtils.delay(100);
@@ -360,49 +396,112 @@ window.BotUI = {
         }
         if (!header) return;
 
+        // Находим контейнер для кнопок
         let centerContainer = header.querySelector('.header-center-controls');
         if (!centerContainer) {
             centerContainer = document.createElement('div');
             centerContainer.className = 'header-center-controls';
             Object.assign(centerContainer.style, {
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '10px',
                 position: 'absolute',
                 left: '50%',
-                top: '0',
-                transform: 'translateX(-50%)',
-                height: '100%',
-                zIndex: '1001'
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                zIndex: '1000'
             });
             header.appendChild(centerContainer);
         }
 
-        const controlButton = this.createStyledButton('control-button', '▶', 'Старт');
+        const controlButton = document.createElement('button');
+        controlButton.id = 'control-button';
+        controlButton.innerHTML = '▶️';
         
-        controlButton.addEventListener('click', async () => {
-            const iconSpan = controlButton.querySelector('span:first-child');
-            const textSpan = controlButton.querySelector('span:last-child');
-            
-            if (!window.BotConfig.isScriptRunning) {
-                window.BotConfig.isScriptRunning = true;
-                window.BotConfig.lastStartTime = Date.now();
-                iconSpan.textContent = '⏸';
-                textSpan.textContent = 'СТОП';
-                
-                if (window.BotGameLogic && window.BotGameLogic.runScript) {
-                    await window.BotGameLogic.runScript();
-                }
+        Object.assign(controlButton.style, {
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            border: 'none',
+            background: 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 2px 8px rgba(39, 174, 96, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            zIndex: '1001',
+            outline: 'none'
+        });
+
+        // Эффекты при наведении и клике
+        controlButton.addEventListener('mouseenter', () => {
+            controlButton.style.transform = 'scale(1.1)';
+            const isRunning = window.BotConfig.isScriptRunning;
+            if (isRunning) {
+                controlButton.style.boxShadow = '0 4px 16px rgba(231, 76, 60, 0.4)';
+                controlButton.style.background = 'linear-gradient(135deg, #f74c47 0%, #e74c3c 100%)';
             } else {
-                window.BotConfig.isScriptRunning = false;
-                iconSpan.textContent = '▶';
-                textSpan.textContent = 'СТАРТ';
+                controlButton.style.boxShadow = '0 4px 16px rgba(39, 174, 96, 0.4)';
+                controlButton.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
             }
         });
 
-        if (!centerContainer.contains(controlButton)) {
-            centerContainer.appendChild(controlButton);
-        }
+        controlButton.addEventListener('mouseleave', () => {
+            controlButton.style.transform = 'scale(1)';
+            const isRunning = window.BotConfig.isScriptRunning;
+            if (isRunning) {
+                controlButton.style.boxShadow = '0 2px 8px rgba(231, 76, 60, 0.3)';
+                controlButton.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+            } else {
+                controlButton.style.boxShadow = '0 2px 8px rgba(39, 174, 96, 0.3)';
+                controlButton.style.background = 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)';
+            }
+        });
+
+        controlButton.addEventListener('mousedown', () => {
+            controlButton.style.transform = 'scale(0.95)';
+        });
+
+        controlButton.addEventListener('mouseup', () => {
+            controlButton.style.transform = 'scale(1.1)';
+        });
+
+        // Функция обновления кнопки
+        const updateButton = () => {
+            const isRunning = window.BotConfig.isScriptRunning;
+            if (isRunning) {
+                controlButton.innerHTML = '⏸️';
+                controlButton.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                controlButton.style.boxShadow = '0 2px 8px rgba(231, 76, 60, 0.3)';
+            } else {
+                controlButton.innerHTML = '▶️';
+                controlButton.style.background = 'linear-gradient(135deg, #27ae60 0%, #219a52 100%)';
+                controlButton.style.boxShadow = '0 2px 8px rgba(39, 174, 96, 0.3)';
+            }
+        };
+
+        controlButton.addEventListener('click', async () => {
+            if (window.BotConfig.isScriptRunning) {
+                console.log('⏸️ Остановка бота...');
+                window.BotConfig.isScriptRunning = false;
+            } else {
+                console.log('▶️ Запуск бота...');
+                window.BotConfig.isScriptRunning = true;
+                if (window.BotGameLogic && window.BotGameLogic.runMainGameLoop) {
+                    window.BotGameLogic.runMainGameLoop();
+                }
+            }
+            updateButton();
+        });
+
+        // Инициализируем состояние кнопки
+        updateButton();
+
+        centerContainer.appendChild(controlButton);
     }
 }; 

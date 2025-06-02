@@ -168,6 +168,16 @@ window.BotStatistics = {
                 <span style="color:var(--gold-base);font-size:13px;">Смертей:</span>
                 <span id="deaths" style="color:#fff;font-weight:700;font-size:14px;">0</span>
             </div>
+            <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                <span style="color:var(--gold-base);font-size:13px;">Продано вещей:</span>
+                <span id="items-sold" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+            </div>
+            <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                <span style="color:var(--gold-base);font-size:13px;">Кол-во походов в магазин:</span>
+                <span id="sell-trips" style="color:#fff;font-weight:700;font-size:14px;">0</span>
+            </div>
         `;
 
         // Правая колонка
@@ -186,6 +196,26 @@ window.BotStatistics = {
             <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
                 <span style="color:var(--gray-light);font-size:11px;">Древние вещи:</span>
                 <span id="ancient-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+            </div>
+            <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                <span style="color:var(--gray-light);font-size:11px;">Вещи с ПМА или ВА:</span>
+                <span id="pma-va-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+            </div>
+            <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                <span style="color:var(--gray-light);font-size:11px;">Топ вещи для лучника:</span>
+                <span id="epic-stats-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+            </div>
+            <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                <span style="color:var(--gray-light);font-size:11px;">Вещи с БМ больше 650:</span>
+                <span id="high-gearscore-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
+            </div>
+            <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                <span style="color:var(--gray-light);font-size:11px;">Кастомный дроп:</span>
+                <span id="custom-drop-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
             </div>
         `;
 
