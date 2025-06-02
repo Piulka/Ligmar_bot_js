@@ -27,7 +27,7 @@ window.BotUI = {
                 gap: '8px',
                 position: 'fixed',
                 left: '50%',
-                top: '10px',
+                top: '2px',
                 transform: 'translateX(-50%)',
                 height: 'auto',
                 zIndex: '1001'
@@ -58,6 +58,16 @@ window.BotUI = {
     async createMainButtons() {
         await this.createSettingsButton();
         await this.createControlButton();
+        
+        // Создание кнопок боссов (если есть функция)
+        if (window.BotGameLogic && window.BotGameLogic.createBossButtons) {
+            await window.BotGameLogic.createBossButtons();
+        }
+        
+        // Обновляем видимость кнопок в меню боссов после авторизации
+        if (window.BotGameLogic && window.BotGameLogic.updateBossButtonsVisibility) {
+            window.BotGameLogic.updateBossButtonsVisibility();
+        }
     },
 
     /**

@@ -168,7 +168,7 @@ window.BotGameLogic = {
                 gap: '8px',
                 position: 'fixed',
                 left: '50%',
-                top: '10px',
+                top: '2px',
                 transform: 'translateX(-50%)',
                 height: 'auto',
                 zIndex: '1001'
@@ -310,6 +310,7 @@ window.BotGameLogic = {
             background: 'rgba(25,15,40,0.95)',
             cursor: 'pointer',
             textAlign: 'center',
+            borderBottom: '1px solid rgba(128,128,128,0.2)',
             transition: 'background 0.2s ease'
         });
         chtOption.textContent = 'БОСС ЧТ';
@@ -320,8 +321,51 @@ window.BotGameLogic = {
             chtOption.style.background = 'rgba(25,15,40,0.95)';
         });
 
+        // Кнопка СТОМАТОЛОГ (только для авторизованных)
+        const dentistOption = document.createElement('div');
+        Object.assign(dentistOption.style, {
+            padding: '8px',
+            fontSize: btnFontSize,
+            color: '#FFD700',
+            background: 'rgba(15,40,25,0.95)',
+            cursor: 'pointer',
+            textAlign: 'center',
+            borderBottom: '1px solid rgba(128,128,128,0.2)',
+            transition: 'background 0.2s ease',
+            display: window.BotUI && window.BotUI.isAuthorized ? 'block' : 'none'
+        });
+        dentistOption.textContent = 'СТОМАТОЛОГ';
+        dentistOption.addEventListener('mouseenter', () => {
+            dentistOption.style.background = 'rgba(25,60,45,0.95)';
+        });
+        dentistOption.addEventListener('mouseleave', () => {
+            dentistOption.style.background = 'rgba(15,40,25,0.95)';
+        });
+
+        // Кнопка АРС (только для авторизованных)
+        const arsOption = document.createElement('div');
+        Object.assign(arsOption.style, {
+            padding: '8px',
+            fontSize: btnFontSize,
+            color: '#FFD700',
+            background: 'rgba(40,40,15,0.95)',
+            cursor: 'pointer',
+            textAlign: 'center',
+            transition: 'background 0.2s ease',
+            display: window.BotUI && window.BotUI.isAuthorized ? 'block' : 'none'
+        });
+        arsOption.textContent = 'АРС';
+        arsOption.addEventListener('mouseenter', () => {
+            arsOption.style.background = 'rgba(60,60,25,0.95)';
+        });
+        arsOption.addEventListener('mouseleave', () => {
+            arsOption.style.background = 'rgba(40,40,15,0.95)';
+        });
+
         dropdown.appendChild(vtOption);
         dropdown.appendChild(chtOption);
+        dropdown.appendChild(dentistOption);
+        dropdown.appendChild(arsOption);
 
         // Переменные состояния
         this.activeBossType = null; // 'vt' или 'cht'
@@ -430,6 +474,20 @@ window.BotGameLogic = {
             activateCHT();
         });
 
+        dentistOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // TODO: Логика для стоматолога будет добавлена позже
+            console.log('🦷 Кнопка СТОМАТОЛОГ нажата (логика будет добавлена позже)');
+            dropdown.style.display = 'none';
+        });
+
+        arsOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // TODO: Логика для АРС будет добавлена позже
+            console.log('🏛️ Кнопка АРС нажата (логика будет добавлена позже)');
+            dropdown.style.display = 'none';
+        });
+
         // Закрытие меню при клике вне его
         document.addEventListener('click', (e) => {
             if (!bossContainer.contains(e.target)) {
@@ -445,6 +503,17 @@ window.BotGameLogic = {
         if (!centerContainer.contains(bossContainer)) {
             centerContainer.appendChild(bossContainer);
         }
+
+        // Функция для обновления видимости кнопок после авторизации
+        this.updateBossButtonsVisibility = () => {
+            if (window.BotUI && window.BotUI.isAuthorized) {
+                dentistOption.style.display = 'block';
+                arsOption.style.display = 'block';
+            } else {
+                dentistOption.style.display = 'none';
+                arsOption.style.display = 'none';
+            }
+        };
     },
 
     /**
