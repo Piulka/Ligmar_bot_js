@@ -1,12 +1,13 @@
 // Модуль пользовательского интерфейса
 window.BotUI = {
+    isAuthorized: false, // Флаг авторизации
+    
     /**
-     * Создание кнопки настроек
+     * Создание кнопки авторизации
      */
-    async createSettingsButton() {
-        if (document.getElementById('settings-button')) return;
+    async createAuthButton() {
+        if (document.getElementById('auth-button') || this.isAuthorized) return;
 
-        // Ждем появления системного хедера
         let header = document.querySelector('app-system-header .header-relative');
         for (let i = 0; i < 30 && !header; i++) {
             await window.BotUtils.delay(100);
@@ -34,15 +35,43 @@ window.BotUI = {
             document.body.appendChild(centerContainer);
         }
 
+        // Создание кнопки авторизации с алмазиком
+        const authButton = this.createStyledButton('auth-button', '💎');
+        authButton.addEventListener('click', async () => {
+            // Проверяем пароль
+            const isAuthorized = await window.BotSecurity.showPasswordModal('авторизации');
+            if (isAuthorized) {
+                this.isAuthorized = true;
+                // Удаляем кнопку авторизации
+                centerContainer.removeChild(authButton);
+                // Создаем основные кнопки
+                await this.createMainButtons();
+            }
+        });
+
+        centerContainer.appendChild(authButton);
+    },
+
+    /**
+     * Создание основных кнопок после авторизации
+     */
+    async createMainButtons() {
+        await this.createSettingsButton();
+        await this.createControlButton();
+    },
+
+    /**
+     * Создание кнопки настроек
+     */
+    async createSettingsButton() {
+        if (document.getElementById('settings-button')) return;
+
+        let centerContainer = document.querySelector('.header-center-controls');
+        if (!centerContainer) return;
+
         // Создание кнопки настроек
         const button = this.createStyledButton('settings-button', '⚙');
-        button.addEventListener('click', async () => {
-            // Проверяем пароль перед открытием настроек
-            const isAuthorized = await window.BotSecurity.showPasswordModal('открытия настроек');
-            if (!isAuthorized) {
-                return;
-            }
-            
+        button.addEventListener('click', () => {
             const settingsWindow = document.getElementById('settings-window');
             if (settingsWindow) {
                 const isVisible = settingsWindow.style.display !== 'none';
@@ -50,9 +79,7 @@ window.BotUI = {
             }
         });
 
-        if (!centerContainer.contains(button)) {
-            centerContainer.appendChild(button);
-        }
+        centerContainer.appendChild(button);
     },
 
     /**
@@ -344,31 +371,8 @@ window.BotUI = {
     async createControlButton() {
         if (document.getElementById('control-button')) return;
 
-        let header = document.querySelector('app-system-header .header-relative');
-        for (let i = 0; i < 30 && !header; i++) {
-            await window.BotUtils.delay(100);
-            header = document.querySelector('app-system-header .header-relative');
-        }
-        if (!header) return;
-
-        let centerContainer = header.querySelector('.header-center-controls');
-        if (!centerContainer) {
-            centerContainer = document.createElement('div');
-            centerContainer.className = 'header-center-controls';
-            Object.assign(centerContainer.style, {
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'flex-start',
-                gap: '8px',
-                position: 'fixed',
-                left: '50%',
-                top: '10px',
-                transform: 'translateX(-50%)',
-                height: 'auto',
-                zIndex: '1001'
-            });
-            document.body.appendChild(centerContainer);
-        }
+        let centerContainer = document.querySelector('.header-center-controls');
+        if (!centerContainer) return;
 
         const controlButton = this.createStyledButton('control-button', '▶');
 
@@ -376,12 +380,6 @@ window.BotUI = {
             const iconSpan = controlButton.querySelector('span');
             
             if (!window.BotConfig.isScriptRunning) {
-                // Проверяем пароль перед запуском автофарма
-                const isAuthorized = await window.BotSecurity.showPasswordModal('запуска автофарма');
-                if (!isAuthorized) {
-                    return;
-                }
-                
                 // Деактивируем все другие кнопки перед запуском
                 this.deactivateAllButtons();
                 
@@ -409,9 +407,7 @@ window.BotUI = {
             }
         });
 
-        if (!centerContainer.contains(controlButton)) {
-            centerContainer.appendChild(controlButton);
-        }
+        centerContainer.appendChild(controlButton);
     },
 
     /**

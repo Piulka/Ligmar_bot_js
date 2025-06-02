@@ -461,11 +461,17 @@ window.BotGameLogic = {
         while (true) {
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
             
+            // Проверяем кнопку "В город" перед началом
+            await window.BotNavigation.checkAndReturnToCity();
+            
             console.log('🔥 Переход в локацию для босса ВТ...');
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
 
             for (let i = 0; i < polygons.length - 1; ++i) {
+                // Проверяем кнопку "В город" на каждом шаге
+                await window.BotNavigation.checkAndReturnToCity();
+                
                 const polygonPoints = polygons[i];
                 console.log(`🔥 Переход на полигон ${i + 1}/${polygons.length - 1}: ${polygonPoints}`);
                 
@@ -491,6 +497,9 @@ window.BotGameLogic = {
                 }
                 await window.BotUtils.delay(300);
                 
+                // Проверяем кнопку "В город" после клика
+                await window.BotNavigation.checkAndReturnToCity();
+                
                 console.log(`🔥 Ищу кнопку "Перейти"...`);
                 const goBtn = await window.BotUtils.findGoButton(10000);
                 
@@ -505,6 +514,9 @@ window.BotGameLogic = {
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
                 
+                // Проверяем кнопку "В город" после нажатия "Перейти"
+                await window.BotNavigation.checkAndReturnToCity();
+                
                 console.log(`🔥 Жду подтверждения перехода на полигон ${i + 1}...`);
                 await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
@@ -515,6 +527,9 @@ window.BotGameLogic = {
             }
             
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+
+            // Проверяем кнопку "В город" перед переходом к боссу
+            await window.BotNavigation.checkAndReturnToCity();
 
             // Переход на последний полигон (босс)
             console.log('🔥 Переход к боссу ВТ...');
@@ -532,6 +547,9 @@ window.BotGameLogic = {
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
+            // Проверяем кнопку "В город" после клика на босса
+            await window.BotNavigation.checkAndReturnToCity();
+
             console.log('🔥 Ищу кнопку "Перейти" к боссу...');
             const goBtn = await window.BotUtils.findGoButton(10000);
             
@@ -545,6 +563,9 @@ window.BotGameLogic = {
                 console.error('Доступные кнопки к боссу:', allButtons.map(btn => btn.textContent.trim()));
                 throw new Error('Кнопка "Перейти" не найдена');
             }
+
+            // Проверяем кнопку "В город" после перехода к боссу
+            await window.BotNavigation.checkAndReturnToCity();
 
             console.log('🔥 Жду подтверждения перехода к боссу...');
             await window.BotUtils.waitFor(() => {
@@ -585,10 +606,16 @@ window.BotGameLogic = {
         while (true) {
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
             
+            // Проверяем кнопку "В город" перед началом
+            await window.BotNavigation.checkAndReturnToCity();
+            
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
 
             for (let i = 0; i < polygons.length - 1; ++i) {
+                // Проверяем кнопку "В город" на каждом шаге
+                await window.BotNavigation.checkAndReturnToCity();
+                
                 const polygonPoints = polygons[i];
                 const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
@@ -600,6 +627,9 @@ window.BotGameLogic = {
                 window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
+                // Проверяем кнопку "В город" после клика
+                await window.BotNavigation.checkAndReturnToCity();
+                
                 const goBtn = await window.BotUtils.findGoButton(10000);
                 
                 if (goBtn) {
@@ -608,6 +638,9 @@ window.BotGameLogic = {
                 } else {
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
+                
+                // Проверяем кнопку "В город" после нажатия "Перейти"
+                await window.BotNavigation.checkAndReturnToCity();
                 
                 await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
@@ -618,6 +651,9 @@ window.BotGameLogic = {
             
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
 
+            // Проверяем кнопку "В город" перед переходом к боссу
+            await window.BotNavigation.checkAndReturnToCity();
+
             // Переход на последний полигон (босс)
             const bossPolygon = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
@@ -627,6 +663,9 @@ window.BotGameLogic = {
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
+            // Проверяем кнопку "В город" после клика на босса
+            await window.BotNavigation.checkAndReturnToCity();
+
             const goBtn = await window.BotUtils.findGoButton(10000);
             
             if (goBtn) {
@@ -635,6 +674,9 @@ window.BotGameLogic = {
             } else {
                 throw new Error('Кнопка "Перейти" не найдена');
             }
+
+            // Проверяем кнопку "В город" после перехода к боссу
+            await window.BotNavigation.checkAndReturnToCity();
 
             await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');

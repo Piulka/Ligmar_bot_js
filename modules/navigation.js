@@ -136,7 +136,21 @@ window.BotNavigation = {
             console.log('⚠️ Элемент не поддерживает getBoundingClientRect, ищем альтернативы...');
             
             // Пытаемся найти любой кликабельный элемент в родителе
-            const clickableParent = targetElement.closest('g, svg, div');
+            let clickableParent = null;
+            if (targetElement.closest && typeof targetElement.closest === 'function') {
+                clickableParent = targetElement.closest('g, svg, div');
+            } else if (targetElement.parentElement) {
+                // Ручной поиск родителя если closest не работает
+                let parent = targetElement.parentElement;
+                while (parent) {
+                    if (parent.getBoundingClientRect && typeof parent.getBoundingClientRect === 'function') {
+                        clickableParent = parent;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+            }
+            
             if (clickableParent && clickableParent.getBoundingClientRect) {
                 targetElement = clickableParent;
                 console.log('✅ Найден кликабельный родительский элемент');

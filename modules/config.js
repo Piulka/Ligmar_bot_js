@@ -30,7 +30,7 @@ window.BotConfig = {
     dropPotionEnabled: false,
 
     // Версия скрипта
-    SCRIPT_COMMIT: 'v.3.3.0',
+    SCRIPT_COMMIT: 'v.3.4.0',
 
     // Навыки для каждого класса
     CLASS_SKILLS: {
