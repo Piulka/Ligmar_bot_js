@@ -91,12 +91,12 @@ window.BotUI = {
             }
         }
 
-        // Позиционируем кнопку плей (если авторизован) - опускаем на 20 пикселей
+        // Позиционируем кнопку плей (если авторизован) - опускаем на 10 пикселей
         const controlButton = document.getElementById('control-button');
         if (controlButton && this.isAuthorized) {
             const settingsRect = settingsButton ? settingsButton.getBoundingClientRect() : null;
             if (settingsRect) {
-                this.positionButtonFixed(controlButton, settingsRect.right + 5, settingsRect.top + 20);
+                this.positionButtonFixed(controlButton, settingsRect.right + 5, settingsRect.top + 10);
             }
         }
     },
