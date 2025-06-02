@@ -518,29 +518,22 @@ window.BotGameLogic = {
                 const polygonPoints = polygons[i];
                 console.log(`🔥 Переход на полигон ${i + 1}/${polygons.length - 1}: ${polygonPoints}`);
                 
-                // Используем более надежный способ поиска гексагона
-                const hexagon = await window.BotUtils.waitFor(() => {
+                const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    
-                    // Ищем hex-box с нужным полигоном
-                    const hexagons = document.querySelectorAll('g.hex-box');
-                    for (const hex of hexagons) {
-                        const polygon = hex.querySelector('polygon.hexagon');
-                        if (polygon && polygon.getAttribute('points') === polygonPoints) {
-                            console.log(`✅ Найден гексагон ${i + 1}: ${polygonPoints}`);
-                            return hex; // Возвращаем hex-box, а не polygon
-                        }
+                    const foundPolygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                    if (foundPolygon) {
+                        console.log(`✅ Найден полигон ${i + 1}: ${polygonPoints}`);
                     }
-                    return null;
+                    return foundPolygon;
                 }, 200, 10000);
                 
-                if (!hexagon) {
-                    console.error(`❌ Не найден гексагон для босса: ${polygonPoints}`);
-                    throw new Error(`Не найден гексагон для босса: ${polygonPoints}`);
+                if (!polygon) {
+                    console.error(`❌ Не найден полигон для босса: ${polygonPoints}`);
+                    throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
                 }
                 
-                console.log(`🔥 Кликаю на гексагон ${i + 1}...`);
-                window.BotNavigation.clickHexagon(hexagon); // Используем clickHexagon для hex-box
+                console.log(`🔥 Кликаю на полигон ${i + 1}...`);
+                window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
                 // Проверяем кнопку "В город" после клика
@@ -550,7 +543,7 @@ window.BotGameLogic = {
                 const goBtn = await window.BotUtils.findGoButton(10000);
                 
                 if (goBtn) {
-                    console.log(`🔥 Нажимаю "Перейти" для гексагона ${i + 1}...`);
+                    console.log(`🔥 Нажимаю "Перейти" для полигона ${i + 1}...`);
                     goBtn.click();
                     await window.BotUtils.delay(500);
                 } else {
@@ -563,13 +556,13 @@ window.BotGameLogic = {
                 // Проверяем кнопку "В город" после нажатия "Перейти"
                 await window.BotNavigation.checkAndReturnToCity();
                 
-                console.log(`🔥 Жду подтверждения перехода на гексагон ${i + 1}...`);
+                console.log(`🔥 Жду подтверждения перехода на полигон ${i + 1}...`);
                 await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                     const current = document.querySelector('g.hex-box.current polygon.hexagon');
                     return current && current.getAttribute('points') === polygonPoints;
                 }, 200, 10000);
-                console.log(`✅ Переход на гексагон ${i + 1} завершен`);
+                console.log(`✅ Переход на полигон ${i + 1} завершен`);
             }
             
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
@@ -579,27 +572,18 @@ window.BotGameLogic = {
 
             // Переход на последний полигон (босс)
             console.log('🔥 Переход к боссу ВТ...');
-            const bossHexagon = await window.BotUtils.waitFor(() => {
+            const bossPolygon = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                
-                // Ищем hex-box с боссом
-                const hexagons = document.querySelectorAll('g.hex-box');
-                for (const hex of hexagons) {
-                    const polygon = hex.querySelector('polygon.hexagon');
-                    if (polygon && polygon.getAttribute('points') === bossPolygonPoints) {
-                        return hex; // Возвращаем hex-box
-                    }
-                }
-                return null;
+                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
             }, 200, 10000);
             
-            if (!bossHexagon) {
-                console.error(`❌ Не найден гексагон босса: ${bossPolygonPoints}`);
-                throw new Error(`Не найден гексагон босса: ${bossPolygonPoints}`);
+            if (!bossPolygon) {
+                console.error(`❌ Не найден полигон босса: ${bossPolygonPoints}`);
+                throw new Error(`Не найден полигон босса: ${bossPolygonPoints}`);
             }
             
             console.log('🔥 Кликаю на босса ВТ...');
-            window.BotNavigation.clickHexagon(bossHexagon); // Используем clickHexagon
+            window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
             // Проверяем кнопку "В город" после клика на босса
@@ -637,7 +621,7 @@ window.BotGameLogic = {
             }
 
             console.log('🔥 Кликаю на босса для атаки...');
-            window.BotNavigation.clickHexagon(bossHexagon); // Кликаем на hex-box, а не polygon
+            window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(200);
 
             console.log('🔥 Начинаю бой с боссом ВТ...');
@@ -672,25 +656,14 @@ window.BotGameLogic = {
                 await window.BotNavigation.checkAndReturnToCity();
                 
                 const polygonPoints = polygons[i];
-                
-                // Используем более надежный способ поиска гексагона
-                const hexagon = await window.BotUtils.waitFor(() => {
+                const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                    
-                    // Ищем hex-box с нужным полигоном
-                    const hexagons = document.querySelectorAll('g.hex-box');
-                    for (const hex of hexagons) {
-                        const polygon = hex.querySelector('polygon.hexagon');
-                        if (polygon && polygon.getAttribute('points') === polygonPoints) {
-                            return hex; // Возвращаем hex-box
-                        }
-                    }
-                    return null;
+                    return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
                 }, 200, 10000);
                 
-                if (!hexagon) throw new Error(`Не найден гексагон для босса: ${polygonPoints}`);
+                if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
                 
-                window.BotNavigation.clickHexagon(hexagon); // Используем clickHexagon
+                window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
                 // Проверяем кнопку "В город" после клика
@@ -721,21 +694,12 @@ window.BotGameLogic = {
             await window.BotNavigation.checkAndReturnToCity();
 
             // Переход на последний полигон (босс)
-            const bossHexagon = await window.BotUtils.waitFor(() => {
+            const bossPolygon = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                
-                // Ищем hex-box с боссом
-                const hexagons = document.querySelectorAll('g.hex-box');
-                for (const hex of hexagons) {
-                    const polygon = hex.querySelector('polygon.hexagon');
-                    if (polygon && polygon.getAttribute('points') === bossPolygonPoints) {
-                        return hex; // Возвращаем hex-box
-                    }
-                }
-                return null;
+                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
             }, 200, 10000);
             
-            window.BotNavigation.clickHexagon(bossHexagon); // Используем clickHexagon
+            window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
             // Проверяем кнопку "В город" после клика на босса
@@ -765,7 +729,7 @@ window.BotGameLogic = {
                 await window.BotUtils.delay(200);
             }
 
-            window.BotNavigation.clickHexagon(bossHexagon); // Кликаем на hex-box
+            window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(200);
 
             await this.bossFightLoop(abortSignal, bossPolygonPoints);

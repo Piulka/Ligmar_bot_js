@@ -544,6 +544,14 @@ window.BotStatistics = {
                 statsContainer.style.opacity = '1';
                 statsContainer.style.visibility = 'visible';
             }
+            
+            console.log('📊 Статистика позиционирована:', {
+                left: statsLeft,
+                top: rect.top - 5,
+                width: statsWidth,
+                height: statsHeight,
+                mapVisible: rect.width > 0 && rect.height > 0
+            });
         } catch (error) {
             console.error('❌ Ошибка позиционирования статистики:', error);
         }
