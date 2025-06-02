@@ -134,17 +134,19 @@ window.BotGameLogic = {
     },
 
     /**
-     * Создание кнопок боссов
+     * Создание кнопки боссов с выпадающим меню
      */
     async createBossButtons() {
         // Удаляем старые кнопки, если есть
         const oldBossVTBtn = document.getElementById('boss-vt-button');
         const oldBossCHTBtn = document.getElementById('boss-cht-button');
+        const oldBossDropdownBtn = document.getElementById('boss-dropdown-button');
         if (oldBossVTBtn) oldBossVTBtn.remove();
         if (oldBossCHTBtn) oldBossCHTBtn.remove();
+        if (oldBossDropdownBtn) oldBossDropdownBtn.remove();
 
-        // Проверяем, не созданы ли уже новые кнопки
-        if (document.getElementById('boss-vt-button') || document.getElementById('boss-cht-button')) return;
+        // Проверяем, не создана ли уже новая кнопка
+        if (document.getElementById('boss-dropdown-button')) return;
 
         // Ждём появления системного хедера
         let header = document.querySelector('app-system-header .header-relative');
@@ -174,19 +176,24 @@ window.BotGameLogic = {
             document.body.appendChild(centerContainer);
         }
 
-        // Размеры кнопок
+        // Размеры кнопки
         const btnWidth = '80px';
         const btnHeight = '33px';
         const btnFontSize = '10px';
 
-        // --- Кнопка БОСС ВТ ---
-        const bossVTBtn = document.createElement('button');
-        bossVTBtn.id = 'boss-vt-button';
-        bossVTBtn.className = 'control-button-boss-vt';
-        Object.assign(bossVTBtn.style, {
+        // Создаем контейнер для кнопки и выпадающего меню
+        const bossContainer = document.createElement('div');
+        bossContainer.style.position = 'relative';
+        bossContainer.style.display = 'inline-block';
+
+        // --- Основная кнопка БОССЫ ---
+        const bossDropdownBtn = document.createElement('button');
+        bossDropdownBtn.id = 'boss-dropdown-button';
+        bossDropdownBtn.className = 'control-button-boss-dropdown';
+        Object.assign(bossDropdownBtn.style, {
             width: btnWidth,
             height: btnHeight,
-            background: 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)',
+            background: 'radial-gradient(circle, rgba(40,25,15,0.95) 0%, rgba(20,12,8,0.98) 100%)',
             color: '#FFD700',
             border: '1px solid rgba(128,128,128,0.3)',
             borderRadius: '4px',
@@ -208,23 +215,23 @@ window.BotGameLogic = {
             overflow: 'hidden'
         });
 
-        // Создаем внутренний градиент для VT
-        const innerGlowVT = document.createElement('div');
-        Object.assign(innerGlowVT.style, {
+        // Создаем внутренний градиент
+        const innerGlow = document.createElement('div');
+        Object.assign(innerGlow.style, {
             position: 'absolute',
             top: '1px',
             left: '1px',
             right: '1px',
             bottom: '1px',
             borderRadius: '3px',
-            background: 'radial-gradient(circle at 30% 30%, rgba(255, 69, 0, 0.1) 0%, transparent 70%)',
+            background: 'radial-gradient(circle at 30% 30%, rgba(255, 140, 0, 0.1) 0%, transparent 70%)',
             pointerEvents: 'none'
         });
-        bossVTBtn.appendChild(innerGlowVT);
+        bossDropdownBtn.appendChild(innerGlow);
 
-        // Контейнер для контента VT
-        const contentVT = document.createElement('div');
-        Object.assign(contentVT.style, {
+        // Контейнер для контента
+        const content = document.createElement('div');
+        Object.assign(content.style, {
             position: 'relative',
             zIndex: '2',
             display: 'flex',
@@ -233,202 +240,210 @@ window.BotGameLogic = {
             justifyContent: 'center'
         });
 
-        const iconVT = document.createElement('span');
-        iconVT.textContent = 'БОСС ВТ';
-        iconVT.style.fontSize = btnFontSize;
-        iconVT.style.lineHeight = '1';
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = 'БОССЫ';
+        iconSpan.style.fontSize = btnFontSize;
+        iconSpan.style.lineHeight = '1';
 
-        contentVT.appendChild(iconVT);
-        bossVTBtn.appendChild(contentVT);
+        content.appendChild(iconSpan);
+        bossDropdownBtn.appendChild(content);
 
-        // События для кнопки ВТ
-        bossVTBtn.addEventListener('mouseenter', () => {
-            bossVTBtn.style.transform = 'translateY(-1px)';
-            bossVTBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
+        // События для основной кнопки
+        bossDropdownBtn.addEventListener('mouseenter', () => {
+            if (!this.activeBossType) {
+                bossDropdownBtn.style.transform = 'translateY(-1px)';
+                bossDropdownBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
+            }
         });
         
-        bossVTBtn.addEventListener('mouseleave', () => {
-            bossVTBtn.style.transform = 'translateY(0)';
-            bossVTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+        bossDropdownBtn.addEventListener('mouseleave', () => {
+            if (!this.activeBossType) {
+                bossDropdownBtn.style.transform = 'translateY(0)';
+                bossDropdownBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            }
         });
 
-        bossVTBtn.addEventListener('mousedown', () => {
-            bossVTBtn.style.transform = 'translateY(1px)';
+        // --- Выпадающее меню ---
+        const dropdown = document.createElement('div');
+        dropdown.id = 'boss-dropdown-menu';
+        Object.assign(dropdown.style, {
+            position: 'absolute',
+            top: '100%',
+            left: '0',
+            width: '100%',
+            background: '#2c2c2c',
+            border: '1px solid rgba(128,128,128,0.3)',
+            borderRadius: '4px',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+            zIndex: '1002',
+            display: 'none',
+            flexDirection: 'column',
+            overflow: 'hidden'
         });
 
-        bossVTBtn.addEventListener('mouseup', () => {
-            bossVTBtn.style.transform = 'translateY(-1px)';
+        // Кнопка БОСС ВТ
+        const vtOption = document.createElement('div');
+        Object.assign(vtOption.style, {
+            padding: '8px',
+            fontSize: btnFontSize,
+            color: '#FFD700',
+            background: 'rgba(40,15,15,0.95)',
+            cursor: 'pointer',
+            textAlign: 'center',
+            borderBottom: '1px solid rgba(128,128,128,0.2)',
+            transition: 'background 0.2s ease'
+        });
+        vtOption.textContent = 'БОСС ВТ';
+        vtOption.addEventListener('mouseenter', () => {
+            vtOption.style.background = 'rgba(60,25,25,0.95)';
+        });
+        vtOption.addEventListener('mouseleave', () => {
+            vtOption.style.background = 'rgba(40,15,15,0.95)';
         });
 
-        bossVTBtn.addEventListener('click', async () => {
-            if (!this.vtAbortController) {
-                // Деактивируем все другие кнопки
-                if (window.BotUI && window.BotUI.deactivateAllButtons) {
-                    window.BotUI.deactivateAllButtons();
+        // Кнопка БОСС ЧТ
+        const chtOption = document.createElement('div');
+        Object.assign(chtOption.style, {
+            padding: '8px',
+            fontSize: btnFontSize,
+            color: '#FFD700',
+            background: 'rgba(25,15,40,0.95)',
+            cursor: 'pointer',
+            textAlign: 'center',
+            transition: 'background 0.2s ease'
+        });
+        chtOption.textContent = 'БОСС ЧТ';
+        chtOption.addEventListener('mouseenter', () => {
+            chtOption.style.background = 'rgba(45,25,60,0.95)';
+        });
+        chtOption.addEventListener('mouseleave', () => {
+            chtOption.style.background = 'rgba(25,15,40,0.95)';
+        });
+
+        dropdown.appendChild(vtOption);
+        dropdown.appendChild(chtOption);
+
+        // Переменные состояния
+        this.activeBossType = null; // 'vt' или 'cht'
+        this.vtAbortController = null;
+        this.chtAbortController = null;
+
+        // Функция показа/скрытия выпадающего меню
+        const toggleDropdown = () => {
+            const isVisible = dropdown.style.display === 'flex';
+            dropdown.style.display = isVisible ? 'none' : 'flex';
+        };
+
+        // Функция сброса кнопки к исходному состоянию
+        const resetButton = () => {
+            iconSpan.textContent = 'БОССЫ';
+            bossDropdownBtn.style.background = 'radial-gradient(circle, rgba(40,25,15,0.95) 0%, rgba(20,12,8,0.98) 100%)';
+            bossDropdownBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            this.activeBossType = null;
+        };
+
+        // Функция активации босса ВТ
+        const activateVT = async () => {
+            if (window.BotUI && window.BotUI.deactivateAllButtons) {
+                window.BotUI.deactivateAllButtons();
+            }
+            
+            this.activeBossType = 'vt';
+            this.vtAbortController = new AbortController();
+            iconSpan.textContent = 'СТОП ВТ';
+            dropdown.style.display = 'none';
+            
+            bossDropdownBtn.style.background = 'radial-gradient(circle, rgba(60,25,25,0.95) 0%, rgba(30,12,12,0.98) 100%)';
+            bossDropdownBtn.style.boxShadow = '0 2px 8px rgba(255, 69, 0, 0.5)';
+            
+            try {
+                await this.bossFarmLoopVT(this.vtAbortController.signal);
+            } catch (error) {
+                if (error.message.includes('aborted')) {
+                    console.log('Фарм босса ВТ остановлен');
+                } else {
+                    console.error('Ошибка фарма босса ВТ:', error);
                 }
-                
-                this.vtAbortController = new AbortController();
-                iconVT.textContent = 'СТОП ВТ';
-                
-                // Добавляем визуальную индикацию активности
-                bossVTBtn.style.background = 'radial-gradient(circle, rgba(60,25,25,0.95) 0%, rgba(30,12,12,0.98) 100%)';
-                bossVTBtn.style.boxShadow = '0 2px 8px rgba(255, 69, 0, 0.5)';
-                
-                try {
-                    await this.bossFarmLoopVT(this.vtAbortController.signal);
-                } catch (error) {
-                    if (error.message.includes('aborted')) {
-                        console.log('Фарм босса ВТ остановлен');
-                    } else {
-                        console.error('Ошибка фарма босса ВТ:', error);
-                    }
-                } finally {
-                    this.vtAbortController = null;
-                    iconVT.textContent = 'БОСС ВТ';
-                    
-                    // Возвращаем обычный стиль
-                    bossVTBtn.style.background = 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)';
-                    bossVTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            } finally {
+                this.vtAbortController = null;
+                resetButton();
+            }
+        };
+
+        // Функция активации босса ЧТ
+        const activateCHT = async () => {
+            if (window.BotUI && window.BotUI.deactivateAllButtons) {
+                window.BotUI.deactivateAllButtons();
+            }
+            
+            this.activeBossType = 'cht';
+            this.chtAbortController = new AbortController();
+            iconSpan.textContent = 'СТОП ЧТ';
+            dropdown.style.display = 'none';
+            
+            bossDropdownBtn.style.background = 'radial-gradient(circle, rgba(45,25,60,0.95) 0%, rgba(25,15,40,0.98) 100%)';
+            bossDropdownBtn.style.boxShadow = '0 2px 8px rgba(138, 43, 226, 0.5)';
+            
+            try {
+                await this.bossFarmLoopCHT(this.chtAbortController.signal);
+            } catch (error) {
+                if (error.message.includes('aborted')) {
+                    console.log('Фарм босса ЧТ остановлен');
+                } else {
+                    console.error('Ошибка фарма босса ЧТ:', error);
                 }
-            } else {
+            } finally {
+                this.chtAbortController = null;
+                resetButton();
+            }
+        };
+
+        // Обработчики событий
+        bossDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            if (this.activeBossType === 'vt') {
+                // Останавливаем ВТ
                 this.vtAbortController.abort();
                 this.vtAbortController = null;
-                iconVT.textContent = 'БОСС ВТ';
-                
-                // Возвращаем обычный стиль
-                bossVTBtn.style.background = 'radial-gradient(circle, rgba(40,15,15,0.95) 0%, rgba(20,8,8,0.98) 100%)';
-                bossVTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-            }
-        });
-
-        // --- Кнопка БОСС ЧТ ---
-        const bossCHTBtn = document.createElement('button');
-        bossCHTBtn.id = 'boss-cht-button';
-        bossCHTBtn.className = 'control-button-boss-cht';
-        Object.assign(bossCHTBtn.style, {
-            width: btnWidth,
-            height: btnHeight,
-            background: 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)',
-            color: '#FFD700',
-            border: '1px solid rgba(128,128,128,0.3)',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: btnFontSize,
-            fontWeight: 'bold',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            transition: 'all 0.2s ease',
-            letterSpacing: '0.5px',
-            fontFamily: 'Segoe UI, Arial, sans-serif',
-            userSelect: 'none',
-            outline: 'none',
-            margin: '0',
-            position: 'relative',
-            overflow: 'hidden'
-        });
-
-        // Создаем внутренний градиент для ЧТ
-        const innerGlowCHT = document.createElement('div');
-        Object.assign(innerGlowCHT.style, {
-            position: 'absolute',
-            top: '1px',
-            left: '1px',
-            right: '1px',
-            bottom: '1px',
-            borderRadius: '3px',
-            background: 'radial-gradient(circle at 30% 30%, rgba(138, 43, 226, 0.1) 0%, transparent 70%)',
-            pointerEvents: 'none'
-        });
-        bossCHTBtn.appendChild(innerGlowCHT);
-
-        // Контейнер для контента ЧТ
-        const contentCHT = document.createElement('div');
-        Object.assign(contentCHT.style, {
-            position: 'relative',
-            zIndex: '2',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center'
-        });
-
-        const iconCHT = document.createElement('span');
-        iconCHT.textContent = 'БОСС ЧТ';
-        iconCHT.style.fontSize = btnFontSize;
-        iconCHT.style.lineHeight = '1';
-
-        contentCHT.appendChild(iconCHT);
-        bossCHTBtn.appendChild(contentCHT);
-
-        // События для кнопки ЧТ
-        bossCHTBtn.addEventListener('mouseenter', () => {
-            bossCHTBtn.style.transform = 'translateY(-1px)';
-            bossCHTBtn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
-        });
-        
-        bossCHTBtn.addEventListener('mouseleave', () => {
-            bossCHTBtn.style.transform = 'translateY(0)';
-            bossCHTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        });
-
-        bossCHTBtn.addEventListener('mousedown', () => {
-            bossCHTBtn.style.transform = 'translateY(1px)';
-        });
-
-        bossCHTBtn.addEventListener('mouseup', () => {
-            bossCHTBtn.style.transform = 'translateY(-1px)';
-        });
-
-        bossCHTBtn.addEventListener('click', async () => {
-            if (!this.chtAbortController) {
-                // Деактивируем все другие кнопки
-                if (window.BotUI && window.BotUI.deactivateAllButtons) {
-                    window.BotUI.deactivateAllButtons();
-                }
-                
-                this.chtAbortController = new AbortController();
-                iconCHT.textContent = 'СТОП ЧТ';
-                
-                // Добавляем визуальную индикацию активности
-                bossCHTBtn.style.background = 'radial-gradient(circle, rgba(45,25,60,0.95) 0%, rgba(25,15,40,0.98) 100%)';
-                bossCHTBtn.style.boxShadow = '0 2px 8px rgba(138, 43, 226, 0.5)';
-                
-                try {
-                    await this.bossFarmLoopCHT(this.chtAbortController.signal);
-                } catch (error) {
-                    if (error.message.includes('aborted')) {
-                        console.log('Фарм босса ЧТ остановлен');
-                    } else {
-                        console.error('Ошибка фарма босса ЧТ:', error);
-                    }
-                } finally {
-                    this.chtAbortController = null;
-                    iconCHT.textContent = 'БОСС ЧТ';
-                    
-                    // Возвращаем обычный стиль
-                    bossCHTBtn.style.background = 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)';
-                    bossCHTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-                }
-            } else {
+                resetButton();
+                toggleDropdown();
+            } else if (this.activeBossType === 'cht') {
+                // Останавливаем ЧТ
                 this.chtAbortController.abort();
                 this.chtAbortController = null;
-                iconCHT.textContent = 'БОСС ЧТ';
-                
-                // Возвращаем обычный стиль
-                bossCHTBtn.style.background = 'radial-gradient(circle, rgba(25,15,40,0.95) 0%, rgba(15,8,25,0.98) 100%)';
-                bossCHTBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+                resetButton();
+                toggleDropdown();
+            } else {
+                // Показываем меню
+                toggleDropdown();
             }
         });
 
-        // Добавляем кнопки в контейнер
-        if (!centerContainer.contains(bossVTBtn)) {
-            centerContainer.appendChild(bossVTBtn);
-        }
-        if (!centerContainer.contains(bossCHTBtn)) {
-            centerContainer.appendChild(bossCHTBtn);
+        vtOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activateVT();
+        });
+
+        chtOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activateCHT();
+        });
+
+        // Закрытие меню при клике вне его
+        document.addEventListener('click', (e) => {
+            if (!bossContainer.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Сборка компонента
+        bossContainer.appendChild(bossDropdownBtn);
+        bossContainer.appendChild(dropdown);
+
+        // Добавляем в контейнер
+        if (!centerContainer.contains(bossContainer)) {
+            centerContainer.appendChild(bossContainer);
         }
     },
 

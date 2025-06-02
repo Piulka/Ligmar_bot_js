@@ -429,24 +429,37 @@ window.BotUI = {
             }
         }
 
-        // Деактивируем кнопку босса ВТ
-        const bossVTButton = document.getElementById('boss-vt-button');
-        if (bossVTButton && window.BotGameLogic.vtAbortController) {
-            window.BotGameLogic.vtAbortController.abort();
-            window.BotGameLogic.vtAbortController = null;
-            const iconSpan = bossVTButton.querySelector('span');
-            if (iconSpan) iconSpan.textContent = 'БОСС ВТ';
-            console.log('⏸️ Фарм босса ВТ остановлен');
-        }
-
-        // Деактивируем кнопку босса ЧТ
-        const bossCHTButton = document.getElementById('boss-cht-button');
-        if (bossCHTButton && window.BotGameLogic.chtAbortController) {
-            window.BotGameLogic.chtAbortController.abort();
-            window.BotGameLogic.chtAbortController = null;
-            const iconSpan = bossCHTButton.querySelector('span');
-            if (iconSpan) iconSpan.textContent = 'БОСС ЧТ';
-            console.log('⏸️ Фарм босса ЧТ остановлен');
+        // Деактивируем кнопку боссов с выпадающим меню
+        const bossDropdownButton = document.getElementById('boss-dropdown-button');
+        if (bossDropdownButton && window.BotGameLogic) {
+            // Останавливаем активный босс ВТ
+            if (window.BotGameLogic.activeBossType === 'vt' && window.BotGameLogic.vtAbortController) {
+                window.BotGameLogic.vtAbortController.abort();
+                window.BotGameLogic.vtAbortController = null;
+                console.log('⏸️ Фарм босса ВТ остановлен');
+            }
+            
+            // Останавливаем активный босс ЧТ
+            if (window.BotGameLogic.activeBossType === 'cht' && window.BotGameLogic.chtAbortController) {
+                window.BotGameLogic.chtAbortController.abort();
+                window.BotGameLogic.chtAbortController = null;
+                console.log('⏸️ Фарм босса ЧТ остановлен');
+            }
+            
+            // Сбрасываем кнопку к исходному состоянию
+            const iconSpan = bossDropdownButton.querySelector('span');
+            if (iconSpan) {
+                iconSpan.textContent = 'БОССЫ';
+            }
+            bossDropdownButton.style.background = 'radial-gradient(circle, rgba(40,25,15,0.95) 0%, rgba(20,12,8,0.98) 100%)';
+            bossDropdownButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+            window.BotGameLogic.activeBossType = null;
+            
+            // Скрываем выпадающее меню
+            const dropdown = document.getElementById('boss-dropdown-menu');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
         }
     }
 }; 
