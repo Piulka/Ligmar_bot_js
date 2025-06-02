@@ -1055,9 +1055,10 @@ window.BotGameLogic = {
                 botVersion: window.BotConfig.SCRIPT_COMMIT
             }));
 
-            // Отправляем данные
+            // Отправляем данные с mode: 'no-cors' для обхода CORS ограничений
             const response = await fetch(gasUrl, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -1067,17 +1068,24 @@ window.BotGameLogic = {
                 })
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
-                
-                // Выводим ссылку на таблицу если она есть в ответе
-                if (result.spreadsheetUrl) {
-                    console.log(`📊 Ссылка на таблицу: ${result.spreadsheetUrl}`);
-                    console.log(`🎯 Скопируйте ссылку выше для быстрого доступа к таблице`);
-                }
+            // В режиме no-cors response.type будет 'opaque' и мы не можем читать содержимое
+            if (response.type === 'opaque') {
+                console.log(`✅ Данные отправлены в Google Sheets (режим no-cors).`);
+                console.log(`📊 Отправлено ${itemsWithIds.length} предметов. Проверьте таблицу вручную.`);
+                console.log(`🔗 Ссылка на Google Sheets: ${gasUrl.replace('/exec', '/edit')}`);
             } else {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // Обычный режим (если CORS настроен правильно)
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
+                    
+                    if (result.spreadsheetUrl) {
+                        console.log(`📊 Ссылка на таблицу: ${result.spreadsheetUrl}`);
+                        console.log(`🎯 Скопируйте ссылку выше для быстрого доступа к таблице`);
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
             }
 
         } catch (error) {
