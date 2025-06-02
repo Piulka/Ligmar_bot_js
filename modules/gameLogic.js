@@ -230,9 +230,9 @@ window.BotGameLogic = {
         const dropdown = document.createElement('div');
         dropdown.id = 'boss-dropdown-menu';
         Object.assign(dropdown.style, {
-            position: 'absolute',
-            left: '0',
-            top: '35px', // Сразу под кнопкой
+            position: 'fixed', // Изменяем на fixed
+            left: '0', // Будет позиционироваться динамически
+            top: '0', // Будет позиционироваться динамически
             width: '80px',
             background: '#2c2c2c',
             border: '1px solid rgba(128,128,128,0.3)',
@@ -338,7 +338,15 @@ window.BotGameLogic = {
         // Функция показа/скрытия выпадающего меню
         const toggleDropdown = () => {
             const isVisible = dropdown.style.display === 'flex';
-            dropdown.style.display = isVisible ? 'none' : 'flex';
+            if (isVisible) {
+                dropdown.style.display = 'none';
+            } else {
+                // Позиционируем меню под кнопкой
+                const buttonRect = bossDropdownBtn.getBoundingClientRect();
+                dropdown.style.left = buttonRect.left + 'px';
+                dropdown.style.top = (buttonRect.bottom + 2) + 'px';
+                dropdown.style.display = 'flex';
+            }
         };
 
         // Функция сброса кнопки к исходному состоянию
@@ -457,8 +465,8 @@ window.BotGameLogic = {
             }
         });
 
-        // Сборка компонента - выпадающее меню добавляем к кнопке
-        bossDropdownBtn.appendChild(dropdown);
+        // Добавляем выпадающее меню в body
+        document.body.appendChild(dropdown);
 
         // Добавляем кнопку в body (позиционирование через новую систему)
         document.body.appendChild(bossDropdownBtn);
@@ -788,7 +796,7 @@ window.BotGameLogic = {
         try {
             console.log('🏛️ Начинаю анализ арсенала...');
             
-            // 1. Нажимаем на Гильдия
+            // 1. Нажимаем на Гильдию
             console.log('1️⃣ Переход в Гильдию...');
             const guildButton = await window.BotUtils.waitForElement('div.footer-button .footer-button-text', 'Гильдия', 5000);
             if (guildButton) {
@@ -824,9 +832,11 @@ window.BotGameLogic = {
             console.log(`🔍 Найдено ${itemCards.length} предметов для анализа`);
 
             let analyzedCount = 0;
+            const itemsData = []; // Массив для сбора данных
+
             for (let i = 0; i < itemCards.length; i++) {
                 const item = itemCards[i];
-                console.log(`\n📦 === АНАЛИЗ ПРЕДМЕТА ${i + 1}/${itemCards.length} ===`);
+                console.log(`📦 Анализ предмета ${i + 1}/${itemCards.length}...`);
                 
                 try {
                     // Кликаем на предмет
@@ -842,7 +852,7 @@ window.BotGameLogic = {
 
                     // Извлекаем информацию о предмете
                     const itemInfo = this.extractItemInfo(dialog);
-                    this.logItemInfo(itemInfo, i + 1);
+                    itemsData.push(itemInfo);
                     
                     analyzedCount++;
 
@@ -860,6 +870,11 @@ window.BotGameLogic = {
 
             console.log(`\n🎉 === АНАЛИЗ ЗАВЕРШЕН ===`);
             console.log(`📊 Проанализировано предметов: ${analyzedCount}/${itemCards.length}`);
+
+            // Создаем Google Doc с результатами
+            if (itemsData.length > 0) {
+                await this.createGoogleDocWithItems(itemsData);
+            }
 
         } catch (error) {
             console.error('❌ Ошибка при анализе арсенала:', error);
@@ -979,5 +994,203 @@ window.BotGameLogic = {
                 console.log(`       • ${req.key} ${req.value}`);
             });
         }
-    }
+    },
+
+    /**
+     * Создание Google Doc с результатами анализа
+     * @param {Array} itemsData - массив данных о предметах
+     */
+    async createGoogleDocWithItems(itemsData) {
+        try {
+            console.log('📝 Создание Google документа с результатами...');
+            
+            // Создаем HTML для Google Docs
+            const htmlContent = this.generateItemsTableHTML(itemsData);
+            
+            // Открываем новое окно с результатами
+            const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes');
+            
+            if (newWindow) {
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+                console.log('✅ Результаты открыты в новом окне. Скопируйте содержимое в Google Docs');
+                
+                // Также сохраняем в буфер обмена (если поддерживается)
+                try {
+                    const textContent = this.generatePlainTextTable(itemsData);
+                    await navigator.clipboard.writeText(textContent);
+                    console.log('📋 Данные также скопированы в буфер обмена');
+                } catch (clipboardError) {
+                    console.log('⚠️ Не удалось скопировать в буфер обмена');
+                }
+            } else {
+                console.error('❌ Не удалось открыть новое окно. Проверьте настройки блокировщика всплывающих окон');
+            }
+            
+        } catch (error) {
+            console.error('❌ Ошибка при создании документа:', error);
+        }
+    },
+
+    /**
+     * Генерация HTML таблицы для результатов
+     * @param {Array} itemsData - массив данных о предметах
+     */
+    generateItemsTableHTML(itemsData) {
+        const currentDate = new Date().toLocaleString('ru-RU');
+        
+        let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Анализ Арсенала Гильдии - ${currentDate}</title>
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+                .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+                h1 { color: #2c3e50; text-align: center; margin-bottom: 10px; font-size: 28px; }
+                .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 30px; font-size: 16px; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+                th { background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 12px 8px; text-align: left; font-weight: bold; position: sticky; top: 0; }
+                td { padding: 10px 8px; border-bottom: 1px solid #ecf0f1; vertical-align: top; }
+                tr:nth-child(even) { background-color: #f8f9fa; }
+                tr:hover { background-color: #e3f2fd; }
+                .item-name { font-weight: bold; color: #2c3e50; max-width: 150px; }
+                .item-type { color: #8e44ad; font-weight: 600; }
+                .quality-epic { color: #9b59b6; font-weight: bold; }
+                .quality-rare { color: #3498db; font-weight: bold; }
+                .quality-uncommon { color: #27ae60; font-weight: bold; }
+                .quality-common { color: #95a5a6; }
+                .gear-score { font-size: 14px; font-weight: bold; color: #e74c3c; text-align: center; }
+                .stats-list { margin: 0; padding: 0; list-style: none; }
+                .stats-list li { margin: 2px 0; font-size: 11px; }
+                .magic-props { margin: 0; padding: 0; list-style: none; }
+                .magic-props li { margin: 2px 0; font-size: 11px; color: #8e44ad; }
+                .requirements { margin: 0; padding: 0; list-style: none; font-size: 10px; color: #7f8c8d; }
+                .summary { background: #ecf0f1; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: center; }
+                .summary h3 { color: #2c3e50; margin: 0 0 10px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🏛️ Анализ Арсенала Гильдии</h1>
+                <div class="subtitle">Дата анализа: ${currentDate} | Всего предметов: ${itemsData.length}</div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Качество</th>
+                            <th>Уровень</th>
+                            <th>ГС</th>
+                            <th>Основные характеристики</th>
+                            <th>Магические свойства</th>
+                            <th>Требования</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        itemsData.forEach((item, index) => {
+            const qualityClass = this.getQualityClass(item.quality);
+            
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td class="item-name">${item.name || 'Неизвестно'}</td>
+                    <td class="item-type">${item.type || 'Неизвестно'}</td>
+                    <td class="${qualityClass}">${item.quality || 'Неизвестно'}</td>
+                    <td>${item.tier || 'Неизвестно'}</td>
+                    <td class="gear-score">${item.gearScore || 0}</td>
+                    <td>
+                        <ul class="stats-list">
+                            ${item.stats.map(stat => `<li>• ${stat.name}: ${stat.value}</li>`).join('')}
+                        </ul>
+                    </td>
+                    <td>
+                        <ul class="magic-props">
+                            ${item.magicProps.map(prop => `<li>• ${prop.name}: ${prop.value} ${prop.percent}</li>`).join('')}
+                        </ul>
+                    </td>
+                    <td>
+                        <ul class="requirements">
+                            ${item.requirements.map(req => `<li>${req.key} ${req.value}</li>`).join('')}
+                        </ul>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+                
+                <div class="summary">
+                    <h3>📊 Сводка анализа</h3>
+                    <p>Проанализировано предметов: <strong>${itemsData.length}</strong></p>
+                    <p>Средний ГС: <strong>${this.calculateAverageGS(itemsData)}</strong></p>
+                    <p>Максимальный ГС: <strong>${this.getMaxGS(itemsData)}</strong></p>
+                    <p>Сгенерировано ботом Ligmar v.${window.BotConfig.SCRIPT_COMMIT}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+        
+        return html;
+    },
+
+    /**
+     * Получение CSS класса для качества предмета
+     */
+    getQualityClass(quality) {
+        if (quality.includes('Эпическ')) return 'quality-epic';
+        if (quality.includes('Редк')) return 'quality-rare';
+        if (quality.includes('Необычн')) return 'quality-uncommon';
+        return 'quality-common';
+    },
+
+    /**
+     * Вычисление среднего ГС
+     */
+    calculateAverageGS(itemsData) {
+        const totalGS = itemsData.reduce((sum, item) => sum + (item.gearScore || 0), 0);
+        return Math.round(totalGS / itemsData.length);
+    },
+
+    /**
+     * Получение максимального ГС
+     */
+    getMaxGS(itemsData) {
+        return Math.max(...itemsData.map(item => item.gearScore || 0));
+    },
+
+    /**
+     * Генерация текстовой таблицы для буфера обмена
+     */
+    generatePlainTextTable(itemsData) {
+        const currentDate = new Date().toLocaleString('ru-RU');
+        let text = `🏛️ АНАЛИЗ АРСЕНАЛА ГИЛЬДИИ\n`;
+        text += `Дата: ${currentDate}\n`;
+        text += `Всего предметов: ${itemsData.length}\n\n`;
+        
+        text += `№\tНазвание\tТип\tКачество\tУровень\tГС\tОсновные характеристики\tМагические свойства\n`;
+        text += '='.repeat(150) + '\n';
+        
+        itemsData.forEach((item, index) => {
+            const stats = item.stats.map(s => `${s.name}: ${s.value}`).join(', ');
+            const magicProps = item.magicProps.map(p => `${p.name}: ${p.value} ${p.percent}`).join(', ');
+            
+            text += `${index + 1}\t${item.name}\t${item.type}\t${item.quality}\t${item.tier}\t${item.gearScore}\t${stats}\t${magicProps}\n`;
+        });
+        
+        text += '\n📊 СВОДКА:\n';
+        text += `Средний ГС: ${this.calculateAverageGS(itemsData)}\n`;
+        text += `Максимальный ГС: ${this.getMaxGS(itemsData)}\n`;
+        text += `Сгенерировано ботом Ligmar v.${window.BotConfig.SCRIPT_COMMIT}`;
+        
+        return text;
+    },
 }; 
