@@ -8,20 +8,11 @@ window.BotUI = {
     async createAuthButton() {
         if (document.getElementById('auth-button') || this.isAuthorized) return;
 
-        // Находим элемент с пингом для позиционирования
-        const pingElement = document.querySelector('.header-ping');
-        if (!pingElement) {
-            console.error('Элемент .header-ping не найден');
-            return;
-        }
-
         // Создание кнопки авторизации с алмазиком
         const authButton = this.createStyledButton('auth-button', '💎');
-        authButton.style.position = 'fixed';
-        authButton.style.zIndex = '1001';
         
-        // Привязываем к пингу через CSS
-        this.positionButtonRelativeToActivities(authButton, 1); // 1 позиция после кнопки активности
+        // Привязываем к header через новое позиционирование
+        this.positionButtonRelativeToHeader(authButton, 1); // 1 позиция после кнопки активности
         
         authButton.addEventListener('click', async () => {
             // Проверяем пароль
@@ -29,13 +20,11 @@ window.BotUI = {
             if (isAuthorized) {
                 this.isAuthorized = true;
                 // Удаляем кнопку авторизации
-                document.body.removeChild(authButton);
+                authButton.remove();
                 // Создаем основные кнопки
                 await this.createMainButtons();
             }
         });
-
-        document.body.appendChild(authButton);
     },
 
     /**
@@ -54,6 +43,41 @@ window.BotUI = {
         
         button.style.left = leftPosition + 'px';
         button.style.top = '2px';
+    },
+
+    /**
+     * Позиционирование кнопки относительно header-ping
+     * @param {HTMLElement} button - кнопка для позиционирования
+     * @param {number} position - позиция (0 = кнопка активности, 1 = следующая, и т.д.)
+     */
+    positionButtonRelativeToHeader(button, position) {
+        const headerElement = document.querySelector('app-system-header');
+        const pingElement = document.querySelector('.header-ping');
+        
+        if (!headerElement || !pingElement) {
+            console.error('Элементы header не найдены');
+            return;
+        }
+
+        // Устанавливаем position: absolute и привязываем к header
+        button.style.position = 'absolute';
+        button.style.zIndex = '1001';
+        
+        // Добавляем кнопку внутрь header элемента
+        if (button.parentNode !== headerElement) {
+            headerElement.appendChild(button);
+        }
+        
+        // Позиционируем относительно ping элемента
+        const pingRect = pingElement.getBoundingClientRect();
+        const headerRect = headerElement.getBoundingClientRect();
+        
+        // Вычисляем позицию относительно header контейнера
+        const leftOffset = pingRect.right - headerRect.left + 5 + (position * 45);
+        const topOffset = pingRect.top - headerRect.top;
+        
+        button.style.left = leftOffset + 'px';
+        button.style.top = topOffset + 'px';
     },
 
     /**
@@ -77,11 +101,9 @@ window.BotUI = {
 
         // Создание кнопки настроек
         const button = this.createStyledButton('settings-button', '⚙');
-        button.style.position = 'fixed';
-        button.style.zIndex = '1001';
         
-        // Привязываем к пингу через CSS (позиция 1 - после кнопки активности)
-        this.positionButtonRelativeToActivities(button, 1);
+        // Привязываем к header через новое позиционирование (позиция 1 - после кнопки активности)
+        this.positionButtonRelativeToHeader(button, 1);
         
         button.addEventListener('click', () => {
             const settingsWindow = document.getElementById('settings-window');
@@ -90,8 +112,6 @@ window.BotUI = {
                 settingsWindow.style.display = isVisible ? 'none' : 'block';
             }
         });
-
-        document.body.appendChild(button);
     },
 
     /**
@@ -384,11 +404,9 @@ window.BotUI = {
         if (document.getElementById('control-button')) return;
 
         const controlButton = this.createStyledButton('control-button', '▶');
-        controlButton.style.position = 'fixed';
-        controlButton.style.zIndex = '1001';
         
-        // Привязываем к пингу через CSS (позиция 2 - после кнопки настроек)
-        this.positionButtonRelativeToActivities(controlButton, 2);
+        // Привязываем к header через новое позиционирование (позиция 2 - после кнопки настроек)
+        this.positionButtonRelativeToHeader(controlButton, 2);
 
         controlButton.addEventListener('click', async () => {
             const iconSpan = controlButton.querySelector('span');
@@ -418,8 +436,6 @@ window.BotUI = {
                 console.log('⏸️ Остановка основного бота...');
             }
         });
-
-        document.body.appendChild(controlButton);
     },
 
     /**

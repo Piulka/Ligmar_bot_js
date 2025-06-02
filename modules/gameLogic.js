@@ -148,35 +148,27 @@ window.BotGameLogic = {
         // Проверяем, не создана ли уже новая кнопка
         if (document.getElementById('boss-dropdown-button')) return;
 
-        // Находим элемент с пингом для позиционирования
+        // Находим элементы для позиционирования
+        const headerElement = document.querySelector('app-system-header');
         const pingElement = document.querySelector('.header-ping');
-        if (!pingElement) {
-            console.error('Элемент .header-ping не найден');
+        if (!headerElement || !pingElement) {
+            console.error('Элементы header не найдены');
             return;
         }
 
-        const pingRect = pingElement.getBoundingClientRect();
-        // Кнопка активности должна быть на 5px правее пинга
-        const baseLeftPosition = pingRect.right + 5;
-
-        // Размеры кнопки
-        const btnWidth = '80px';
-        const btnHeight = '33px';
-        const btnFontSize = '10px';
-
-        // --- Основная кнопка АКТИВНОСТИ ---
+        // Создание кнопки АКТИВНОСТИ с привязкой к header
         const bossDropdownBtn = document.createElement('button');
         bossDropdownBtn.id = 'boss-dropdown-button';
         bossDropdownBtn.className = 'control-button-boss-dropdown';
         Object.assign(bossDropdownBtn.style, {
-            width: btnWidth,
-            height: btnHeight,
+            width: '80px',
+            height: '33px',
             background: 'radial-gradient(circle, rgba(40,25,15,0.95) 0%, rgba(20,12,8,0.98) 100%)',
             color: '#FFD700',
             border: '1px solid rgba(128,128,128,0.3)',
             borderRadius: '4px',
             cursor: 'pointer',
-            fontSize: btnFontSize,
+            fontSize: '10px',
             fontWeight: 'bold',
             display: 'flex',
             flexDirection: 'column',
@@ -189,9 +181,7 @@ window.BotGameLogic = {
             userSelect: 'none',
             outline: 'none',
             margin: '0',
-            position: 'fixed',
-            left: baseLeftPosition + 'px',
-            top: '2px',
+            position: 'absolute',
             zIndex: '1001',
             overflow: 'hidden'
         });
@@ -223,7 +213,7 @@ window.BotGameLogic = {
 
         const iconSpan = document.createElement('span');
         iconSpan.textContent = 'АКТИВНОСТИ';
-        iconSpan.style.fontSize = btnFontSize;
+        iconSpan.style.fontSize = '10px';
         iconSpan.style.lineHeight = '1';
 
         content.appendChild(iconSpan);
@@ -248,10 +238,10 @@ window.BotGameLogic = {
         const dropdown = document.createElement('div');
         dropdown.id = 'boss-dropdown-menu';
         Object.assign(dropdown.style, {
-            position: 'fixed',
-            left: baseLeftPosition + 'px',
-            top: '37px',
-            width: btnWidth,
+            position: 'absolute',
+            left: '0',
+            top: '35px', // Сразу под кнопкой
+            width: '80px',
             background: '#2c2c2c',
             border: '1px solid rgba(128,128,128,0.3)',
             borderRadius: '4px',
@@ -266,7 +256,7 @@ window.BotGameLogic = {
         const vtOption = document.createElement('div');
         Object.assign(vtOption.style, {
             padding: '8px',
-            fontSize: btnFontSize,
+            fontSize: '10px',
             color: '#FFD700',
             background: 'rgba(40,15,15,0.95)',
             cursor: 'pointer',
@@ -286,7 +276,7 @@ window.BotGameLogic = {
         const chtOption = document.createElement('div');
         Object.assign(chtOption.style, {
             padding: '8px',
-            fontSize: btnFontSize,
+            fontSize: '10px',
             color: '#FFD700',
             background: 'rgba(25,15,40,0.95)',
             cursor: 'pointer',
@@ -306,7 +296,7 @@ window.BotGameLogic = {
         const dentistOption = document.createElement('div');
         Object.assign(dentistOption.style, {
             padding: '8px',
-            fontSize: btnFontSize,
+            fontSize: '10px',
             color: '#FFD700',
             background: 'rgba(15,40,25,0.95)',
             cursor: 'pointer',
@@ -327,7 +317,7 @@ window.BotGameLogic = {
         const arsOption = document.createElement('div');
         Object.assign(arsOption.style, {
             padding: '8px',
-            fontSize: btnFontSize,
+            fontSize: '10px',
             color: '#FFD700',
             background: 'rgba(40,40,15,0.95)',
             cursor: 'pointer',
@@ -464,8 +454,7 @@ window.BotGameLogic = {
 
         arsOption.addEventListener('click', (e) => {
             e.stopPropagation();
-            // TODO: Логика для АРС будет добавлена позже
-            console.log('🏛️ Кнопка АРС нажата (логика будет добавлена позже)');
+            this.analyzeArsenal();
             dropdown.style.display = 'none';
         });
 
@@ -476,9 +465,8 @@ window.BotGameLogic = {
             }
         });
 
-        // Сборка компонента - добавляем кнопку и выпадающее меню в body
-        document.body.appendChild(bossDropdownBtn);
-        document.body.appendChild(dropdown);
+        // Сборка компонента - выпадающее меню добавляем к кнопке
+        bossDropdownBtn.appendChild(dropdown);
 
         // Функция для обновления видимости кнопок после авторизации
         this.updateBossButtonsVisibility = () => {
@@ -490,6 +478,20 @@ window.BotGameLogic = {
                 arsOption.style.display = 'none';
             }
         };
+
+        // Добавляем кнопку в header
+        headerElement.appendChild(bossDropdownBtn);
+        
+        // Позиционируем относительно ping элемента
+        const pingRect = pingElement.getBoundingClientRect();
+        const headerRect = headerElement.getBoundingClientRect();
+        
+        // Вычисляем позицию относительно header контейнера (позиция 0 - сразу после пинга)
+        const leftOffset = pingRect.right - headerRect.left + 5;
+        const topOffset = pingRect.top - headerRect.top;
+        
+        bossDropdownBtn.style.left = leftOffset + 'px';
+        bossDropdownBtn.style.top = topOffset + 'px';
     },
 
     /**
@@ -795,6 +797,206 @@ window.BotGameLogic = {
             }
 
             await window.BotUtils.delay(200);
+        }
+    },
+
+    /**
+     * Анализ арсенала гильдии
+     */
+    async analyzeArsenal() {
+        try {
+            console.log('🏛️ Начинаю анализ арсенала...');
+            
+            // 1. Нажимаем на Гильдия
+            console.log('1️⃣ Переход в Гильдию...');
+            const guildButton = await window.BotUtils.waitForElement('div.footer-button .footer-button-text', 'Гильдия', 5000);
+            if (guildButton) {
+                guildButton.click();
+                await window.BotUtils.delay(1000);
+                console.log('✅ Перешли в Гильдию');
+            } else {
+                console.error('❌ Кнопка "Гильдия" не найдена');
+                return;
+            }
+
+            // 2. Нажимаем на Арсенал
+            console.log('2️⃣ Переход в Арсенал...');
+            const arsenalButton = await window.BotUtils.waitForElement('div.guild-aspect-title', 'Арсенал', 5000);
+            if (arsenalButton) {
+                arsenalButton.closest('.guild-aspect').click();
+                await window.BotUtils.delay(1000);
+                console.log('✅ Перешли в Арсенал');
+            } else {
+                console.error('❌ Кнопка "Арсенал" не найдена');
+                return;
+            }
+
+            // 3. Анализируем все предметы
+            console.log('3️⃣ Начинаю анализ предметов...');
+            const itemList = document.querySelector('app-item-list');
+            if (!itemList) {
+                console.error('❌ Список предметов не найден');
+                return;
+            }
+
+            const itemCards = itemList.querySelectorAll('app-item-card');
+            console.log(`🔍 Найдено ${itemCards.length} предметов для анализа`);
+
+            let analyzedCount = 0;
+            for (let i = 0; i < itemCards.length; i++) {
+                const item = itemCards[i];
+                console.log(`\n📦 === АНАЛИЗ ПРЕДМЕТА ${i + 1}/${itemCards.length} ===`);
+                
+                try {
+                    // Кликаем на предмет
+                    item.click();
+                    await window.BotUtils.delay(500);
+
+                    // Ждем появления диалога
+                    const dialog = await window.BotUtils.waitForElement('app-dialog-container.dialog-container-item', null, 3000);
+                    if (!dialog) {
+                        console.log('⚠️ Диалог предмета не открылся, пропускаем');
+                        continue;
+                    }
+
+                    // Извлекаем информацию о предмете
+                    const itemInfo = this.extractItemInfo(dialog);
+                    this.logItemInfo(itemInfo, i + 1);
+                    
+                    analyzedCount++;
+
+                    // Закрываем диалог
+                    const closeButton = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
+                    if (closeButton) {
+                        closeButton.click();
+                        await window.BotUtils.delay(300);
+                    }
+
+                } catch (error) {
+                    console.error(`❌ Ошибка при анализе предмета ${i + 1}:`, error);
+                }
+            }
+
+            console.log(`\n🎉 === АНАЛИЗ ЗАВЕРШЕН ===`);
+            console.log(`📊 Проанализировано предметов: ${analyzedCount}/${itemCards.length}`);
+
+        } catch (error) {
+            console.error('❌ Ошибка при анализе арсенала:', error);
+        }
+    },
+
+    /**
+     * Извлечение информации о предмете из диалога
+     * @param {HTMLElement} dialog - диалог предмета
+     */
+    extractItemInfo(dialog) {
+        const info = {};
+
+        try {
+            // Название предмета
+            const nameElement = dialog.querySelector('.dialog-header');
+            info.name = nameElement ? nameElement.textContent.trim() : 'Неизвестно';
+
+            // Мощь предмета (ГС)
+            const gearScoreElement = dialog.querySelector('.gear-score-value');
+            info.gearScore = gearScoreElement ? parseInt(gearScoreElement.textContent.trim()) : 0;
+
+            // Тип предмета
+            const typeElement = dialog.querySelector('.item-tags');
+            info.type = typeElement ? typeElement.textContent.trim() : 'Неизвестно';
+
+            // Уровень
+            const tierElement = dialog.querySelector('.item-tier');
+            info.tier = tierElement ? tierElement.textContent.trim() : 'Неизвестно';
+
+            // Качество
+            const qualityElement = dialog.querySelector('.item-quality');
+            info.quality = qualityElement ? qualityElement.textContent.trim() : 'Неизвестно';
+
+            // Основные характеристики
+            info.stats = [];
+            const statElements = dialog.querySelectorAll('.item-index-item');
+            statElements.forEach(stat => {
+                const valueElement = stat.querySelector('.item-index-value');
+                const keyElement = stat.querySelector('.item-index-key');
+                if (valueElement && keyElement) {
+                    info.stats.push({
+                        value: valueElement.textContent.trim(),
+                        name: keyElement.textContent.trim()
+                    });
+                }
+            });
+
+            // Магические свойства
+            info.magicProps = [];
+            const magicElements = dialog.querySelectorAll('app-magic-prop');
+            magicElements.forEach(prop => {
+                const valueElement = prop.querySelector('.magic-prop-value');
+                const nameElement = prop.querySelector('.magic-prop-name');
+                const percentElement = prop.querySelector('.magic-prop-percent');
+                
+                if (valueElement && nameElement) {
+                    info.magicProps.push({
+                        value: valueElement.textContent.trim(),
+                        name: nameElement.textContent.trim(),
+                        percent: percentElement ? percentElement.textContent.trim() : ''
+                    });
+                }
+            });
+
+            // Требования
+            info.requirements = [];
+            const reqElements = dialog.querySelectorAll('.item-requirement');
+            reqElements.forEach(req => {
+                const keyElement = req.querySelector('.item-requirement-key');
+                const valueElement = req.querySelector('.item-requirement-value');
+                if (keyElement && valueElement) {
+                    info.requirements.push({
+                        key: keyElement.textContent.trim(),
+                        value: valueElement.textContent.trim()
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.error('Ошибка при извлечении информации о предмете:', error);
+        }
+
+        return info;
+    },
+
+    /**
+     * Вывод информации о предмете в консоль
+     * @param {Object} itemInfo - информация о предмете
+     * @param {number} index - номер предмета
+     */
+    logItemInfo(itemInfo, index) {
+        console.log(`📋 ПРЕДМЕТ #${index}:`);
+        console.log(`   🏷️  Название: ${itemInfo.name}`);
+        console.log(`   ⚔️  Тип: ${itemInfo.type}`);
+        console.log(`   ⭐  Качество: ${itemInfo.quality}`);
+        console.log(`   🔢  Уровень: ${itemInfo.tier}`);
+        console.log(`   💪  Мощь предмета (ГС): ${itemInfo.gearScore}`);
+        
+        if (itemInfo.stats.length > 0) {
+            console.log(`   📊  Основные характеристики:`);
+            itemInfo.stats.forEach(stat => {
+                console.log(`       • ${stat.name}: ${stat.value}`);
+            });
+        }
+        
+        if (itemInfo.magicProps.length > 0) {
+            console.log(`   ✨  Магические свойства:`);
+            itemInfo.magicProps.forEach(prop => {
+                console.log(`       • ${prop.name}: ${prop.value} ${prop.percent}`);
+            });
+        }
+        
+        if (itemInfo.requirements.length > 0) {
+            console.log(`   📋  Требования:`);
+            itemInfo.requirements.forEach(req => {
+                console.log(`       • ${req.key} ${req.value}`);
+            });
         }
     }
 }; 
