@@ -1,13 +1,13 @@
 /**
  * Ligmar Bot - Модульная версия
  * Главный файл-загрузчик модулей
- * Версия: v.3.7.0
  */
 
 (async function() {
     'use strict';
     
-    console.log('🤖 Ligmar Bot v.3.7.0 - Запуск модульной версии...');
+    // Временный лог до загрузки конфига
+    console.log('🤖 Ligmar Bot - Запуск модульной версии...');
     
     // Базовый URL для загрузки модулей
     const BASE_URL = 'https://raw.githubusercontent.com/Piulka/Ligmar_bot_js/main';
@@ -37,6 +37,11 @@
             const code = await response.text();
             eval(code);
             console.log(`✅ Модуль загружен: ${moduleUrl}`);
+            
+            // После загрузки конфига выводим версию
+            if (moduleUrl === 'modules/config.js' && window.BotConfig && window.BotConfig.SCRIPT_COMMIT) {
+                console.log(`🤖 Ligmar Bot ${window.BotConfig.SCRIPT_COMMIT} - Модульная версия загружена!`);
+            }
         } catch (error) {
             console.error(`❌ Ошибка загрузки модуля ${moduleUrl}:`, error);
             throw error;
