@@ -21,6 +21,10 @@ window.BotStatistics = {
         totalPausedTime: 0
     },
 
+    observer: null,
+    lastShrinkedPanel: null,
+    lastPanelVisible: false,
+
     initializeStatistics() {
         this.stats = {
             mobsKilled: 0,
@@ -44,6 +48,7 @@ window.BotStatistics = {
         };
         
         this.updateStatisticsDisplay();
+        this.initializeMapObserver();
     },
 
     updateStatisticsDisplay() {
@@ -217,56 +222,119 @@ window.BotStatistics = {
         document.body.appendChild(statsContainer);
 
         await window.BotUtils.delay(100);
-    }
-};
-
-// Обновляем время работы каждые 5 секунд
-setInterval(() => {
-    if (window.BotStatistics) {
-        window.BotStatistics.updateRuntimeDisplay();
-    }
-}, 5000);
-
-// Логика автоматического показа статистики при открытии карты
-(function() {
-    let lastShrinkedPanel = null;
-    let lastPanelVisible = false;
+    },
 
     /**
-     * Открытие панели статистики и привязка к карте
+     * Инициализация наблюдателя за картой
      */
-    function openStatisticsPanelAndAttach() {
-        const statsContainer = document.getElementById('statistics-container');
-        const mapWrapper = document.querySelector('.auto-map-wrapper');
-        if (!statsContainer || !mapWrapper) return;
-    
-        // Показываем окно статистики
-        statsContainer.style.opacity = '1';
-        statsContainer.style.visibility = 'visible';
-    
-        // Позиционируем окно статистики справа от карты
-        positionStatisticsPanel(statsContainer, mapWrapper);
-    
-        // Следим за изменением размера/позиции карты (например, при ресайзе окна)
-        window.addEventListener('resize', () => positionStatisticsPanel(statsContainer, mapWrapper));
-    }
+    initializeMapObserver() {
+        const self = this;
 
-    /**
-     * Закрытие панели статистики
-     */
-    function closeStatisticsPanel() {
-        const statsContainer = document.getElementById('statistics-container');
-        if (!statsContainer) return;
-    
-        statsContainer.style.transition = 'none';
-        statsContainer.style.opacity = '0';
-        statsContainer.style.visibility = 'hidden';
-    }
+        /**
+         * Открытие панели статистики и привязка к карте
+         */
+        function openStatisticsPanelAndAttach() {
+            const statsContainer = document.getElementById('statistics-container');
+            const mapWrapper = document.querySelector('.auto-map-wrapper');
+            if (!statsContainer || !mapWrapper) return;
+        
+            // Показываем окно статистики
+            statsContainer.style.opacity = '1';
+            statsContainer.style.visibility = 'visible';
+        
+            // Позиционируем окно статистики справа от карты
+            self.positionStatisticsPanel(statsContainer, mapWrapper);
+        
+            // Следим за изменением размера/позиции карты (например, при ресайзе окна)
+            window.addEventListener('resize', () => self.positionStatisticsPanel(statsContainer, mapWrapper));
+        }
+
+        /**
+         * Закрытие панели статистики
+         */
+        function closeStatisticsPanel() {
+            const statsContainer = document.getElementById('statistics-container');
+            if (!statsContainer) return;
+        
+            statsContainer.style.transition = 'none';
+            statsContainer.style.opacity = '0';
+            statsContainer.style.visibility = 'hidden';
+        }
+
+        /**
+         * Уменьшение панели карты для освобождения места под статистику
+         */
+        function shrinkBattleMapPanel(panel) {
+            if (!panel) return;
+            if (self.lastShrinkedPanel === panel) return;
+            self.lastShrinkedPanel = panel;
+
+            const map = panel.querySelector('app-battle-map');
+            if (!map) return;
+
+            if (map.parentNode && map.parentNode.classList && map.parentNode.classList.contains('auto-map-wrapper')) {
+                panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+                panel.style.marginRight = '240px';
+                panel.style.width = '40%';
+                // После анимации позиционируем статистику
+                setTimeout(openStatisticsPanelAndAttach, 700);
+                return;
+            }
+
+            const mapWrapper = document.createElement('div');
+            mapWrapper.className = 'auto-map-wrapper';
+            mapWrapper.style.width = '100%';
+            mapWrapper.style.height = '100%';
+            mapWrapper.style.overflow = 'hidden';
+
+            map.parentNode.insertBefore(mapWrapper, map);
+            mapWrapper.appendChild(map);
+
+            panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
+            panel.style.marginRight = '';
+            panel.style.width = '';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    panel.style.marginRight = '240px';
+                    panel.style.width = '40%';
+                    // После анимации позиционируем статистику
+                    setTimeout(openStatisticsPanelAndAttach, 700);
+                });
+            });
+        }
+
+        // MutationObserver для отслеживания появления и исчезновения карты
+        this.observer = new MutationObserver(() => {
+            const panel = document.querySelector('app-battle-middle-panel');
+            const panelVisible = panel && panel.offsetParent !== null;
+
+            if (panelVisible && !self.lastPanelVisible) {
+                console.log('🗺️ Карта обнаружена, активирую статистику');
+                shrinkBattleMapPanel(panel);
+                self.lastPanelVisible = true;
+            } else if (!panelVisible && self.lastPanelVisible) {
+                console.log('🗺️ Карта скрыта, прячу статистику');
+                closeStatisticsPanel();
+                self.lastPanelVisible = false;
+                self.lastShrinkedPanel = null;
+            }
+        });
+
+        this.observer.observe(document.body, { childList: true, subtree: true });
+
+        // Если карта уже есть при загрузке
+        const initialPanel = document.querySelector('app-battle-middle-panel');
+        if (initialPanel && initialPanel.offsetParent !== null) {
+            console.log('🗺️ Карта уже присутствует при инициализации');
+            shrinkBattleMapPanel(initialPanel);
+            self.lastPanelVisible = true;
+        }
+    },
 
     /**
      * Позиционирование панели статистики рядом с картой
      */
-    function positionStatisticsPanel(statsContainer, mapWrapper) {
+    positionStatisticsPanel(statsContainer, mapWrapper) {
         // Получаем координаты и размеры карты
         const rect = mapWrapper.getBoundingClientRect();
     
@@ -300,71 +368,43 @@ setInterval(() => {
         statsContainer.style.overflowY = 'auto';
         statsContainer.style.transition = 'left 0.7s cubic-bezier(.4,2,.6,1), width 0.7s cubic-bezier(.4,2,.6,1), height 0.7s cubic-bezier(.4,2,.6,1), opacity 0.3s, visibility 0.3s';
         statsContainer.style.zIndex = '1002';
-    }
+    },
 
     /**
-     * Уменьшение панели карты для освобождения места под статистику
+     * Тестовая функция для показа статистики (для отладки)
      */
-    function shrinkBattleMapPanel(panel) {
-        if (!panel) return;
-        if (lastShrinkedPanel === panel) return;
-        lastShrinkedPanel = panel;
-
-        const map = panel.querySelector('app-battle-map');
-        if (!map) return;
-
-        if (map.parentNode && map.parentNode.classList && map.parentNode.classList.contains('auto-map-wrapper')) {
-            panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
-            panel.style.marginRight = '240px';
-            panel.style.width = '40%';
-            // После анимации позиционируем статистику
-            setTimeout(openStatisticsPanelAndAttach, 700);
+    testShowStatistics() {
+        console.log('🔧 Тестирование отображения статистики...');
+        const statsContainer = document.getElementById('statistics-container');
+        if (!statsContainer) {
+            console.log('❌ Контейнер статистики не найден');
             return;
         }
 
-        const mapWrapper = document.createElement('div');
-        mapWrapper.className = 'auto-map-wrapper';
-        mapWrapper.style.width = '100%';
-        mapWrapper.style.height = '100%';
-        mapWrapper.style.overflow = 'hidden';
-
-        map.parentNode.insertBefore(mapWrapper, map);
-        mapWrapper.appendChild(map);
-
-        panel.style.transition = 'width 0.7s cubic-bezier(.4,2,.6,1), margin-right 0.7s cubic-bezier(.4,2,.6,1)';
-        panel.style.marginRight = '';
-        panel.style.width = '';
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                panel.style.marginRight = '240px';
-                panel.style.width = '40%';
-                // После анимации позиционируем статистику
-                setTimeout(openStatisticsPanelAndAttach, 700);
-            });
-        });
+        // Показываем статистику принудительно
+        statsContainer.style.opacity = '1';
+        statsContainer.style.visibility = 'visible';
+        statsContainer.style.position = 'fixed';
+        statsContainer.style.right = '20px';
+        statsContainer.style.top = '200px';
+        statsContainer.style.width = '320px';
+        statsContainer.style.zIndex = '9999';
+        
+        console.log('✅ Статистика принудительно показана для тестирования');
+        console.log('Если вы её видите, то проблема в логике обнаружения карты');
+        
+        // Через 10 секунд скрываем
+        setTimeout(() => {
+            statsContainer.style.opacity = '0';
+            statsContainer.style.visibility = 'hidden';
+            console.log('🔧 Тестовая статистика скрыта');
+        }, 10000);
     }
+};
 
-    // MutationObserver для отслеживания появления и исчезновения карты
-    const observer = new MutationObserver(() => {
-        const panel = document.querySelector('app-battle-middle-panel');
-        const panelVisible = panel && panel.offsetParent !== null;
-
-        if (panelVisible) {
-            shrinkBattleMapPanel(panel);
-            lastPanelVisible = true;
-        } else if (lastPanelVisible) {
-            closeStatisticsPanel();
-            lastPanelVisible = false;
-            lastShrinkedPanel = null;
-        }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Если карта уже есть при загрузке
-    const initialPanel = document.querySelector('app-battle-middle-panel');
-    if (initialPanel && initialPanel.offsetParent !== null) {
-        shrinkBattleMapPanel(initialPanel);
-        lastPanelVisible = true;
+// Обновляем время работы каждые 5 секунд
+setInterval(() => {
+    if (window.BotStatistics) {
+        window.BotStatistics.updateRuntimeDisplay();
     }
-})(); 
+}, 5000); 
