@@ -73,30 +73,30 @@ window.BotUI = {
             this.positionButtonFixed(activitiesButton, pingRect.right + 5, pingRect.top);
         }
 
-        // Позиционируем алмаз (если не авторизован)
+        // Позиционируем алмаз (если не авторизован) - опускаем на 10 пикселей
         const authButton = document.getElementById('auth-button');
         if (authButton && !this.isAuthorized) {
             const activitiesRect = activitiesButton ? activitiesButton.getBoundingClientRect() : null;
             if (activitiesRect) {
-                this.positionButtonFixed(authButton, activitiesRect.right + 5, activitiesRect.top);
+                this.positionButtonFixed(authButton, activitiesRect.right + 5, activitiesRect.top + 10);
             }
         }
 
-        // Позиционируем настройки (если авторизован)
+        // Позиционируем настройки (если авторизован) - опускаем на 10 пикселей
         const settingsButton = document.getElementById('settings-button');
         if (settingsButton && this.isAuthorized) {
             const activitiesRect = activitiesButton ? activitiesButton.getBoundingClientRect() : null;
             if (activitiesRect) {
-                this.positionButtonFixed(settingsButton, activitiesRect.right + 5, activitiesRect.top);
+                this.positionButtonFixed(settingsButton, activitiesRect.right + 5, activitiesRect.top + 10);
             }
         }
 
-        // Позиционируем кнопку плей (если авторизован)
+        // Позиционируем кнопку плей (если авторизован) - опускаем на 20 пикселей
         const controlButton = document.getElementById('control-button');
         if (controlButton && this.isAuthorized) {
             const settingsRect = settingsButton ? settingsButton.getBoundingClientRect() : null;
             if (settingsRect) {
-                this.positionButtonFixed(controlButton, settingsRect.right + 5, settingsRect.top);
+                this.positionButtonFixed(controlButton, settingsRect.right + 5, settingsRect.top + 20);
             }
         }
     },
