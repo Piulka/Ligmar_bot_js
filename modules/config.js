@@ -19,12 +19,12 @@ window.BotConfig = {
         pmaVa: true,
         epicStats: true,
         highGearScore: true,
-        custom: false
+        custom: true
     },
     dropStats: ['Сила', 'Ловкость', 'Интеллект', 'Защита', 'Сопротивление', 'Меткость', 'Здоровье', 'Живучесть', 'Мана', 'Уклонение', 'Скрытность', 'Максимальный урон', 'Физ. атака'],
     dropSelectedStats: ['Сила', 'Ловкость', 'Интеллект', 'Защита', 'Сопротивление', 'Меткость', 'Здоровье', 'Живучесть', 'Мана', 'Уклонение', 'Скрытность', 'Максимальный урон', 'Физ. атака'],
     dropStatsCount: 3,
-    dropMinGearScore: 650,
+    dropMinGearScore: 300,
     dropQuality: 'Эпические',
     dropSelectedTypes: ['Оружие', 'Плечи', 'Шея', 'Пояс', 'Палец', 'Ступни', 'Ноги', 'Руки', 'Грудь', 'Голова'],
     dropPotionEnabled: false,

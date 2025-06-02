@@ -209,7 +209,7 @@ window.BotStatistics = {
             </div>
             <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
-                <span style="color:var(--gray-light);font-size:11px;">Вещи с БМ больше 650:</span>
+                <span style="color:var(--gray-light);font-size:11px;">Вещи с БМ больше ${window.BotConfig.dropMinGearScore}:</span>
                 <span id="high-gearscore-items" style="color:#fff;font-weight:600;font-size:13px;">0</span>
             </div>
             <div style="border-bottom:1px solid var(--black-light);margin:0 0 2px 0;"></div>
