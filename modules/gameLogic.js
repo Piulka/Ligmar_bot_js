@@ -801,7 +801,7 @@ window.BotGameLogic = {
             const guildButton = await window.BotUtils.waitForElement('div.footer-button .footer-button-text', 'Гильдия', 5000);
             if (guildButton) {
                 guildButton.click();
-                await window.BotUtils.delay(1000);
+                await window.BotUtils.delay(100);
                 console.log('✅ Перешли в Гильдию');
             } else {
                 console.error('❌ Кнопка "Гильдия" не найдена');
@@ -813,7 +813,7 @@ window.BotGameLogic = {
             const arsenalButton = await window.BotUtils.waitForElement('div.guild-aspect-title', 'Арсенал', 5000);
             if (arsenalButton) {
                 arsenalButton.closest('.guild-aspect').click();
-                await window.BotUtils.delay(1000);
+                await window.BotUtils.delay(100);
                 console.log('✅ Перешли в Арсенал');
             } else {
                 console.error('❌ Кнопка "Арсенал" не найдена');
@@ -841,7 +841,7 @@ window.BotGameLogic = {
                 try {
                     // Кликаем на предмет
                     item.click();
-                    await window.BotUtils.delay(500);
+                    await window.BotUtils.delay(100);
 
                     // Ждем появления диалога
                     const dialog = await window.BotUtils.waitForElement('app-dialog-container.dialog-container-item', null, 3000);
@@ -860,7 +860,7 @@ window.BotGameLogic = {
                     const closeButton = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
                     if (closeButton) {
                         closeButton.click();
-                        await window.BotUtils.delay(300);
+                        await window.BotUtils.delay(100);
                     }
 
                 } catch (error) {
@@ -1151,13 +1151,33 @@ function doPost(e) {
     
     return ContentService
       .createTextOutput(JSON.stringify({error: 'Unknown action'}))
-      .setMimeType(ContentService.MimeType.JSON);
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
       
   } catch (error) {
     return ContentService
       .createTextOutput(JSON.stringify({error: error.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
   }
+}
+
+function doOptions() {
+  return ContentService
+    .createTextOutput('')
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
 }
 
 function addItemsToSheet(items) {
@@ -1221,9 +1241,15 @@ function addItemsToSheet(items) {
     .createTextOutput(JSON.stringify({
       addedCount: newItems.length,
       duplicatesCount: items.length - newItems.length,
-      totalItems: sheet.getLastRow() - 1
+      totalItems: sheet.getLastRow() - 1,
+      spreadsheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl()
     }))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeaders({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
 }
 ========================================
 
