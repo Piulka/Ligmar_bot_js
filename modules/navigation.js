@@ -17,6 +17,9 @@ window.BotNavigation = {
                 await window.BotUtils.delay(100);
             }
 
+            // Получаем текущий гексагон где стоит игрок
+            const currentHexagon = document.querySelector('g.hex-box.current');
+
             let championHexes = [];
             if (window.BotConfig.attackChampionsSetting === 'Игнорировать чампов') {
                 championHexes = Array.from(document.querySelectorAll('g.hex-box')).filter(hex => {
@@ -40,6 +43,11 @@ window.BotNavigation = {
                         const textElement = hexagon.querySelector('text.enemies');
                         return textElement && textElement.textContent.trim() === String(priority.value);
                     });
+                }
+
+                // Исключаем текущий гексагон где стоит игрок
+                if (currentHexagon) {
+                    hexagons = hexagons.filter(hex => hex && hex !== currentHexagon);
                 }
 
                 if (window.BotConfig.attackChampionsSetting === 'Игнорировать чампов' && championHexes.length > 0) {

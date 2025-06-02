@@ -1055,43 +1055,130 @@ window.BotGameLogic = {
                 botVersion: window.BotConfig.SCRIPT_COMMIT
             }));
 
-            // Отправляем данные с mode: 'no-cors' для обхода CORS ограничений
-            const response = await fetch(gasUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'addItems',
-                    items: itemsWithIds
-                })
-            });
+            // Попробуем несколько подходов для отправки
+            let response;
+            let success = false;
 
-            // В режиме no-cors response.type будет 'opaque' и мы не можем читать содержимое
-            if (response.type === 'opaque') {
-                console.log(`✅ Данные отправлены в Google Sheets (режим no-cors).`);
-                console.log(`📊 Отправлено ${itemsWithIds.length} предметов. Проверьте таблицу вручную.`);
-                console.log(`🔗 Ссылка на Google Sheets: ${gasUrl.replace('/exec', '/edit')}`);
-            } else {
-                // Обычный режим (если CORS настроен правильно)
+            // Подход 1: Обычный POST запрос
+            try {
+                response = await fetch(gasUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'addItems',
+                        items: itemsWithIds
+                    })
+                });
+                
                 if (response.ok) {
-                    const result = await response.json();
-                    console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
+                    success = true;
+                    console.log('✅ Успешная отправка (обычный режим)');
+                }
+            } catch (error) {
+                console.log('⚠️ Обычный режим не сработал:', error.message);
+            }
+
+            // Подход 2: Если первый не сработал, попробуем no-cors
+            if (!success) {
+                try {
+                    response = await fetch(gasUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'addItems',
+                            items: itemsWithIds
+                        })
+                    });
+                    success = true;
+                    console.log('✅ Успешная отправка (no-cors режим)');
+                } catch (error) {
+                    console.log('⚠️ No-cors режим не сработал:', error.message);
+                }
+            }
+
+            // Подход 3: Если ничего не работает, попробуем как form data
+            if (!success) {
+                try {
+                    const formData = new FormData();
+                    formData.append('data', JSON.stringify({
+                        action: 'addItems',
+                        items: itemsWithIds
+                    }));
+
+                    response = await fetch(gasUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: formData
+                    });
+                    success = true;
+                    console.log('✅ Успешная отправка (form data режим)');
+                } catch (error) {
+                    console.log('⚠️ Form data режим не сработал:', error.message);
+                }
+            }
+
+            // Анализируем результат
+            if (response) {
+                if (response.type === 'opaque') {
+                    console.log(`✅ Данные отправлены в Google Sheets (режим no-cors).`);
+                    console.log(`📊 Отправлено ${itemsWithIds.length} предметов. Проверьте таблицу вручную.`);
                     
-                    if (result.spreadsheetUrl) {
-                        console.log(`📊 Ссылка на таблицу: ${result.spreadsheetUrl}`);
-                        console.log(`🎯 Скопируйте ссылку выше для быстрого доступа к таблице`);
+                    // Пытаемся извлечь ID таблицы из URL
+                    const spreadsheetUrl = this.getSpreadsheetUrlFromGasUrl(gasUrl);
+                    if (spreadsheetUrl) {
+                        console.log(`🔗 Ссылка на Google Sheets: ${spreadsheetUrl}`);
+                    }
+                } else if (response.ok) {
+                    try {
+                        const result = await response.json();
+                        console.log(`✅ Данные отправлены в Google Sheets. Добавлено новых предметов: ${result.addedCount}, пропущено дублей: ${result.duplicatesCount}`);
+                        
+                        if (result.spreadsheetUrl) {
+                            console.log(`📊 Ссылка на таблицу: ${result.spreadsheetUrl}`);
+                            console.log(`🎯 Скопируйте ссылку выше для быстрого доступа к таблице`);
+                        }
+                    } catch (jsonError) {
+                        console.log('✅ Данные отправлены, но не удалось прочитать ответ');
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+            } else {
+                throw new Error('Не удалось отправить данные ни одним из способов');
             }
 
         } catch (error) {
             console.error('❌ Ошибка отправки в Google Sheets:', error);
             console.log('💡 Данные сохранены локально. Проверьте настройки Google Sheets.');
+            console.log('🔧 Убедитесь что:');
+            console.log('   1. Google Apps Script развернут с правильными настройками');
+            console.log('   2. "Выполнить как: Я"');
+            console.log('   3. "Кто имеет доступ: Все"');
+            console.log('   4. URL правильный и заканчивается на /exec');
         }
+    },
+
+    /**
+     * Получение URL таблицы из URL Google Apps Script
+     * @param {string} gasUrl - URL Google Apps Script
+     */
+    getSpreadsheetUrlFromGasUrl(gasUrl) {
+        try {
+            // Пытаемся извлечь ID скрипта из URL
+            const match = gasUrl.match(/\/macros\/s\/([a-zA-Z0-9-_]+)\//);
+            if (match && match[1]) {
+                // Примерная ссылка на проект скрипта
+                return `https://script.google.com/d/${match[1]}/edit`;
+            }
+        } catch (error) {
+            console.log('Не удалось построить ссылку на таблицу');
+        }
+        return null;
     },
 
     /**
