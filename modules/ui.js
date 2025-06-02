@@ -48,9 +48,9 @@ window.BotUI = {
         if (!pingElement) return;
 
         const pingRect = pingElement.getBoundingClientRect();
-        // Кнопка активности: на 5px левее пинга
+        // Кнопка активности: на 5px правее пинга
         // Каждая следующая кнопка: +45px (40px ширина + 5px отступ)
-        const leftPosition = pingRect.left - 5 - (position * 45);
+        const leftPosition = pingRect.right + 5 + (position * 45);
         
         button.style.left = leftPosition + 'px';
         button.style.top = '2px';

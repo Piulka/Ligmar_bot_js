@@ -119,8 +119,22 @@ window.BotNavigation = {
             return false;
         }
         
+        // Проверяем, что polygon является DOM элементом
+        if (!polygon.nodeType || polygon.nodeType !== Node.ELEMENT_NODE) {
+            console.error('❌ clickPolygon: переданный объект не является DOM элементом:', polygon);
+            return false;
+        }
+        
+        // Проверяем, что у элемента есть метод getBoundingClientRect
+        if (typeof polygon.getBoundingClientRect !== 'function') {
+            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect:', polygon);
+            return false;
+        }
+        
         try {
             const rect = polygon.getBoundingClientRect();
+            console.log('✅ Получены координаты полигона:', rect);
+            
             const clickEvent = new MouseEvent('click', {
                 bubbles: true,
                 cancelable: true,
@@ -128,6 +142,7 @@ window.BotNavigation = {
                 clientX: rect.left + rect.width / 2,
                 clientY: rect.top + rect.height / 2
             });
+            
             polygon.dispatchEvent(clickEvent);
             console.log('✅ Клик по полигону выполнен');
             return true;

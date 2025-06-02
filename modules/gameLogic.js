@@ -156,8 +156,8 @@ window.BotGameLogic = {
         }
 
         const pingRect = pingElement.getBoundingClientRect();
-        // Кнопка активности должна быть на 5px левее пинга
-        const baseLeftPosition = pingRect.left - 5;
+        // Кнопка активности должна быть на 5px правее пинга
+        const baseLeftPosition = pingRect.right + 5;
 
         // Размеры кнопки
         const btnWidth = '80px';
