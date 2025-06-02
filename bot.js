@@ -92,6 +92,11 @@
         console.log('🚀 Инициализация бота...');
         
         try {
+            // Инициализируем систему позиционирования кнопок
+            if (window.BotUI && window.BotUI.initializeButtonPositioning) {
+                window.BotUI.initializeButtonPositioning();
+            }
+            
             // Создание кнопки боссов (доступна до авторизации)
             if (window.BotGameLogic && window.BotGameLogic.createBossButtons) {
                 await window.BotGameLogic.createBossButtons();

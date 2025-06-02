@@ -148,15 +148,7 @@ window.BotGameLogic = {
         // Проверяем, не создана ли уже новая кнопка
         if (document.getElementById('boss-dropdown-button')) return;
 
-        // Находим элементы для позиционирования
-        const headerElement = document.querySelector('app-system-header');
-        const pingElement = document.querySelector('.header-ping');
-        if (!headerElement || !pingElement) {
-            console.error('Элементы header не найдены');
-            return;
-        }
-
-        // Создание кнопки АКТИВНОСТИ с привязкой к header
+        // Создание кнопки АКТИВНОСТИ
         const bossDropdownBtn = document.createElement('button');
         bossDropdownBtn.id = 'boss-dropdown-button';
         bossDropdownBtn.className = 'control-button-boss-dropdown';
@@ -181,7 +173,7 @@ window.BotGameLogic = {
             userSelect: 'none',
             outline: 'none',
             margin: '0',
-            position: 'absolute',
+            position: 'fixed', // Позиционирование через новую систему
             zIndex: '1001',
             overflow: 'hidden'
         });
@@ -468,6 +460,9 @@ window.BotGameLogic = {
         // Сборка компонента - выпадающее меню добавляем к кнопке
         bossDropdownBtn.appendChild(dropdown);
 
+        // Добавляем кнопку в body (позиционирование через новую систему)
+        document.body.appendChild(bossDropdownBtn);
+
         // Функция для обновления видимости кнопок после авторизации
         this.updateBossButtonsVisibility = () => {
             if (window.BotUI && window.BotUI.isAuthorized) {
@@ -478,20 +473,6 @@ window.BotGameLogic = {
                 arsOption.style.display = 'none';
             }
         };
-
-        // Добавляем кнопку в header
-        headerElement.appendChild(bossDropdownBtn);
-        
-        // Позиционируем относительно ping элемента
-        const pingRect = pingElement.getBoundingClientRect();
-        const headerRect = headerElement.getBoundingClientRect();
-        
-        // Вычисляем позицию относительно header контейнера (позиция 0 - сразу после пинга)
-        const leftOffset = pingRect.right - headerRect.left + 5;
-        const topOffset = pingRect.top - headerRect.top;
-        
-        bossDropdownBtn.style.left = leftOffset + 'px';
-        bossDropdownBtn.style.top = topOffset + 'px';
     },
 
     /**
