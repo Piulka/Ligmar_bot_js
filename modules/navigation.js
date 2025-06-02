@@ -118,35 +118,24 @@ window.BotNavigation = {
             return false;
         }
         
-        // Проверяем, что element является DOM элементом
-        if (!element.nodeType || element.nodeType !== Node.ELEMENT_NODE) {
-            console.error('❌ clickPolygon: переданный объект не является DOM элементом:', element);
-            return false;
-        }
-        
-        // Ищем полигон: либо сам элемент является полигоном, либо ищем дочерний полигон
-        let targetPolygon = element;
-        if (element.tagName === 'g' || element.classList.contains('hex-box')) {
-            targetPolygon = element.querySelector('polygon.hexagon');
-            if (!targetPolygon) {
-                console.error('❌ clickPolygon: не найден дочерний polygon в <g> элементе');
-                return false;
-            }
-        }
-        
-        // Проверяем, что у элемента есть метод getBoundingClientRect
-        if (typeof targetPolygon.getBoundingClientRect !== 'function') {
-            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect:', targetPolygon);
-            return false;
-        }
-        
         try {
-            // Кликаем по родительскому <g> элементу, а не по самому полигону
+            // Ищем полигон: либо сам элемент является полигоном, либо ищем дочерний полигон
+            let targetPolygon = element;
+            if (element.tagName === 'g' || element.classList.contains('hex-box')) {
+                targetPolygon = element.querySelector('polygon.hexagon');
+                if (!targetPolygon) {
+                    console.error('❌ clickPolygon: не найден дочерний polygon в <g> элементе');
+                    return false;
+                }
+            }
+            
+            // Получаем родительский <g> элемент для клика
             const clickTarget = targetPolygon.closest('g.hex-box') || targetPolygon.parentElement || targetPolygon;
             const rect = targetPolygon.getBoundingClientRect();
             console.log('✅ Получены координаты полигона:', rect);
             
-            const clickEvent = new MouseEvent('click', {
+            // Создаем события мыши
+            const createMouseEvent = (type) => new MouseEvent(type, {
                 bubbles: true,
                 cancelable: true,
                 view: window,
@@ -154,8 +143,11 @@ window.BotNavigation = {
                 clientY: rect.top + rect.height / 2
             });
             
-            // Кликаем по родительскому элементу, который обрабатывает события
-            clickTarget.click();
+            // Отправляем события клика
+            clickTarget.dispatchEvent(createMouseEvent('mousedown'));
+            clickTarget.dispatchEvent(createMouseEvent('mouseup'));
+            clickTarget.dispatchEvent(createMouseEvent('click'));
+            
             console.log('✅ Клик по полигону выполнен');
             return true;
         } catch (error) {

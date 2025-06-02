@@ -97,84 +97,17 @@ window.BotGameLogic = {
             await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         } else {
-            console.log('🔄 Не-VIP игрок: начинаю обработку врагов по счетчику');
+            console.log('🔄 Не-VIP игрок: начинаю бой');
             
-            // Проверяем счетчик врагов
-            let enemiesCount = 0;
-            const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
-            if (enemiesCountElement) {
-                enemiesCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
-                console.log(`👹 Количество врагов: ${enemiesCount}`);
-            }
+            // Ждем появления врага
+            const enemyAppeared = await window.BotCombat.waitForEnemy();
+            await window.BotUtils.delay(100);
+            if (!enemyAppeared) return;
             
-            if (enemiesCount > 0) {
-                // Есть враги - начинаем цикл боя
-                while (enemiesCount > 0 && window.BotConfig.isScriptRunning) {
-                    await window.BotNavigation.checkAndReturnToCity();
-                    
-                    // Обновляем счетчик врагов
-                    const currentEnemiesElement = document.querySelector('div.battle-bar-enemies-value');
-                    if (currentEnemiesElement) {
-                        enemiesCount = parseInt(currentEnemiesElement.textContent.trim(), 10) || 0;
-                        console.log(`👹 Текущее количество врагов: ${enemiesCount}`);
-                        
-                        if (enemiesCount === 0) {
-                            console.log('✅ Все враги повержены');
-                            break;
-                        }
-                    }
-                    
-                    // Нажимаем на switch для переключения на следующего врага
-                    const switchIcon = document.querySelector('tui-icon.svg-icon[style*="assets/icons/switch.svg"]');
-                    if (switchIcon) {
-                        console.log('🔄 Переключаюсь на следующего врага');
-                        switchIcon.click();
-                        await window.BotUtils.delay(300);
-                    } else {
-                        console.log('⚠️ Кнопка переключения не найдена');
-                        await window.BotUtils.delay(300);
-                    }
-                    
-                    // Ждем появления врага и следим за его ХП
-                    let enemyDefeated = false;
-                    let maxAttackRounds = 100; // Защита от бесконечного цикла
-                    
-                    while (!enemyDefeated && maxAttackRounds-- > 0 && window.BotConfig.isScriptRunning) {
-                        await window.BotNavigation.checkAndReturnToCity();
-                        
-                        // Проверяем ХП врага
-                        const enemyHealthElement = document.querySelector('app-general-stat.profile-health.enemy .stats-text');
-                        if (enemyHealthElement) {
-                            const healthText = enemyHealthElement.textContent.trim();
-                            const healthMatch = healthText.match(/^(\d[\d,\s]*)\s*\/\s*[\d,\s]+$/);
-                            
-                            if (healthMatch) {
-                                const currentHP = parseInt(healthMatch[1].replace(/[,\s]/g, ''), 10);
-                                console.log(`❤️ ХП врага: ${currentHP}`);
-                                
-                                if (currentHP === 0) {
-                                    console.log('💀 Враг повержен');
-                                    enemyDefeated = true;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Используем навыки для атаки
-                        await this.performNonVipCombat();
-                        await window.BotUtils.delay(200);
-                    }
-                    
-                    if (maxAttackRounds <= 0) {
-                        console.log('⚠️ Превышено максимальное количество раундов атаки');
-                        break;
-                    }
-                }
-                
-                console.log('🎉 Бой завершен для не-VIP игрока');
-            } else {
-                console.log('👹 Нет врагов для боя');
-            }
+            // Определяем тип боя и вызываем соответствующую функцию
+            const isChampion = hexagonResult.type === 'champion';
+            await window.BotCombat.fightEnemies(isChampion);
+            await window.BotUtils.delay(100);
         }
     },
 
