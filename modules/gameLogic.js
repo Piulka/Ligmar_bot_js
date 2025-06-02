@@ -300,7 +300,7 @@ window.BotGameLogic = {
             chtOption.style.background = 'rgba(25,15,40,0.95)';
         });
 
-        // Кнопка СТОМАТОЛОГ (только для авторизованных)
+        // Кнопка Бонус (только для авторизованных)
         const dentistOption = document.createElement('div');
         Object.assign(dentistOption.style, {
             padding: '8px',
@@ -313,7 +313,7 @@ window.BotGameLogic = {
             transition: 'background 0.2s ease',
             display: window.BotUI && window.BotUI.isAuthorized ? 'block' : 'none'
         });
-        dentistOption.textContent = 'СТОМАТОЛОГ';
+        dentistOption.textContent = 'БОНУС';
         dentistOption.addEventListener('mouseenter', () => {
             dentistOption.style.background = 'rgba(25,60,45,0.95)';
         });
@@ -455,8 +455,8 @@ window.BotGameLogic = {
 
         dentistOption.addEventListener('click', (e) => {
             e.stopPropagation();
-            // TODO: Логика для стоматолога будет добавлена позже
-            console.log('🦷 Кнопка СТОМАТОЛОГ нажата (логика будет добавлена позже)');
+            // TODO: Логика для бонуса будет добавлена позже
+            console.log('🎁 Кнопка БОНУС нажата (логика будет добавлена позже)');
             dropdown.style.display = 'none';
         });
 
