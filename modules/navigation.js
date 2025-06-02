@@ -108,30 +108,42 @@ window.BotNavigation = {
 
     /**
      * Клик по полигону гексагона
-     * @param {HTMLElement} polygon - элемент полигона
+     * @param {HTMLElement} element - элемент полигона или родительский <g> элемент
      */
-    clickPolygon(polygon) {
+    clickPolygon(element) {
         console.log('🎯 clickPolygon: попытка клика по полигону');
         
-        if (!polygon) {
-            console.error('❌ clickPolygon: полигон не найден или равен null');
+        if (!element) {
+            console.error('❌ clickPolygon: элемент не найден или равен null');
             return false;
         }
         
-        // Проверяем, что polygon является DOM элементом
-        if (!polygon.nodeType || polygon.nodeType !== Node.ELEMENT_NODE) {
-            console.error('❌ clickPolygon: переданный объект не является DOM элементом:', polygon);
+        // Проверяем, что element является DOM элементом
+        if (!element.nodeType || element.nodeType !== Node.ELEMENT_NODE) {
+            console.error('❌ clickPolygon: переданный объект не является DOM элементом:', element);
             return false;
+        }
+        
+        // Ищем полигон: либо сам элемент является полигоном, либо ищем дочерний полигон
+        let targetPolygon = element;
+        if (element.tagName === 'g' || element.classList.contains('hex-box')) {
+            targetPolygon = element.querySelector('polygon.hexagon');
+            if (!targetPolygon) {
+                console.error('❌ clickPolygon: не найден дочерний polygon в <g> элементе');
+                return false;
+            }
         }
         
         // Проверяем, что у элемента есть метод getBoundingClientRect
-        if (typeof polygon.getBoundingClientRect !== 'function') {
-            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect:', polygon);
+        if (typeof targetPolygon.getBoundingClientRect !== 'function') {
+            console.error('❌ clickPolygon: элемент не поддерживает getBoundingClientRect:', targetPolygon);
             return false;
         }
         
         try {
-            const rect = polygon.getBoundingClientRect();
+            // Кликаем по родительскому <g> элементу, а не по самому полигону
+            const clickTarget = targetPolygon.closest('g.hex-box') || targetPolygon.parentElement || targetPolygon;
+            const rect = targetPolygon.getBoundingClientRect();
             console.log('✅ Получены координаты полигона:', rect);
             
             const clickEvent = new MouseEvent('click', {
@@ -142,7 +154,8 @@ window.BotNavigation = {
                 clientY: rect.top + rect.height / 2
             });
             
-            polygon.dispatchEvent(clickEvent);
+            // Кликаем по родительскому элементу, который обрабатывает события
+            clickTarget.click();
             console.log('✅ Клик по полигону выполнен');
             return true;
         } catch (error) {

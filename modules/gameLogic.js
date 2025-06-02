@@ -518,14 +518,21 @@ window.BotGameLogic = {
                 const polygonPoints = polygons[i];
                 console.log(`🔥 Переход на полигон ${i + 1}/${polygons.length - 1}: ${polygonPoints}`);
                 
-                const polygon = await window.BotUtils.waitFor(() => {
+                // Ищем полигон напрямую
+                let polygon = null;
+                const maxTries = 50; // 10 секунд при интервале 200мс
+                
+                for (let attempt = 0; attempt < maxTries; attempt++) {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    const foundPolygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
-                    if (foundPolygon) {
+                    
+                    polygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                    if (polygon) {
                         console.log(`✅ Найден полигон ${i + 1}: ${polygonPoints}`);
+                        break;
                     }
-                    return foundPolygon;
-                }, 200, 10000);
+                    
+                    await window.BotUtils.delay(200);
+                }
                 
                 if (!polygon) {
                     console.error(`❌ Не найден полигон для босса: ${polygonPoints}`);
@@ -572,10 +579,22 @@ window.BotGameLogic = {
 
             // Переход на последний полигон (босс)
             console.log('🔥 Переход к боссу ВТ...');
-            const bossPolygon = await window.BotUtils.waitFor(() => {
+            
+            // Ищем босс полигон напрямую
+            let bossPolygon = null;
+            const maxBossTries = 50; // 10 секунд при интервале 200мс
+            
+            for (let attempt = 0; attempt < maxBossTries; attempt++) {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
-            }, 200, 10000);
+                
+                bossPolygon = document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
+                if (bossPolygon) {
+                    console.log(`✅ Найден полигон босса: ${bossPolygonPoints}`);
+                    break;
+                }
+                
+                await window.BotUtils.delay(200);
+            }
             
             if (!bossPolygon) {
                 console.error(`❌ Не найден полигон босса: ${bossPolygonPoints}`);
@@ -656,10 +675,21 @@ window.BotGameLogic = {
                 await window.BotNavigation.checkAndReturnToCity();
                 
                 const polygonPoints = polygons[i];
-                const polygon = await window.BotUtils.waitFor(() => {
+                
+                // Ищем полигон напрямую
+                let polygon = null;
+                const maxTries = 50; // 10 секунд при интервале 200мс
+                
+                for (let attempt = 0; attempt < maxTries; attempt++) {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                    return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
-                }, 200, 10000);
+                    
+                    polygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                    if (polygon) {
+                        break;
+                    }
+                    
+                    await window.BotUtils.delay(200);
+                }
                 
                 if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
                 
@@ -694,10 +724,25 @@ window.BotGameLogic = {
             await window.BotNavigation.checkAndReturnToCity();
 
             // Переход на последний полигон (босс)
-            const bossPolygon = await window.BotUtils.waitFor(() => {
+            
+            // Ищем босс полигон напрямую
+            let bossPolygon = null;
+            const maxBossTries = 50; // 10 секунд при интервале 200мс
+            
+            for (let attempt = 0; attempt < maxBossTries; attempt++) {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
-            }, 200, 10000);
+                
+                bossPolygon = document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
+                if (bossPolygon) {
+                    break;
+                }
+                
+                await window.BotUtils.delay(200);
+            }
+            
+            if (!bossPolygon) {
+                throw new Error(`Не найден полигон босса: ${bossPolygonPoints}`);
+            }
             
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
@@ -745,10 +790,20 @@ window.BotGameLogic = {
 
             await window.BotNavigation.checkAndReturnToCity();
 
-            const bossIcon = await window.BotUtils.waitFor(() => {
+            // Ищем иконку босса напрямую
+            let bossIcon = null;
+            const maxIconTries = 50; // 10 секунд при интервале 200мс
+            
+            for (let attempt = 0; attempt < maxIconTries; attempt++) {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFightLoop aborted');
-                return document.querySelector('tui-icon.svg-icon[style*="mob-type-boss.svg"]');
-            }, 200, 10000);
+                
+                bossIcon = document.querySelector('tui-icon.svg-icon[style*="mob-type-boss.svg"]');
+                if (bossIcon) {
+                    break;
+                }
+                
+                await window.BotUtils.delay(200);
+            }
 
             if (!bossIcon) throw new Error('Иконка босса не найдена');
             bossIcon.click();
