@@ -270,6 +270,18 @@ window.BotNavigation = {
                 console.log('Найдена кнопка "В город", выполняем нажатие...');
                 cityButton.click();
                 await window.BotUtils.delay(100);
+                
+                // Ищем и нажимаем кнопку "Воскреснуть"
+                console.log('Ищем кнопку "Воскреснуть"...');
+                const resurrectButton = await window.BotUtils.waitForElement('div.button-content', 'Воскреснуть', 3000);
+                if (resurrectButton) {
+                    console.log('✅ Найдена кнопка "Воскреснуть", нажимаем...');
+                    resurrectButton.click();
+                    await window.BotUtils.delay(100);
+                } else {
+                    console.log('⚠️ Кнопка "Воскреснуть" не найдена или уже воскрешен');
+                }
+                
                 await window.BotUtils.delay(1000);
                 
                 if (window.BotInventory && window.BotInventory.claimRewardButton) {
