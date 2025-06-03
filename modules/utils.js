@@ -39,7 +39,22 @@ window.BotUtils = {
             const elements = document.querySelectorAll('div.button-content');
             for (const element of elements) {
                 if (element.textContent.trim() === text) {
-                    element.click();
+                    // Безопасный клик: сначала пробуем родительский app-button
+                    const appButton = element.closest('app-button');
+                    if (appButton && appButton.click) {
+                        appButton.click();
+                    } else {
+                        // Если родительский элемент не найден, используем MouseEvent
+                        const rect = element.getBoundingClientRect();
+                        const clickEvent = new MouseEvent('click', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            clientX: rect.left + rect.width / 2,
+                            clientY: rect.top + rect.height / 2
+                        });
+                        element.dispatchEvent(clickEvent);
+                    }
                     await this.delay(100);
                     return true;
                 }
@@ -60,7 +75,22 @@ window.BotUtils = {
             const elements = document.querySelectorAll('div.location-name');
             for (const element of elements) {
                 if (element.textContent.trim() === text) {
-                    element.click();
+                    // Безопасный клик: ищем родительский элемент для клика
+                    const locationHeader = element.closest('div.location-info-header');
+                    if (locationHeader && locationHeader.click) {
+                        locationHeader.click();
+                    } else {
+                        // Fallback через MouseEvent
+                        const rect = element.getBoundingClientRect();
+                        const clickEvent = new MouseEvent('click', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                            clientX: rect.left + rect.width / 2,
+                            clientY: rect.top + rect.height / 2
+                        });
+                        element.dispatchEvent(clickEvent);
+                    }
                     await this.delay(100);
                     return true;
                 }

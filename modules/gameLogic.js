@@ -502,38 +502,20 @@ window.BotGameLogic = {
             await window.BotNavigation.checkAndReturnToCity();
             
             try {
-                // 1. Клик на "Сражения"
+                // 1. Клик на "Сражения" - используем ту же функцию что и в основном цикле
                 console.log('1️⃣ Клик на "Сражения"...');
-                const battlesBtn = await window.BotUtils.waitFor(() => {
-                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    return Array.from(document.querySelectorAll('div.button-content'))
-                        .find(btn => btn.textContent.trim() === 'Сражения');
-                }, 200, 5000);
-                
-                if (battlesBtn) {
-                    // Кликаем по родительскому app-button элементу
-                    const appButton = battlesBtn.closest('app-button');
-                    if (appButton) {
-                        appButton.click();
-                        console.log('✅ Клик по "Сражения" выполнен');
-                        await window.BotUtils.delay(500);
-                    } else {
-                        throw new Error('Родительский элемент app-button не найден');
-                    }
+                const battlesSuccess = await window.BotUtils.clickByTextContent('Сражения', 5000);
+                if (battlesSuccess) {
+                    console.log('✅ Клик по "Сражения" выполнен');
+                    await window.BotUtils.delay(500);
                 } else {
                     throw new Error('Кнопка "Сражения" не найдена');
                 }
 
-                // 2. Клик на "Зеленые топи"
+                // 2. Клик на "Зеленые топи" - используем ту же функцию что и в основном цикле
                 console.log('2️⃣ Клик на "Зеленые топи"...');
-                const swampsBtn = await window.BotUtils.waitFor(() => {
-                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    return Array.from(document.querySelectorAll('div.location-name'))
-                        .find(loc => loc.textContent.trim() === 'Зеленые топи');
-                }, 200, 5000);
-                
-                if (swampsBtn) {
-                    swampsBtn.closest('div.location-info-header').click();
+                const swampsSuccess = await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
+                if (swampsSuccess) {
                     console.log('✅ Клик по "Зеленые топи" выполнен');
                     await window.BotUtils.delay(500);
                 } else {
@@ -567,16 +549,10 @@ window.BotGameLogic = {
                     throw new Error('Целевой гексагон не найден');
                 }
 
-                // 4. Клик на "Перейти"
+                // 4. Клик на "Перейти" - используем ту же функцию что и в основном цикле
                 console.log('4️⃣ Клик на "Перейти"...');
-                const goBtn = await window.BotUtils.waitFor(() => {
-                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    return Array.from(document.querySelectorAll('div.button-content'))
-                        .find(btn => btn.textContent.trim() === 'Перейти');
-                }, 200, 5000);
-                
-                if (goBtn) {
-                    goBtn.click();
+                const goSuccess = await window.BotUtils.clickByTextContent('Перейти', 5000);
+                if (goSuccess) {
                     console.log('✅ Клик по "Перейти" выполнен');
                     await window.BotUtils.delay(500);
                 } else {
