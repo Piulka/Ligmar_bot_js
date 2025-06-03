@@ -570,7 +570,22 @@ window.BotGameLogic = {
                 if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
                 
                 console.log(`🔥 Кликаю на полигон ${i + 1}...`);
-                window.BotNavigation.clickPolygon(polygon);
+                // Используем проверенный метод клика через MouseEvent
+                try {
+                    const rect = polygon.getBoundingClientRect();
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect.left + rect.width / 2,
+                        clientY: rect.top + rect.height / 2
+                    });
+                    
+                    polygon.dispatchEvent(clickEvent);
+                    console.log('🖱️ Клик по полигону выполнен через MouseEvent');
+                } catch (error) {
+                    console.error('❌ Ошибка клика по полигону:', error);
+                }
                 await window.BotUtils.delay(300);
                 
                 console.log(`🔥 Ищу кнопку "Перейти"...`);
@@ -602,10 +617,26 @@ window.BotGameLogic = {
             // --- Новый блок: Переход на последний полигон ---
             // 1. Кликаем по последнему полигону
             const bossPolygon = await window.BotUtils.waitFor(() => {
-                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
             }, 200, 10000);
-            window.BotNavigation.clickPolygon(bossPolygon);
+            
+            // Используем проверенный метод клика через MouseEvent
+            try {
+                const rect = bossPolygon.getBoundingClientRect();
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                });
+                
+                bossPolygon.dispatchEvent(clickEvent);
+                console.log('🖱️ Клик по последнему полигону выполнен через MouseEvent');
+            } catch (error) {
+                console.error('❌ Ошибка клика по последнему полигону:', error);
+            }
             await window.BotUtils.delay(300);
 
             // 2. Ждем появления кнопки "Перейти" и кликаем по ней
@@ -636,7 +667,21 @@ window.BotGameLogic = {
             }
 
             // 5. Повторный клик по последнему гексагону
-            window.BotNavigation.clickPolygon(bossPolygon);
+            try {
+                const rect = bossPolygon.getBoundingClientRect();
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                });
+                
+                bossPolygon.dispatchEvent(clickEvent);
+                console.log('🖱️ Повторный клик по последнему полигону выполнен через MouseEvent');
+            } catch (error) {
+                console.error('❌ Ошибка повторного клика по последнему полигону:', error);
+            }
             await window.BotUtils.delay(200);
 
             console.log('🔥 Начинаю бой с боссом ВТ...');
@@ -670,8 +715,25 @@ window.BotGameLogic = {
                     return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
                 }, 200, 10000);
                 if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
-                window.BotNavigation.clickPolygon(polygon);
+                
+                // Используем проверенный метод клика через MouseEvent
+                try {
+                    const rect = polygon.getBoundingClientRect();
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect.left + rect.width / 2,
+                        clientY: rect.top + rect.height / 2
+                    });
+                    
+                    polygon.dispatchEvent(clickEvent);
+                    console.log('🖱️ Клик по полигону выполнен через MouseEvent');
+                } catch (error) {
+                    console.error('❌ Ошибка клика по полигону:', error);
+                }
                 await window.BotUtils.delay(300);
+                
                 const goBtnCHT = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                     return Array.from(document.querySelectorAll('div.button-content'))
@@ -698,7 +760,23 @@ window.BotGameLogic = {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                 return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
             }, 200, 10000);
-            window.BotNavigation.clickPolygon(bossPolygon);
+            
+            // Используем проверенный метод клика через MouseEvent
+            try {
+                const rect = bossPolygon.getBoundingClientRect();
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                });
+                
+                bossPolygon.dispatchEvent(clickEvent);
+                console.log('🖱️ Клик по последнему полигону выполнен через MouseEvent');
+            } catch (error) {
+                console.error('❌ Ошибка клика по последнему полигону:', error);
+            }
             await window.BotUtils.delay(300);
 
             // 2. Ждем появления кнопки "Перейти" и кликаем по ней
@@ -729,7 +807,21 @@ window.BotGameLogic = {
             }
 
             // 5. Повторный клик по последнему гексагону
-            window.BotNavigation.clickPolygon(bossPolygon);
+            try {
+                const rect = bossPolygon.getBoundingClientRect();
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                });
+                
+                bossPolygon.dispatchEvent(clickEvent);
+                console.log('🖱️ Повторный клик по последнему полигону выполнен через MouseEvent');
+            } catch (error) {
+                console.error('❌ Ошибка повторного клика по последнему полигону:', error);
+            }
             await window.BotUtils.delay(200);
 
             await this.bossFightLoop(abortSignal, bossPolygonPoints);
@@ -1124,6 +1216,9 @@ window.BotGameLogic = {
                             const jsonResult = JSON.parse(result);
                             if (jsonResult.addedCount > 0) {
                                 console.log(`📊 Добавлено предметов: ${jsonResult.addedCount}`);
+                            }
+                            if (jsonResult.spreadsheetUrl) {
+                                console.log(`🔗 Ссылка на таблицу: ${jsonResult.spreadsheetUrl}`);
                             }
                         } catch (parseError) {
                             // Если не JSON, просто игнорируем
