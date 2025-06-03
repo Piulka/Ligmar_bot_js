@@ -5,6 +5,7 @@ window.BotGameLogic = {
     
     // Google Sheets константы
     SPREADSHEET_ID: '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ',
+    GUILD_SPREADSHEET_ID: '1Ygi2GzE6MB0_9im_npM6N1Im-jHiXVbpIQ_V4CkxeaQ',
 
     /**
      * Запуск основного скрипта
@@ -288,9 +289,9 @@ window.BotGameLogic = {
             chtOption.style.background = 'rgba(25,15,40,0.95)';
         });
 
-        // Кнопка Бонус (только для авторизованных)
-        const dentistOption = document.createElement('div');
-        Object.assign(dentistOption.style, {
+        // Кнопка Вещи Г (только для авторизованных)
+        const guildItemsOption = document.createElement('div');
+        Object.assign(guildItemsOption.style, {
             padding: '8px',
             fontSize: '10px',
             color: '#FFD700',
@@ -301,17 +302,17 @@ window.BotGameLogic = {
             transition: 'background 0.2s ease',
             display: window.BotUI && window.BotUI.isAuthorized ? 'block' : 'none'
         });
-        dentistOption.textContent = 'БОНУС';
-        dentistOption.addEventListener('mouseenter', () => {
-            dentistOption.style.background = 'rgba(25,60,45,0.95)';
+        guildItemsOption.textContent = 'Вещи Г';
+        guildItemsOption.addEventListener('mouseenter', () => {
+            guildItemsOption.style.background = 'rgba(25,60,45,0.95)';
         });
-        dentistOption.addEventListener('mouseleave', () => {
-            dentistOption.style.background = 'rgba(15,40,25,0.95)';
+        guildItemsOption.addEventListener('mouseleave', () => {
+            guildItemsOption.style.background = 'rgba(15,40,25,0.95)';
         });
 
-        // Кнопка АРС (только для авторизованных)
-        const arsOption = document.createElement('div');
-        Object.assign(arsOption.style, {
+        // Кнопка Вещи ТОП (только для авторизованных)
+        const topItemsOption = document.createElement('div');
+        Object.assign(topItemsOption.style, {
             padding: '8px',
             fontSize: '10px',
             color: '#FFD700',
@@ -321,18 +322,18 @@ window.BotGameLogic = {
             transition: 'background 0.2s ease',
             display: window.BotUI && window.BotUI.isAuthorized ? 'block' : 'none'
         });
-        arsOption.textContent = 'АРС';
-        arsOption.addEventListener('mouseenter', () => {
-            arsOption.style.background = 'rgba(60,60,25,0.95)';
+        topItemsOption.textContent = 'Вещи ТОП';
+        topItemsOption.addEventListener('mouseenter', () => {
+            topItemsOption.style.background = 'rgba(60,60,25,0.95)';
         });
-        arsOption.addEventListener('mouseleave', () => {
-            arsOption.style.background = 'rgba(40,40,15,0.95)';
+        topItemsOption.addEventListener('mouseleave', () => {
+            topItemsOption.style.background = 'rgba(40,40,15,0.95)';
         });
 
         dropdown.appendChild(vtOption);
         dropdown.appendChild(chtOption);
-        dropdown.appendChild(dentistOption);
-        dropdown.appendChild(arsOption);
+        dropdown.appendChild(guildItemsOption);
+        dropdown.appendChild(topItemsOption);
 
         // Переменные состояния
         this.activeBossType = null; // 'vt' или 'cht'
@@ -449,16 +450,15 @@ window.BotGameLogic = {
             activateCHT();
         });
 
-        dentistOption.addEventListener('click', (e) => {
+        guildItemsOption.addEventListener('click', (e) => {
             e.stopPropagation();
-            // TODO: Логика для бонуса будет добавлена позже
-            console.log('🎁 Кнопка БОНУС нажата (логика будет добавлена позже)');
+            this.analyzeArsenal(this.GUILD_SPREADSHEET_ID);
             dropdown.style.display = 'none';
         });
 
-        arsOption.addEventListener('click', (e) => {
+        topItemsOption.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.analyzeArsenal();
+            this.analyzeArsenal(this.SPREADSHEET_ID);
             dropdown.style.display = 'none';
         });
 
@@ -478,11 +478,11 @@ window.BotGameLogic = {
         // Функция для обновления видимости кнопок после авторизации
         this.updateBossButtonsVisibility = () => {
             if (window.BotUI && window.BotUI.isAuthorized) {
-                dentistOption.style.display = 'block';
-                arsOption.style.display = 'block';
+                guildItemsOption.style.display = 'block';
+                topItemsOption.style.display = 'block';
             } else {
-                dentistOption.style.display = 'none';
-                arsOption.style.display = 'none';
+                guildItemsOption.style.display = 'none';
+                topItemsOption.style.display = 'none';
             }
         };
     },
@@ -515,75 +515,22 @@ window.BotGameLogic = {
             const firstHexTarget = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 
-                // Ищем гексагон с указанными координатами и текстом "1"
-                const hexElement = document.querySelector('g.hex-box.neighbour.visible polygon.hexagon[points="-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25"]');
-                if (hexElement) {
-                    const parentHex = hexElement.closest('g.hex-box');
+                // Ищем полигон с указанными координатами
+                const polygon = document.querySelector('g.hex-box.neighbour.visible polygon.hexagon[points="-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25"]');
+                if (polygon) {
+                    const parentHex = polygon.closest('g.hex-box');
                     const enemiesText = parentHex ? parentHex.querySelector('text.enemies') : null;
                     if (enemiesText && enemiesText.textContent.trim() === '1') {
-                        return parentHex;
+                        return polygon; // Возвращаем полигон, а не parentHex
                     }
                 }
                 return null;
             }, 1000, 30000);
 
             if (firstHexTarget) {
-                console.log('✅ Найден первый гексагон с врагами, пробуем разные способы нажатия...');
-                
-                // Способ 1: Клик по всему гексагону
-                try {
-                    console.log('🎯 Способ 1: Клик по всему гексагону');
-                    firstHexTarget.click();
-                    await window.BotUtils.delay(300);
-                } catch (error) {
-                    console.log('⚠️ Способ 1 не сработал:', error.message);
-                }
-
-                // Способ 2: Клик по полигону
-                try {
-                    console.log('🎯 Способ 2: Клик по полигону');
-                    const polygon = firstHexTarget.querySelector('polygon.hexagon');
-                    if (polygon) {
-                        window.BotNavigation.clickPolygon(polygon);
-                        await window.BotUtils.delay(300);
-                    }
-                } catch (error) {
-                    console.log('⚠️ Способ 2 не сработал:', error.message);
-                }
-
-                // Способ 3: MouseEvent на гексагон
-                try {
-                    console.log('🎯 Способ 3: MouseEvent на гексагон');
-                    const rect = firstHexTarget.getBoundingClientRect();
-                    const clickEvent = new MouseEvent('click', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window,
-                        clientX: rect.left + rect.width / 2,
-                        clientY: rect.top + rect.height / 2
-                    });
-                    firstHexTarget.dispatchEvent(clickEvent);
-                    await window.BotUtils.delay(300);
-                } catch (error) {
-                    console.log('⚠️ Способ 3 не сработал:', error.message);
-                }
-
-                // Способ 4: PointerEvent
-                try {
-                    console.log('🎯 Способ 4: PointerEvent');
-                    const rect = firstHexTarget.getBoundingClientRect();
-                    const pointerEvent = new PointerEvent('click', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window,
-                        clientX: rect.left + rect.width / 2,
-                        clientY: rect.top + rect.height / 2
-                    });
-                    firstHexTarget.dispatchEvent(pointerEvent);
-                    await window.BotUtils.delay(300);
-                } catch (error) {
-                    console.log('⚠️ Способ 4 не сработал:', error.message);
-                }
+                console.log('✅ Найден первый гексагон с врагами, кликаю по полигону...');
+                window.BotNavigation.clickPolygon(firstHexTarget);
+                await window.BotUtils.delay(300);
             } else {
                 console.log('❌ Первый гексагон с врагами не найден');
             }
@@ -836,7 +783,7 @@ window.BotGameLogic = {
     /**
      * Анализ арсенала гильдии
      */
-    async analyzeArsenal() {
+    async analyzeArsenal(spreadsheetId = null) {
         try {
             console.log('🏛️ Начинаю анализ сундука...');
             
@@ -927,9 +874,9 @@ window.BotGameLogic = {
             console.log(`\n🎉 === АНАЛИЗ ЗАВЕРШЕН ===`);
             console.log(`📊 Проанализировано предметов: ${analyzedCount}/${itemCards.length}`);
 
-            // Отправляем только в Google Sheets
+            // Отправляем в Google Sheets (используем переданный spreadsheetId или default)
             if (itemsData.length > 0) {
-                await this.sendToGoogleSheets(itemsData);
+                await this.sendToGoogleSheets(itemsData, spreadsheetId);
             }
 
         } catch (error) {
@@ -1102,8 +1049,9 @@ window.BotGameLogic = {
     /**
      * Отправка данных в Google Sheets
      * @param {Array} itemsData - массив данных о предметах
+     * @param {string} spreadsheetId - ID таблицы (опционально)
      */
-    async sendToGoogleSheets(itemsData) {
+    async sendToGoogleSheets(itemsData, spreadsheetId = null) {
         try {
             // Проверяем, настроен ли Google Apps Script URL
             const gasUrl = window.BotConfig.googleSheetsUrl;
@@ -1113,9 +1061,12 @@ window.BotGameLogic = {
                 return;
             }
 
+            // Используем переданный spreadsheetId или default
+            const targetSpreadsheetId = spreadsheetId || this.SPREADSHEET_ID;
+
             console.log('📤 Отправка данных в Google Sheets...');
             console.log('🔗 URL:', gasUrl);
-            console.log('📊 ID таблицы:', this.SPREADSHEET_ID);
+            console.log('📊 ID таблицы:', targetSpreadsheetId);
 
             // Создаем уникальные идентификаторы для предметов
             const itemsWithIds = itemsData.map(item => ({
@@ -1128,7 +1079,7 @@ window.BotGameLogic = {
             const payload = {
                 action: 'addItems',
                 items: itemsWithIds,
-                spreadsheetId: this.SPREADSHEET_ID
+                spreadsheetId: targetSpreadsheetId
             };
 
             console.log('📦 Отправляем данных:', itemsWithIds.length, 'предметов');

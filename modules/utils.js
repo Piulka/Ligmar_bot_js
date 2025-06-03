@@ -116,6 +116,14 @@ window.BotUtils = {
      * Автоматическое определение VIP статуса
      */
     autoDetectVipStatus() {
+        // Проверяем наличие кнопки switch (переключения цели)
+        const switchIcon = document.querySelector('tui-icon.svg-icon[style*="assets/icons/switch.svg"]');
+        if (switchIcon) {
+            console.log('🔍 Обнаружена кнопка switch - игрок НЕ ВИП');
+            return 'Не VIP';
+        }
+
+        // Дополнительная проверка по выносливости (fallback)
         const enduranceElement = document.querySelector('app-status-panel .status-endurance');
         if (!enduranceElement) return window.BotConfig.vipStatus;
 
