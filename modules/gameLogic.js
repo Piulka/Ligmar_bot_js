@@ -97,12 +97,30 @@ window.BotGameLogic = {
             await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         } else {
-            console.log('🔄 Не-VIP игрок: начинаю бой');
+            console.log('🔄 Не-VIP игрок: ожидание появления врагов и нажатие switch');
             
-            // Ждем появления врага
-            const enemyAppeared = await window.BotCombat.waitForEnemy();
-            await window.BotUtils.delay(100);
-            if (!enemyAppeared) return;
+            // Ждем появления врагов (когда battle-bar-enemies-value станет больше 0)
+            console.log('🔄 Ожидание появления врагов...');
+            await window.BotUtils.waitFor(() => {
+                const enemiesValueElement = document.querySelector('div.battle-bar-enemies-value');
+                if (enemiesValueElement) {
+                    const enemiesCount = parseInt(enemiesValueElement.textContent.trim(), 10) || 0;
+                    console.log(`🔍 Текущее количество врагов: ${enemiesCount}`);
+                    return enemiesCount > 0;
+                }
+                return false;
+            }, 200, 10000);
+            
+            // Нажимаем на switch после появления врагов
+            console.log('🔄 Враги появились, нажимаю на switch...');
+            const switchIcon = document.querySelector('tui-icon.svg-icon[style*="switch.svg"]');
+            if (switchIcon) {
+                switchIcon.click();
+                await window.BotUtils.delay(100);
+                console.log('✅ Switch нажат для не-VIP игрока');
+            } else {
+                console.warn('⚠️ Switch иконка не найдена');
+            }
             
             // Определяем тип боя и вызываем соответствующую функцию
             const isChampion = hexagonResult.type === 'champion';
@@ -482,6 +500,33 @@ window.BotGameLogic = {
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
 
+            // Кликаем на первый гексагон после захода в локацию
+            console.log('🔥 Ищу и кликаю на первый гексагон...');
+            const firstPolygonPoints = polygons[0];
+            let firstPolygon = null;
+            const maxFirstTries = 50; // 10 секунд при интервале 200мс
+            
+            for (let attempt = 0; attempt < maxFirstTries; attempt++) {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+                
+                firstPolygon = document.querySelector(`polygon.hexagon[points="${firstPolygonPoints}"]`);
+                if (firstPolygon) {
+                    console.log(`✅ Найден первый полигон: ${firstPolygonPoints}`);
+                    break;
+                }
+                
+                await window.BotUtils.delay(200);
+            }
+            
+            if (!firstPolygon) {
+                console.error(`❌ Не найден первый полигон: ${firstPolygonPoints}`);
+                throw new Error(`Не найден первый полигон: ${firstPolygonPoints}`);
+            }
+            
+            console.log('🔥 Кликаю на первый полигон...');
+            window.BotNavigation.clickPolygon(firstPolygon);
+            await window.BotUtils.delay(300);
+
             for (let i = 0; i < polygons.length - 1; ++i) {
                 // Проверяем кнопку "В город" на каждом шаге
                 await window.BotNavigation.checkAndReturnToCity();
@@ -640,6 +685,33 @@ window.BotGameLogic = {
             
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
+
+            // Кликаем на первый гексагон после захода в локацию
+            console.log('🔥 Ищу и кликаю на первый гексагон ЧТ...');
+            const firstPolygonPoints = polygons[0];
+            let firstPolygon = null;
+            const maxFirstTries = 50; // 10 секунд при интервале 200мс
+            
+            for (let attempt = 0; attempt < maxFirstTries; attempt++) {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                
+                firstPolygon = document.querySelector(`polygon.hexagon[points="${firstPolygonPoints}"]`);
+                if (firstPolygon) {
+                    console.log(`✅ Найден первый полигон ЧТ: ${firstPolygonPoints}`);
+                    break;
+                }
+                
+                await window.BotUtils.delay(200);
+            }
+            
+            if (!firstPolygon) {
+                console.error(`❌ Не найден первый полигон ЧТ: ${firstPolygonPoints}`);
+                throw new Error(`Не найден первый полигон ЧТ: ${firstPolygonPoints}`);
+            }
+            
+            console.log('🔥 Кликаю на первый полигон ЧТ...');
+            window.BotNavigation.clickPolygon(firstPolygon);
+            await window.BotUtils.delay(300);
 
             for (let i = 0; i < polygons.length - 1; ++i) {
                 // Проверяем кнопку "В город" на каждом шаге
@@ -1645,54 +1717,5 @@ googleSheetsUrl: 'ВАШ_URL_СЮДА',
         text += `Сгенерировано ботом Ligmar v.${window.BotConfig.SCRIPT_COMMIT}`;
         
         return text;
-    },
-
-    /**
-     * Выполнение боевых действий для не-VIP игроков
-     */
-    async performNonVipCombat() {
-        try {
-            // Проверяем здоровье и ману
-            if (window.BotCombat && window.BotCombat.checkManaAndHealth) {
-                await window.BotCombat.checkManaAndHealth();
-                await window.BotUtils.delay(100);
-            }
-            
-            // Проверяем баффы
-            if (window.BotCombat && window.BotCombat.checkAndActivateDefenseBuff) {
-                await window.BotCombat.checkAndActivateDefenseBuff();
-                await window.BotUtils.delay(100);
-            }
-            
-            // Используем боевые навыки
-            window.BotConfig.selectedClass = window.BotUtils.detectPlayerClass();
-            const skills = window.BotConfig.CLASS_SKILLS[window.BotConfig.selectedClass];
-            
-            if (skills && skills.attack && skills.attack.length) {
-                for (const skill of skills.attack) {
-                    if (window.BotCombat && window.BotCombat.useSkill) {
-                        await window.BotCombat.useSkill(skill);
-                        await window.BotUtils.delay(100);
-                    }
-                }
-            }
-            
-            // Для лучника используем мультискилл если нужно
-            if (window.BotConfig.selectedClass === 'Лучник' && skills && skills.multitarget) {
-                const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
-                if (enemiesCountElement) {
-                    const enemiesCount = parseInt(enemiesCountElement.textContent.trim(), 10) || 0;
-                    if (enemiesCount >= 2) {
-                        if (window.BotCombat && window.BotCombat.useSkill) {
-                            await window.BotCombat.useSkill(skills.multitarget);
-                            await window.BotUtils.delay(100);
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.error('Ошибка в performNonVipCombat:', error);
-        }
-    },
-}; 
+    }
+};
