@@ -2,6 +2,9 @@
 window.BotGameLogic = {
     vtAbortController: null,
     chtAbortController: null,
+    
+    // Google Sheets константы
+    SPREADSHEET_ID: '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ',
 
     /**
      * Запуск основного скрипта
@@ -1152,6 +1155,7 @@ window.BotGameLogic = {
 
             console.log('📤 Отправка данных в Google Sheets...');
             console.log('🔗 URL:', gasUrl);
+            console.log('📊 ID таблицы:', this.SPREADSHEET_ID);
 
             // Создаем уникальные идентификаторы для предметов
             const itemsWithIds = itemsData.map(item => ({
@@ -1163,7 +1167,8 @@ window.BotGameLogic = {
 
             const payload = {
                 action: 'addItems',
-                items: itemsWithIds
+                items: itemsWithIds,
+                spreadsheetId: this.SPREADSHEET_ID
             };
 
             console.log('📦 Отправляем данных:', itemsWithIds.length, 'предметов');

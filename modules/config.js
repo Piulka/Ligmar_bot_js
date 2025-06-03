@@ -30,7 +30,7 @@ window.BotConfig = {
     dropPotionEnabled: false,
 
     // Версия скрипта
-    SCRIPT_COMMIT: 'v.3.9.1',
+    SCRIPT_COMMIT: 'v.3.9.2',
 
     // Google Sheets интеграция (оставьте пустым если не используете)
     googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbx1rzMpyB2shNfXPd93aKFW2fHoqFw21E-GjzK5k7E5sp7KBGy07osPxUido_b-nYrkKQ/exec', // URL Google Apps Script веб-приложения
