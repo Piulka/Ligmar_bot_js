@@ -4,8 +4,8 @@ window.BotGameLogic = {
     chtAbortController: null,
     
     // Google Sheets константы
-    SPREADSHEET_ID: '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ',
-    GUILD_SPREADSHEET_ID: '1Ygi2GzE6MB0_9im_npM6N1Im-jHiXVbpIQ_V4CkxeaQ',
+    SPREADSHEET_ID: '1Ygi2GzE6MB0_9im_npM6N1Im-jHiXVbpIQ_V4CkxeaQ',
+    GUILD_SPREADSHEET_ID: '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ',
 
     /**
      * Запуск основного скрипта
@@ -103,17 +103,13 @@ window.BotGameLogic = {
         } else {
             // Для НЕ ВИП: проверяем есть ли кнопка switch
             console.log('🔍 Обнаружен НЕ ВИП игрок');
-            const switchIcon = document.querySelector('tui-icon.svg-icon[style*="switch.svg"]');
+            const switchIcon = document.querySelector('tui-icon.svg-icon[style*="assets/icons/switch.svg"]');
             if (switchIcon) {
-                console.log('🔄 Не-VIP игрок: ожидание появления врагов и нажатие switch');
-                
                 // Ждем появления врагов (когда battle-bar-enemies-value станет больше 0)
-                console.log('🔄 Ожидание появления врагов...');
                 await window.BotUtils.waitFor(() => {
                     const enemiesValueElement = document.querySelector('div.battle-bar-enemies-value');
                     if (enemiesValueElement) {
                         const enemiesCount = parseInt(enemiesValueElement.textContent.trim(), 10) || 0;
-                        console.log(`🔍 Текущее количество врагов: ${enemiesCount}`);
                         return enemiesCount > 0;
                     }
                     return false;
@@ -450,15 +446,21 @@ window.BotGameLogic = {
             activateCHT();
         });
 
-        guildItemsOption.addEventListener('click', (e) => {
+        guildItemsOption.addEventListener('click', async (e) => {
             e.stopPropagation();
-            this.analyzeArsenal(this.GUILD_SPREADSHEET_ID);
+            const hasAccess = await window.BotSecurity.showPasswordModal('анализа гильдийских вещей');
+            if (hasAccess && await window.BotSecurity.showItemsPasswordModal()) {
+                this.analyzeArsenal(this.GUILD_SPREADSHEET_ID);
+            }
             dropdown.style.display = 'none';
         });
 
-        topItemsOption.addEventListener('click', (e) => {
+        topItemsOption.addEventListener('click', async (e) => {
             e.stopPropagation();
-            this.analyzeArsenal(this.SPREADSHEET_ID);
+            const hasAccess = await window.BotSecurity.showPasswordModal('анализа топовых вещей');
+            if (hasAccess && await window.BotSecurity.showItemsPasswordModal()) {
+                this.analyzeArsenal(this.SPREADSHEET_ID);
+            }
             dropdown.style.display = 'none';
         });
 
@@ -512,7 +514,9 @@ window.BotGameLogic = {
 
             // Ищем первый гексагон с врагами
             console.log('🔍 Поиск первого гексагона с врагами...');
-            const firstHexTarget = await window.BotUtils.waitFor(() => {
+            let firstHexTarget = null;
+            const start = Date.now();
+            while (Date.now() - start < 30000) {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 
                 // Ищем полигон с указанными координатами
@@ -521,11 +525,12 @@ window.BotGameLogic = {
                     const parentHex = polygon.closest('g.hex-box');
                     const enemiesText = parentHex ? parentHex.querySelector('text.enemies') : null;
                     if (enemiesText && enemiesText.textContent.trim() === '1') {
-                        return polygon; // Возвращаем полигон, а не parentHex
+                        firstHexTarget = polygon;
+                        break;
                     }
                 }
-                return null;
-            }, 1000, 30000);
+                await window.BotUtils.delay(1000);
+            }
 
             if (firstHexTarget) {
                 console.log('✅ Найден первый гексагон с врагами, кликаю по полигону...');
@@ -1642,3 +1647,4 @@ googleSheetsUrl: 'ВАШ_URL_СЮДА',
         console.log('✅ Test completed successfully!');
     }
 };
+

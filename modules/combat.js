@@ -172,7 +172,6 @@ window.BotCombat = {
         
         while (window.BotConfig.isScriptRunning) {
             fightRounds++;
-            console.log(`⚔️ Раунд боя #${fightRounds}`);
             
             if (window.BotConfig.vipStatus === 'Не VIP') {
                 const enemiesCountElement = document.querySelector('div.battle-bar-enemies-value');
@@ -198,7 +197,6 @@ window.BotCombat = {
                 }
                 
                 if ((!enemyCard || needSwitch)) {
-                    console.log(`🔄 Переключаю врага (нет карточки: ${!enemyCard}, нужно переключить: ${needSwitch})`);
                     const switchBtn = document.querySelector('div.button-icon-content tui-icon.svg-icon[style*="switch.svg"]');
                     if (switchBtn) {
                         switchBtn.closest('div.button-icon-content').click();
@@ -225,15 +223,12 @@ window.BotCombat = {
                 break;
             }
 
-            console.log(`🩺 Проверяю здоровье и ману`);
             await this.checkManaAndHealth();
             await window.BotUtils.delay(100);
             
-            console.log(`💪 Проверяю баффы`);
             await this.checkAndActivateDefenseBuff();
             await window.BotUtils.delay(100);
             
-            console.log(`⚔️ Использую боевые навыки`);
             await this.useSkills();
             await window.BotUtils.delay(100);
             
