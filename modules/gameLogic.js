@@ -488,8 +488,10 @@ window.BotGameLogic = {
     async bossFarmLoopVT(abortSignal) {
         console.log('🔥 Запуск фарма босса ВТ...');
         const polygons = [
+            "-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25",
             "18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5",
-            "37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25"
+            "57,-25.5 75,-36 75,-57 57,-67.5 39,-57 39,-36 57,-25.5",
+            "96,-46.5 114,-57 114,-78 96,-88.5 78,-78 78,-57 96,-46.5"
         ];
         const bossPolygonPoints = polygons[polygons.length - 1];
 
@@ -503,84 +505,35 @@ window.BotGameLogic = {
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
 
-            // Кликаем на первый гексагон после захода в локацию
-            console.log('🔥 Ищу и кликаю на первый гексагон...');
-            const firstPolygonPoints = polygons[0];
-            let firstPolygon = null;
-            const maxFirstTries = 50; // 10 секунд при интервале 200мс
-            
-            for (let attempt = 0; attempt < maxFirstTries; attempt++) {
-                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                
-                firstPolygon = document.querySelector(`polygon.hexagon[points="${firstPolygonPoints}"]`);
-                if (firstPolygon) {
-                    console.log(`✅ Найден первый полигон: ${firstPolygonPoints}`);
-                    break;
-                }
-                
-                await window.BotUtils.delay(200);
-            }
-            
-            if (!firstPolygon) {
-                console.error(`❌ Не найден первый полигон: ${firstPolygonPoints}`);
-                throw new Error(`Не найден первый полигон: ${firstPolygonPoints}`);
-            }
-            
-            console.log('🔥 Кликаю на первый полигон...');
-            window.BotNavigation.clickPolygon(firstPolygon);
-            await window.BotUtils.delay(300);
-
             for (let i = 0; i < polygons.length - 1; ++i) {
-                // Проверяем кнопку "В город" на каждом шаге
-                await window.BotNavigation.checkAndReturnToCity();
-                
                 const polygonPoints = polygons[i];
                 console.log(`🔥 Переход на полигон ${i + 1}/${polygons.length - 1}: ${polygonPoints}`);
                 
-                // Ищем полигон напрямую
-                let polygon = null;
-                const maxTries = 50; // 10 секунд при интервале 200мс
-                
-                for (let attempt = 0; attempt < maxTries; attempt++) {
+                const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    
-                    polygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
-                    if (polygon) {
-                        console.log(`✅ Найден полигон ${i + 1}: ${polygonPoints}`);
-                        break;
-                    }
-                    
-                    await window.BotUtils.delay(200);
-                }
+                    return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                }, 200, 10000);
                 
-                if (!polygon) {
-                    console.error(`❌ Не найден полигон для босса: ${polygonPoints}`);
-                    throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
-                }
+                if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
                 
                 console.log(`🔥 Кликаю на полигон ${i + 1}...`);
                 window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
                 
-                // Проверяем кнопку "В город" после клика
-                await window.BotNavigation.checkAndReturnToCity();
-                
                 console.log(`🔥 Ищу кнопку "Перейти"...`);
-                const goBtn = await window.BotUtils.findGoButton(10000);
+                const goBtn = await window.BotUtils.waitFor(() => {
+                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+                    return Array.from(document.querySelectorAll('div.button-content'))
+                        .find(btn => btn.textContent.trim() === 'Перейти');
+                }, 200, 10000);
                 
                 if (goBtn) {
                     console.log(`🔥 Нажимаю "Перейти" для полигона ${i + 1}...`);
                     goBtn.click();
                     await window.BotUtils.delay(500);
                 } else {
-                    console.error('❌ Кнопка "Перейти" не найдена');
-                    const allButtons = Array.from(document.querySelectorAll('div.button-content, button, [role="button"]'));
-                    console.error('Доступные кнопки:', allButtons.map(btn => btn.textContent.trim()));
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
-                
-                // Проверяем кнопку "В город" после нажатия "Перейти"
-                await window.BotNavigation.checkAndReturnToCity();
                 
                 console.log(`🔥 Жду подтверждения перехода на полигон ${i + 1}...`);
                 await window.BotUtils.waitFor(() => {
@@ -593,72 +546,43 @@ window.BotGameLogic = {
             
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
 
-            // Проверяем кнопку "В город" перед переходом к боссу
-            await window.BotNavigation.checkAndReturnToCity();
-
-            // Переход на последний полигон (босс)
-            console.log('🔥 Переход к боссу ВТ...');
-            
-            // Ищем босс полигон напрямую
-            let bossPolygon = null;
-            const maxBossTries = 50; // 10 секунд при интервале 200мс
-            
-            for (let attempt = 0; attempt < maxBossTries; attempt++) {
+            // --- Новый блок: Переход на последний полигон ---
+            // 1. Кликаем по последнему полигону
+            const bossPolygon = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                
-                bossPolygon = document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
-                if (bossPolygon) {
-                    console.log(`✅ Найден полигон босса: ${bossPolygonPoints}`);
-                    break;
-                }
-                
-                await window.BotUtils.delay(200);
-            }
-            
-            if (!bossPolygon) {
-                console.error(`❌ Не найден полигон босса: ${bossPolygonPoints}`);
-                throw new Error(`Не найден полигон босса: ${bossPolygonPoints}`);
-            }
-            
-            console.log('🔥 Кликаю на босса ВТ...');
+                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
+            }, 200, 10000);
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
-            // Проверяем кнопку "В город" после клика на босса
-            await window.BotNavigation.checkAndReturnToCity();
-
-            console.log('🔥 Ищу кнопку "Перейти" к боссу...');
-            const goBtn = await window.BotUtils.findGoButton(10000);
-            
+            // 2. Ждем появления кнопки "Перейти" и кликаем по ней
+            const goBtn = await window.BotUtils.waitFor(() => {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+                return Array.from(document.querySelectorAll('div.button-content'))
+                    .find(btn => btn.textContent.trim() === 'Перейти');
+            }, 200, 10000);
             if (goBtn) {
-                console.log('🔥 Перехожу к боссу ВТ...');
                 goBtn.click();
                 await window.BotUtils.delay(500);
             } else {
-                console.error('❌ Кнопка "Перейти" к боссу не найдена');
-                const allButtons = Array.from(document.querySelectorAll('div.button-content, button, [role="button"]'));
-                console.error('Доступные кнопки к боссу:', allButtons.map(btn => btn.textContent.trim()));
                 throw new Error('Кнопка "Перейти" не найдена');
             }
 
-            // Проверяем кнопку "В город" после перехода к боссу
-            await window.BotNavigation.checkAndReturnToCity();
-
-            console.log('🔥 Жду подтверждения перехода к боссу...');
+            // 3. Ждем, что реально оказались на последнем гексагоне
             await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 const current = document.querySelector('g.hex-box.current polygon.hexagon');
                 return current && current.getAttribute('points') === bossPolygonPoints;
             }, 200, 10000);
 
-            console.log('🔥 Активирую прицел...');
+            // 4. Кликаем по aim.svg
             const aimIcon = document.querySelector('tui-icon.svg-icon[style*="aim.svg"]');
             if (aimIcon) {
                 aimIcon.click();
                 await window.BotUtils.delay(200);
             }
 
-            console.log('🔥 Кликаю на босса для атаки...');
+            // 5. Повторный клик по последнему гексагону
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(200);
 
@@ -672,132 +596,64 @@ window.BotGameLogic = {
      */
     async bossFarmLoopCHT(abortSignal) {
         const polygons = [
-            "-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25",
-            "18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5",
-            "37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25",
-            "57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93",
-            "76.5,-126.75 94.5,-137.25 94.5,-158.25 76.5,-168.75 58.5,-158.25 58.5,-137.25 76.5,-126.75"
+            "57,42 75,31.5 75,10.5 57,0 39,10.5 39,31.5 57,42",
+            "96,42 114,31.5 114,10.5 96,0 78,10.5 78,31.5 96,42",
+            "135,42 153,31.5 153,10.5 135,0 117,10.5 117,31.5 135,42",
+            "174,42 192,31.5 192,10.5 174,0 156,10.5 156,31.5 174,42",
+            "193.5,8.25 211.5,-2.25 211.5,-23.25 193.5,-33.75 175.5,-23.25 175.5,-2.25 193.5,8.25"
         ];
         const bossPolygonPoints = polygons[polygons.length - 1];
 
         while (true) {
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
             
-            // Проверяем кнопку "В город" перед началом
-            await window.BotNavigation.checkAndReturnToCity();
-            
             await window.BotUtils.clickByTextContent('Сражения', 5000);
-            await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
-
-            // Кликаем на первый гексагон после захода в локацию
-            console.log('🔥 Ищу и кликаю на первый гексагон ЧТ...');
-            const firstPolygonPoints = polygons[0];
-            let firstPolygon = null;
-            const maxFirstTries = 50; // 10 секунд при интервале 200мс
-            
-            for (let attempt = 0; attempt < maxFirstTries; attempt++) {
-                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                
-                firstPolygon = document.querySelector(`polygon.hexagon[points="${firstPolygonPoints}"]`);
-                if (firstPolygon) {
-                    console.log(`✅ Найден первый полигон ЧТ: ${firstPolygonPoints}`);
-                    break;
-                }
-                
-                await window.BotUtils.delay(200);
-            }
-            
-            if (!firstPolygon) {
-                console.error(`❌ Не найден первый полигон ЧТ: ${firstPolygonPoints}`);
-                throw new Error(`Не найден первый полигон ЧТ: ${firstPolygonPoints}`);
-            }
-            
-            console.log('🔥 Кликаю на первый полигон ЧТ...');
-            window.BotNavigation.clickPolygon(firstPolygon);
-            await window.BotUtils.delay(300);
+            await window.BotUtils.clickByLocationName('Старые рудники', 5000);
 
             for (let i = 0; i < polygons.length - 1; ++i) {
-                // Проверяем кнопку "В город" на каждом шаге
-                await window.BotNavigation.checkAndReturnToCity();
-                
                 const polygonPoints = polygons[i];
-                
-                // Ищем полигон напрямую
-                let polygon = null;
-                const maxTries = 50; // 10 секунд при интервале 200мс
-                
-                for (let attempt = 0; attempt < maxTries; attempt++) {
+                const polygon = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                    
-                    polygon = document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
-                    if (polygon) {
-                        break;
-                    }
-                    
-                    await window.BotUtils.delay(200);
-                }
-                
+                    return document.querySelector(`polygon.hexagon[points="${polygonPoints}"]`);
+                }, 200, 10000);
                 if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
-                
                 window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
-                
-                // Проверяем кнопку "В город" после клика
-                await window.BotNavigation.checkAndReturnToCity();
-                
-                const goBtn = await window.BotUtils.findGoButton(10000);
-                
+                const goBtn = await window.BotUtils.waitFor(() => {
+                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                    return Array.from(document.querySelectorAll('div.button-content'))
+                        .find(btn => btn.textContent.trim() === 'Перейти');
+                }, 200, 10000);
                 if (goBtn) {
                     goBtn.click();
                     await window.BotUtils.delay(500);
                 } else {
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
-                
-                // Проверяем кнопку "В город" после нажатия "Перейти"
-                await window.BotNavigation.checkAndReturnToCity();
-                
+                // Ждем, что текущий гекс сменился на этот
                 await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                     const current = document.querySelector('g.hex-box.current polygon.hexagon');
                     return current && current.getAttribute('points') === polygonPoints;
                 }, 200, 10000);
             }
-            
             if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
 
-            // Проверяем кнопку "В город" перед переходом к боссу
-            await window.BotNavigation.checkAndReturnToCity();
-
-            // Переход на последний полигон (босс)
-            
-            // Ищем босс полигон напрямую
-            let bossPolygon = null;
-            const maxBossTries = 50; // 10 секунд при интервале 200мс
-            
-            for (let attempt = 0; attempt < maxBossTries; attempt++) {
+            // --- Новый блок: Переход на последний полигон ---
+            // 1. Кликаем по последнему полигону
+            const bossPolygon = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
-                
-                bossPolygon = document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
-                if (bossPolygon) {
-                    break;
-                }
-                
-                await window.BotUtils.delay(200);
-            }
-            
-            if (!bossPolygon) {
-                throw new Error(`Не найден полигон босса: ${bossPolygonPoints}`);
-            }
-            
+                return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
+            }, 200, 10000);
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
-            // Проверяем кнопку "В город" после клика на босса
-            await window.BotNavigation.checkAndReturnToCity();
-
-            const goBtn = await window.BotUtils.findGoButton(10000);
-            
+            // 2. Ждем появления кнопки "Перейти" и кликаем по ней
+            const goBtn = await window.BotUtils.waitFor(() => {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                return Array.from(document.querySelectorAll('div.button-content'))
+                    .find(btn => btn.textContent.trim() === 'Перейти');
+            }, 200, 10000);
             if (goBtn) {
                 goBtn.click();
                 await window.BotUtils.delay(500);
@@ -805,21 +661,21 @@ window.BotGameLogic = {
                 throw new Error('Кнопка "Перейти" не найдена');
             }
 
-            // Проверяем кнопку "В город" после перехода к боссу
-            await window.BotNavigation.checkAndReturnToCity();
-
+            // 3. Ждем, что реально оказались на последнем гексагоне
             await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                 const current = document.querySelector('g.hex-box.current polygon.hexagon');
                 return current && current.getAttribute('points') === bossPolygonPoints;
             }, 200, 10000);
 
+            // 4. Кликаем по aim.svg
             const aimIcon = document.querySelector('tui-icon.svg-icon[style*="aim.svg"]');
             if (aimIcon) {
                 aimIcon.click();
                 await window.BotUtils.delay(200);
             }
 
+            // 5. Повторный клик по последнему гексагону
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(200);
 
