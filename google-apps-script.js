@@ -1,4 +1,6 @@
-const SPREADSHEET_ID = '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ';
+// IDs таблиц Google Sheets
+const SPREADSHEET_ID = '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ'; // Таблица для "Вещи Г" (гильдийские вещи)
+const GUILD_SPREADSHEET_ID = '1Ygi2GzE6MB0_9im_npM6N1Im-jHiXVbpIQ_V4CkxeaQ'; // Таблица для "Вещи ТОП"
 const BASE_IMAGE_URL = 'https://ligmar.io/game'; // Базовый URL для изображений Ligmar
 
 function requestPermissions() {
@@ -31,7 +33,7 @@ function doPost(e) {
     Logger.log('Получены данные:', data);
     
     if (data.action === 'addItems') {
-      return addItemsToSheet(data.items);
+      return addItemsToSheet(data.items, data.spreadsheetId);
     }
     
     return createSuccessResponse({error: 'Неизвестное действие'});
@@ -55,15 +57,21 @@ function createSuccessResponse(data) {
 }
 
 // Добавление предметов в таблицу
-function addItemsToSheet(items) {
+function addItemsToSheet(items, targetSpreadsheetId = null) {
   try {
+    // Определяем, какую таблицу использовать
+    var spreadsheetId = targetSpreadsheetId || SPREADSHEET_ID;
+    
+    Logger.log('Используем таблицу ID: ' + spreadsheetId);
+    
     // Создаем или получаем таблицу
     var spreadsheet;
     try {
-      spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+      spreadsheet = SpreadsheetApp.openById(spreadsheetId);
     } catch (e) {
-      // Если нет привязанной таблицы, создаем новую
-      spreadsheet = SpreadsheetApp.create('Арсенал Гильдии Ligmar');
+      Logger.log('Ошибка открытия таблицы ' + spreadsheetId + ': ' + e.toString());
+      // Если не удалось открыть конкретную таблицу, создаем новую
+      spreadsheet = SpreadsheetApp.create('Арсенал Гильдии Ligmar - ' + new Date().toLocaleDateString());
       Logger.log('Создана новая таблица:', spreadsheet.getUrl());
     }
     
@@ -444,34 +452,19 @@ function testFunction() {
         {key: 'Сила', value: '29'},
         {key: 'Ловкость', value: '30'}
       ]
-    }, {
-      uniqueId: 'test2',
-      name: 'Плащ древнего короля',
-      type: 'Плащ',
-      quality: 'Эпический',
-      tier: 'V',
-      gearScore: 669,
-      imageUrl: 'assets/images/gear/shoulders-cloak-epic.webp',
-      stats: [
-        {name: 'Защита', value: '45'},
-        {name: 'Сопротивление', value: '200'}
-      ],
-      magicProps: [
-        {name: 'Уклонение', value: '21', percent: '121.1%'},
-        {name: 'Сопротивление', value: '186', percent: '150%'},
-        {name: 'Скрытность', value: '1', percent: '77.5%'}
-      ],
-      requirements: [
-        {key: 'Уровень', value: '27'},
-        {key: 'Сила', value: '15'}
-      ]
     }];
     
-    var result = addItemsToSheet(testItems);
+    // Тестируем основную таблицу (Вещи Г)
+    Logger.log('Testing GUILD table...');
+    var result1 = addItemsToSheet(testItems, SPREADSHEET_ID);
+    
+    // Тестируем таблицу ТОП
+    Logger.log('Testing TOP table...');
+    var result2 = addItemsToSheet(testItems, GUILD_SPREADSHEET_ID);
     
     Logger.log('✅ Test completed successfully');
-    Logger.log('🔗 Check your sheet: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID);
-    Logger.log('Result:', result);
+    Logger.log('🔗 Guild table: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID);
+    Logger.log('🔗 TOP table: https://docs.google.com/spreadsheets/d/' + GUILD_SPREADSHEET_ID);
     
     return 'SUCCESS';
     
