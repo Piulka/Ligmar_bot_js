@@ -511,9 +511,15 @@ window.BotGameLogic = {
                 }, 200, 5000);
                 
                 if (battlesBtn) {
-                    battlesBtn.click();
-                    console.log('✅ Клик по "Сражения" выполнен');
-                    await window.BotUtils.delay(500);
+                    // Кликаем по родительскому app-button элементу
+                    const appButton = battlesBtn.closest('app-button');
+                    if (appButton) {
+                        appButton.click();
+                        console.log('✅ Клик по "Сражения" выполнен');
+                        await window.BotUtils.delay(500);
+                    } else {
+                        throw new Error('Родительский элемент app-button не найден');
+                    }
                 } else {
                     throw new Error('Кнопка "Сражения" не найдена');
                 }
