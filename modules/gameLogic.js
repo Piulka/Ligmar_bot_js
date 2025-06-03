@@ -524,15 +524,14 @@ window.BotGameLogic = {
 
                 // 3. Клик на конкретный гексагон
                 console.log('3️⃣ Клик на целевой гексагон...');
-                const hexagonSelector = 'body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-11 > div.battle-center.ng-tns-c3091494937-11 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(81) > polygon';
                 
-                const polygon = await window.BotUtils.waitFor(() => {
-                    if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
-                    return document.querySelector(hexagonSelector);
-                }, 200, 10000);
+                // Ищем полигон по точным координатам
+                const polygon = document.querySelector('polygon.hexagon[points="-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25"]');
                 
                 if (polygon) {
-                    // Используем проверенный метод клика через MouseEvent
+                    console.log('✅ Полигон найден, выполняю клик...');
+                    
+                    // SVG элементы не имеют метода .click(), используем dispatchEvent
                     const rect = polygon.getBoundingClientRect();
                     const clickEvent = new MouseEvent('click', {
                         bubbles: true,
@@ -543,10 +542,10 @@ window.BotGameLogic = {
                     });
                     
                     polygon.dispatchEvent(clickEvent);
-                    console.log('✅ Клик по гексагону выполнен через MouseEvent');
+                    console.log('🖱️ Клик выполнен через MouseEvent');
                     await window.BotUtils.delay(300);
                 } else {
-                    throw new Error('Целевой гексагон не найден');
+                    throw new Error('Полигон с указанными координатами не найден');
                 }
 
                 // 4. Клик на "Перейти" - используем ту же функцию что и в основном цикле
