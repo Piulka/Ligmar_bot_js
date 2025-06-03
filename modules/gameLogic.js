@@ -1,4 +1,4 @@
-// Модуль основной игровой логики v.3.11.6
+// Модуль основной игровой логики v.3.11.7
 window.BotGameLogic = {
     vtAbortController: null,
     chtAbortController: null,
@@ -746,8 +746,24 @@ window.BotGameLogic = {
                     
                     console.log(`🎯 Клик по гексагону ${i + 1}/5...`);
                     
-                    // Ищем полигон по CSS селектору
-                    const polygon = document.querySelector(chtHexagons[i]);
+                    // Для первого гексагона - ждем 3 секунды, если не найден - прекращаем выполнение
+                    let polygon;
+                    if (i === 0) {
+                        console.log('🔍 Ожидание первого гексагона (3 секунды)...');
+                        polygon = await window.BotUtils.waitFor(() => {
+                            if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
+                            return document.querySelector(chtHexagons[i]);
+                        }, 200, 3000);
+                        
+                        if (!polygon) {
+                            console.log('❌ Первый гексагон не найден за 3 секунды. Прекращаю выполнение босса ЧТ');
+                            return; // Прекращаем выполнение
+                        }
+                    } else {
+                        // Для остальных гексагонов - обычный поиск
+                        polygon = document.querySelector(chtHexagons[i]);
+                    }
+                    
                     if (polygon) {
                         console.log(`✅ Гексагон ${i + 1} найден, выполняю клик...`);
                         
