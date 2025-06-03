@@ -9,6 +9,20 @@ function requestPermissions() {
   Logger.log('✅ Разрешения запрошены успешно!');
 }
 
+// Обработка GET запросов
+function doGet(e) {
+  try {
+    return ContentService
+      .createTextOutput('Google Apps Script работает! Версия: v.3.9.8')
+      .setMimeType(ContentService.MimeType.TEXT);
+  } catch (error) {
+    Logger.log('Ошибка в doGet:', error);
+    return ContentService
+      .createTextOutput('Ошибка: ' + error.toString())
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
 // Обработка POST запросов
 function doPost(e) {
   try {
