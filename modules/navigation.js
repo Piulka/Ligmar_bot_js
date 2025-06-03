@@ -108,47 +108,25 @@ window.BotNavigation = {
 
     /**
      * Клик по полигону гексагона
-     * @param {HTMLElement} element - элемент полигона или родительский <g> элемент
+     * @param {HTMLElement} polygon - элемент полигона
      */
-    clickPolygon(element) {
-        console.log('🎯 clickPolygon: попытка клика по полигону');
-        
-        if (!element) {
-            console.error('❌ clickPolygon: элемент не найден или равен null');
+    clickPolygon(polygon) {
+        if (!polygon) {
+            console.error('❌ clickPolygon: полигон не найден');
             return false;
         }
         
         try {
-            // Ищем полигон: либо сам элемент является полигоном, либо ищем дочерний полигон
-            let targetPolygon = element;
-            if (element.tagName === 'g' || element.classList.contains('hex-box')) {
-                targetPolygon = element.querySelector('polygon.hexagon');
-                if (!targetPolygon) {
-                    console.error('❌ clickPolygon: не найден дочерний polygon в <g> элементе');
-                    return false;
-                }
-            }
-            
-            // Получаем родительский <g> элемент для клика
-            const clickTarget = targetPolygon.closest('g.hex-box') || targetPolygon.parentElement || targetPolygon;
-            const rect = targetPolygon.getBoundingClientRect();
-            console.log('✅ Получены координаты полигона:', rect);
-            
-            // Создаем события мыши
-            const createMouseEvent = (type) => new MouseEvent(type, {
+            const rect = polygon.getBoundingClientRect();
+            const clickEvent = new MouseEvent('click', {
                 bubbles: true,
                 cancelable: true,
                 view: window,
                 clientX: rect.left + rect.width / 2,
                 clientY: rect.top + rect.height / 2
             });
-            
-            // Отправляем события клика
-            clickTarget.dispatchEvent(createMouseEvent('mousedown'));
-            clickTarget.dispatchEvent(createMouseEvent('mouseup'));
-            clickTarget.dispatchEvent(createMouseEvent('click'));
-            
-            console.log('✅ Клик по полигону выполнен');
+            polygon.dispatchEvent(clickEvent);
+            setTimeout(() => {}, 100);
             return true;
         } catch (error) {
             console.error('❌ Ошибка клика по полигону:', error);

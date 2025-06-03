@@ -100,29 +100,33 @@ window.BotGameLogic = {
             await window.BotCombat.fightEnemies(isChampion);
             await window.BotUtils.delay(100);
         } else {
-            console.log('🔄 Не-VIP игрок: ожидание появления врагов и нажатие switch');
-            
-            // Ждем появления врагов (когда battle-bar-enemies-value станет больше 0)
-            console.log('🔄 Ожидание появления врагов...');
-            await window.BotUtils.waitFor(() => {
-                const enemiesValueElement = document.querySelector('div.battle-bar-enemies-value');
-                if (enemiesValueElement) {
-                    const enemiesCount = parseInt(enemiesValueElement.textContent.trim(), 10) || 0;
-                    console.log(`🔍 Текущее количество врагов: ${enemiesCount}`);
-                    return enemiesCount > 0;
-                }
-                return false;
-            }, 200, 10000);
-            
-            // Нажимаем на switch после появления врагов
-            console.log('🔄 Враги появились, нажимаю на switch...');
+            // Для НЕ ВИП: проверяем есть ли кнопка switch
             const switchIcon = document.querySelector('tui-icon.svg-icon[style*="switch.svg"]');
             if (switchIcon) {
+                console.log('🔄 Не-VIP игрок: ожидание появления врагов и нажатие switch');
+                
+                // Ждем появления врагов (когда battle-bar-enemies-value станет больше 0)
+                console.log('🔄 Ожидание появления врагов...');
+                await window.BotUtils.waitFor(() => {
+                    const enemiesValueElement = document.querySelector('div.battle-bar-enemies-value');
+                    if (enemiesValueElement) {
+                        const enemiesCount = parseInt(enemiesValueElement.textContent.trim(), 10) || 0;
+                        console.log(`🔍 Текущее количество врагов: ${enemiesCount}`);
+                        return enemiesCount > 0;
+                    }
+                    return false;
+                }, 200, 10000);
+                
+                // Нажимаем на switch после появления врагов
+                console.log('🔄 Враги появились, нажимаю на switch...');
                 switchIcon.click();
                 await window.BotUtils.delay(100);
                 console.log('✅ Switch нажат для не-VIP игрока');
             } else {
-                console.warn('⚠️ Switch иконка не найдена');
+                console.log('🔄 Не-VIP игрок: кнопка switch не найдена, ждем врагов обычным способом');
+                const enemyAppeared = await window.BotCombat.waitForEnemy();
+                await window.BotUtils.delay(100);
+                if (!enemyAppeared) return;
             }
             
             // Определяем тип боя и вызываем соответствующую функцию
@@ -852,6 +856,14 @@ window.BotGameLogic = {
             // Название предмета
             const nameElement = dialog.querySelector('.dialog-header');
             info.name = nameElement ? nameElement.textContent.trim() : 'Неизвестно';
+
+            // Изображение предмета
+            const imageElement = dialog.querySelector('img.item-image, img[src*="/gear/"], img[src*="/items/"], .item-icon img, .dialog-content img');
+            if (imageElement) {
+                info.imageUrl = imageElement.getAttribute('src') || imageElement.src || '';
+            } else {
+                info.imageUrl = '';
+            }
 
             // Мощь предмета (ГС)
             const gearScoreElement = dialog.querySelector('.gear-score-value');
