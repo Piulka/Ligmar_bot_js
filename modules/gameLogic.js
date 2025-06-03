@@ -507,7 +507,7 @@ window.BotGameLogic = {
                 const battlesSuccess = await window.BotUtils.clickByTextContent('Сражения', 5000);
                 if (battlesSuccess) {
                     console.log('✅ Клик по "Сражения" выполнен');
-                    await window.BotUtils.delay(500);
+                    await window.BotUtils.delay(100);
                 } else {
                     throw new Error('Кнопка "Сражения" не найдена');
                 }
@@ -517,7 +517,7 @@ window.BotGameLogic = {
                 const swampsSuccess = await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
                 if (swampsSuccess) {
                     console.log('✅ Клик по "Зеленые топи" выполнен');
-                    await window.BotUtils.delay(500);
+                    await window.BotUtils.delay(100);
                 } else {
                     throw new Error('Локация "Зеленые топи" не найдена');
                 }
@@ -543,7 +543,7 @@ window.BotGameLogic = {
                     
                     polygon.dispatchEvent(clickEvent);
                     console.log('🖱️ Клик выполнен через MouseEvent');
-                    await window.BotUtils.delay(300);
+                    await window.BotUtils.delay(100);
                 } else {
                     throw new Error('Полигон с указанными координатами не найден');
                 }
@@ -553,16 +553,16 @@ window.BotGameLogic = {
                 const goSuccess = await window.BotUtils.clickByTextContent('Перейти', 5000);
                 if (goSuccess) {
                     console.log('✅ Клик по "Перейти" выполнен');
-                    await window.BotUtils.delay(500);
+                    await window.BotUtils.delay(100);
                 } else {
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
 
-                // 5. Последовательность кликов по полигонам через 5 секунд каждый
+                // 5. Последовательность кликов по полигонам через 4.5 секунд каждый
                 console.log('5️⃣ Начинаю последовательность кликов по полигонам...');
                 
-                // Первый полигон через 5 секунд
-                await window.BotUtils.delay(5000);
+                // Первый полигон через 4.5 секунды
+                await window.BotUtils.delay(4500);
                 console.log('🎯 Клик по первому полигону маршрута...');
                 const polygon1 = document.querySelector('polygon.hexagon[points="18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5"]');
                 if (polygon1) {
@@ -577,12 +577,20 @@ window.BotGameLogic = {
                     });
                     polygon1.dispatchEvent(clickEvent1);
                     console.log('🖱️ Клик по полигону 1 выполнен через MouseEvent');
+                    await window.BotUtils.delay(100);
+                    
+                    // Клик "Перейти" после первого полигона
+                    const go1Success = await window.BotUtils.clickByTextContent('Перейти', 5000);
+                    if (go1Success) {
+                        console.log('✅ Клик по "Перейти" после полигона 1 выполнен');
+                        await window.BotUtils.delay(100);
+                    }
                 } else {
                     console.log('❌ Полигон 1 не найден');
                 }
 
-                // Второй полигон через 5 секунд
-                await window.BotUtils.delay(5000);
+                // Второй полигон через 4.5 секунды
+                await window.BotUtils.delay(4500);
                 console.log('🎯 Клик по второму полигону маршрута...');
                 const polygon2 = document.querySelector('polygon.hexagon[points="37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25"]');
                 if (polygon2) {
@@ -597,12 +605,20 @@ window.BotGameLogic = {
                     });
                     polygon2.dispatchEvent(clickEvent2);
                     console.log('🖱️ Клик по полигону 2 выполнен через MouseEvent');
+                    await window.BotUtils.delay(100);
+                    
+                    // Клик "Перейти" после второго полигона
+                    const go2Success = await window.BotUtils.clickByTextContent('Перейти', 5000);
+                    if (go2Success) {
+                        console.log('✅ Клик по "Перейти" после полигона 2 выполнен');
+                        await window.BotUtils.delay(100);
+                    }
                 } else {
                     console.log('❌ Полигон 2 не найден');
                 }
 
-                // Третий полигон через 5 секунд
-                await window.BotUtils.delay(5000);
+                // Третий полигон через 4.5 секунды
+                await window.BotUtils.delay(4500);
                 console.log('🎯 Клик по третьему полигону маршрута...');
                 const polygon3 = document.querySelector('polygon.hexagon[points="57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"]');
                 if (polygon3) {
@@ -617,12 +633,20 @@ window.BotGameLogic = {
                     });
                     polygon3.dispatchEvent(clickEvent3);
                     console.log('🖱️ Клик по полигону 3 выполнен через MouseEvent');
+                    await window.BotUtils.delay(100);
+                    
+                    // Клик "Перейти" после третьего полигона
+                    const go3Success = await window.BotUtils.clickByTextContent('Перейти', 5000);
+                    if (go3Success) {
+                        console.log('✅ Клик по "Перейти" после полигона 3 выполнен');
+                        await window.BotUtils.delay(100);
+                    }
                 } else {
                     console.log('❌ Полигон 3 не найден');
                 }
 
-                // Четвертый (повторный) клик по третьему полигону через 5 секунд
-                await window.BotUtils.delay(5000);
+                // Четвертый (повторный) клик по третьему полигону через 4.5 секунды
+                await window.BotUtils.delay(4500);
                 console.log('🎯 Повторный клик по третьему полигону...');
                 const polygon4 = document.querySelector('polygon.hexagon[points="57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"]');
                 if (polygon4) {
@@ -637,6 +661,14 @@ window.BotGameLogic = {
                     });
                     polygon4.dispatchEvent(clickEvent4);
                     console.log('🖱️ Повторный клик по полигону 3 выполнен через MouseEvent');
+                    await window.BotUtils.delay(100);
+                    
+                    // Клик "Перейти" после повторного клика
+                    const go4Success = await window.BotUtils.clickByTextContent('Перейти', 5000);
+                    if (go4Success) {
+                        console.log('✅ Клик по "Перейти" после повторного клика выполнен');
+                        await window.BotUtils.delay(100);
+                    }
                 } else {
                     console.log('❌ Полигон 4 (повторный) не найден');
                 }
@@ -648,7 +680,7 @@ window.BotGameLogic = {
                 
             } catch (error) {
                 console.error('❌ Ошибка в цикле босса ВТ:', error);
-                await window.BotUtils.delay(2000); // Пауза перед повтором
+                await window.BotUtils.delay(100); // Пауза перед повтором
             }
         }
     },
@@ -821,14 +853,14 @@ window.BotGameLogic = {
                 if (skills && skills.attack && skills.attack.length) {
                     for (const skill of skills.attack) {
                         await window.BotCombat.useSkill(skill);
-                        await window.BotUtils.delay(100);
+                    await window.BotUtils.delay(100);
                     }
                 }
                 
                 if (window.BotConfig.selectedClass === 'Лучник' && skills && skills.multitarget) {
                     await window.BotCombat.useSkill(skills.multitarget);
-                    await window.BotUtils.delay(100);
-                }
+                        await window.BotUtils.delay(100);
+                    }
 
                 await window.BotCombat.checkManaAndHealth();
                 await window.BotUtils.delay(100);
@@ -855,7 +887,7 @@ window.BotGameLogic = {
                 buildingsButton.click();
                 await window.BotUtils.delay(100);
                 console.log('✅ Перешли в Строения');
-            } else {
+                } else {
                 console.error('❌ Кнопка "Строения" не найдена');
                 return;
             }
