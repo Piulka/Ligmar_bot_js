@@ -117,6 +117,7 @@ window.BotNavigation = {
         }
         
         try {
+            // SVG элементы не имеют метода .click(), используем dispatchEvent
             const rect = polygon.getBoundingClientRect();
             const clickEvent = new MouseEvent('click', {
                 bubbles: true,
@@ -125,8 +126,9 @@ window.BotNavigation = {
                 clientX: rect.left + rect.width / 2,
                 clientY: rect.top + rect.height / 2
             });
+            
             polygon.dispatchEvent(clickEvent);
-            setTimeout(() => {}, 100);
+            console.log('🖱️ Клик по полигону выполнен через MouseEvent');
             return true;
         } catch (error) {
             console.error('❌ Ошибка клика по полигону:', error);
@@ -229,13 +231,31 @@ window.BotNavigation = {
                 .find(p => p.getAttribute('points') === points);
         }, 200, 10000);
         
-        this.clickPolygon(polygon);
-        
-        await window.BotUtils.waitFor(() => {
-            if (abortSignal && abortSignal.aborted) throw new Error('stepToPolygonByPoints aborted');
-            const current = document.querySelector('g.hex-box.current polygon.hexagon');
-            return current && current.getAttribute('points') === points;
-        }, 200, 10000);
+        if (polygon) {
+            console.log('✅ Полигон найден, выполняю клик...');
+            
+            // Используем проверенный метод клика через MouseEvent
+            try {
+                const rect = polygon.getBoundingClientRect();
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window,
+                    clientX: rect.left + rect.width / 2,
+                    clientY: rect.top + rect.height / 2
+                });
+                
+                polygon.dispatchEvent(clickEvent);
+                console.log('🖱️ Клик по полигону выполнен через MouseEvent');
+                return true;
+            } catch (error) {
+                console.error('❌ Ошибка клика по полигону:', error);
+                return false;
+            }
+        } else {
+            console.error('❌ Полигон не найден по координатам');
+            return false;
+        }
     },
 
     /**

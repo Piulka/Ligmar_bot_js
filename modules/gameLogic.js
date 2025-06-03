@@ -534,7 +534,24 @@ window.BotGameLogic = {
 
             if (firstHexTarget) {
                 console.log('✅ Найден первый гексагон с врагами, кликаю по полигону...');
-                window.BotNavigation.clickPolygon(firstHexTarget);
+                
+                // Используем проверенный метод клика через MouseEvent
+                try {
+                    const rect = firstHexTarget.getBoundingClientRect();
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect.left + rect.width / 2,
+                        clientY: rect.top + rect.height / 2
+                    });
+                    
+                    firstHexTarget.dispatchEvent(clickEvent);
+                    console.log('🖱️ Клик по первому гексагону выполнен через MouseEvent');
+                } catch (error) {
+                    console.error('❌ Ошибка клика по первому гексагону:', error);
+                }
+                
                 await window.BotUtils.delay(300);
             } else {
                 console.log('❌ Первый гексагон с врагами не найден');
