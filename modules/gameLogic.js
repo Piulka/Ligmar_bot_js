@@ -448,24 +448,18 @@ window.BotGameLogic = {
 
         guildItemsOption.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const hasAccess = await window.BotSecurity.showPasswordModal('анализа гильдийских вещей');
-            if (hasAccess) {
-                const shouldStart = await window.BotSecurity.showItemsWarningModal();
-                if (shouldStart) {
-                    this.analyzeArsenal(this.GUILD_SPREADSHEET_ID);
-                }
+            const shouldStart = await window.BotSecurity.showItemsWarningModal();
+            if (shouldStart) {
+                this.analyzeArsenal(this.GUILD_SPREADSHEET_ID);
             }
             dropdown.style.display = 'none';
         });
 
         topItemsOption.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const hasAccess = await window.BotSecurity.showPasswordModal('анализа топовых вещей');
-            if (hasAccess) {
-                const shouldStart = await window.BotSecurity.showItemsWarningModal();
-                if (shouldStart) {
-                    this.analyzeArsenal(this.SPREADSHEET_ID);
-                }
+            const shouldStart = await window.BotSecurity.showItemsWarningModal();
+            if (shouldStart) {
+                this.analyzeArsenal(this.SPREADSHEET_ID);
             }
             dropdown.style.display = 'none';
         });
