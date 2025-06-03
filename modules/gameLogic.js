@@ -101,6 +101,7 @@ window.BotGameLogic = {
             await window.BotUtils.delay(100);
         } else {
             // Для НЕ ВИП: проверяем есть ли кнопка switch
+            console.log('🔍 Обнаружен НЕ ВИП игрок');
             const switchIcon = document.querySelector('tui-icon.svg-icon[style*="switch.svg"]');
             if (switchIcon) {
                 console.log('🔄 Не-VIP игрок: ожидание появления врагов и нажатие switch');
@@ -121,7 +122,7 @@ window.BotGameLogic = {
                 console.log('🔄 Враги появились, нажимаю на switch...');
                 switchIcon.click();
                 await window.BotUtils.delay(100);
-                console.log('✅ Switch нажат для не-VIP игрока');
+                console.log('✅ Кнопка смены цели нажата для не-VIP игрока');
             } else {
                 console.log('🔄 Не-VIP игрок: кнопка switch не найдена, ждем врагов обычным способом');
                 const enemyAppeared = await window.BotCombat.waitForEnemy();
@@ -509,6 +510,85 @@ window.BotGameLogic = {
             await window.BotUtils.clickByTextContent('Сражения', 5000);
             await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
 
+            // Ищем первый гексагон с врагами
+            console.log('🔍 Поиск первого гексагона с врагами...');
+            const firstHexTarget = await window.BotUtils.waitFor(() => {
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+                
+                // Ищем гексагон с указанными координатами и текстом "1"
+                const hexElement = document.querySelector('g.hex-box.neighbour.visible polygon.hexagon[points="-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25"]');
+                if (hexElement) {
+                    const parentHex = hexElement.closest('g.hex-box');
+                    const enemiesText = parentHex ? parentHex.querySelector('text.enemies') : null;
+                    if (enemiesText && enemiesText.textContent.trim() === '1') {
+                        return parentHex;
+                    }
+                }
+                return null;
+            }, 1000, 30000);
+
+            if (firstHexTarget) {
+                console.log('✅ Найден первый гексагон с врагами, пробуем разные способы нажатия...');
+                
+                // Способ 1: Клик по всему гексагону
+                try {
+                    console.log('🎯 Способ 1: Клик по всему гексагону');
+                    firstHexTarget.click();
+                    await window.BotUtils.delay(300);
+                } catch (error) {
+                    console.log('⚠️ Способ 1 не сработал:', error.message);
+                }
+
+                // Способ 2: Клик по полигону
+                try {
+                    console.log('🎯 Способ 2: Клик по полигону');
+                    const polygon = firstHexTarget.querySelector('polygon.hexagon');
+                    if (polygon) {
+                        window.BotNavigation.clickPolygon(polygon);
+                        await window.BotUtils.delay(300);
+                    }
+                } catch (error) {
+                    console.log('⚠️ Способ 2 не сработал:', error.message);
+                }
+
+                // Способ 3: MouseEvent на гексагон
+                try {
+                    console.log('🎯 Способ 3: MouseEvent на гексагон');
+                    const rect = firstHexTarget.getBoundingClientRect();
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect.left + rect.width / 2,
+                        clientY: rect.top + rect.height / 2
+                    });
+                    firstHexTarget.dispatchEvent(clickEvent);
+                    await window.BotUtils.delay(300);
+                } catch (error) {
+                    console.log('⚠️ Способ 3 не сработал:', error.message);
+                }
+
+                // Способ 4: PointerEvent
+                try {
+                    console.log('🎯 Способ 4: PointerEvent');
+                    const rect = firstHexTarget.getBoundingClientRect();
+                    const pointerEvent = new PointerEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect.left + rect.width / 2,
+                        clientY: rect.top + rect.height / 2
+                    });
+                    firstHexTarget.dispatchEvent(pointerEvent);
+                    await window.BotUtils.delay(300);
+                } catch (error) {
+                    console.log('⚠️ Способ 4 не сработал:', error.message);
+                }
+            } else {
+                console.log('❌ Первый гексагон с врагами не найден');
+            }
+
+            // Переходим по остальным полигонам
             for (let i = 0; i < polygons.length - 1; ++i) {
                 const polygonPoints = polygons[i];
                 console.log(`🔥 Переход на полигон ${i + 1}/${polygons.length - 1}: ${polygonPoints}`);
@@ -553,20 +633,20 @@ window.BotGameLogic = {
             // --- Новый блок: Переход на последний полигон ---
             // 1. Кликаем по последнему полигону
             const bossPolygon = await window.BotUtils.waitFor(() => {
-                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
+                if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                 return document.querySelector(`polygon.hexagon[points="${bossPolygonPoints}"]`);
             }, 200, 10000);
             window.BotNavigation.clickPolygon(bossPolygon);
             await window.BotUtils.delay(300);
 
             // 2. Ждем появления кнопки "Перейти" и кликаем по ней
-            const goBtn = await window.BotUtils.waitFor(() => {
+            const goBtnFinal = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopVT aborted');
                 return Array.from(document.querySelectorAll('div.button-content'))
                     .find(btn => btn.textContent.trim() === 'Перейти');
             }, 200, 10000);
-            if (goBtn) {
-                goBtn.click();
+            if (goBtnFinal) {
+                goBtnFinal.click();
                 await window.BotUtils.delay(500);
             } else {
                 throw new Error('Кнопка "Перейти" не найдена');
@@ -623,13 +703,13 @@ window.BotGameLogic = {
                 if (!polygon) throw new Error(`Не найден полигон для босса: ${polygonPoints}`);
                 window.BotNavigation.clickPolygon(polygon);
                 await window.BotUtils.delay(300);
-                const goBtn = await window.BotUtils.waitFor(() => {
+                const goBtnCHT = await window.BotUtils.waitFor(() => {
                     if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                     return Array.from(document.querySelectorAll('div.button-content'))
                         .find(btn => btn.textContent.trim() === 'Перейти');
                 }, 200, 10000);
-                if (goBtn) {
-                    goBtn.click();
+                if (goBtnCHT) {
+                    goBtnCHT.click();
                     await window.BotUtils.delay(500);
                 } else {
                     throw new Error('Кнопка "Перейти" не найдена');
@@ -653,13 +733,13 @@ window.BotGameLogic = {
             await window.BotUtils.delay(300);
 
             // 2. Ждем появления кнопки "Перейти" и кликаем по ней
-            const goBtn = await window.BotUtils.waitFor(() => {
+            const goBtnCHTFinal = await window.BotUtils.waitFor(() => {
                 if (abortSignal && abortSignal.aborted) throw new Error('bossFarmLoopCHT aborted');
                 return Array.from(document.querySelectorAll('div.button-content'))
                     .find(btn => btn.textContent.trim() === 'Перейти');
             }, 200, 10000);
-            if (goBtn) {
-                goBtn.click();
+            if (goBtnCHTFinal) {
+                goBtnCHTFinal.click();
                 await window.BotUtils.delay(500);
             } else {
                 throw new Error('Кнопка "Перейти" не найдена');
@@ -758,41 +838,53 @@ window.BotGameLogic = {
      */
     async analyzeArsenal() {
         try {
-            console.log('🏛️ Начинаю анализ арсенала...');
+            console.log('🏛️ Начинаю анализ сундука...');
             
-            // 1. Нажимаем на Гильдию
-            console.log('1️⃣ Переход в Гильдию...');
-            const guildButton = await window.BotUtils.waitForElement('div.footer-button .footer-button-text', 'Гильдия', 5000);
-            if (guildButton) {
-                guildButton.click();
+            // 1. Нажимаем на Строения
+            console.log('1️⃣ Переход в Строения...');
+            const buildingsButton = await window.BotUtils.waitForElement('div.button-content', 'Строения', 5000);
+            if (buildingsButton) {
+                buildingsButton.click();
                 await window.BotUtils.delay(100);
-                console.log('✅ Перешли в Гильдию');
+                console.log('✅ Перешли в Строения');
             } else {
-                console.error('❌ Кнопка "Гильдия" не найдена');
+                console.error('❌ Кнопка "Строения" не найдена');
                 return;
             }
 
-            // 2. Нажимаем на Арсенал
-            console.log('2️⃣ Переход в Арсенал...');
-            const arsenalButton = await window.BotUtils.waitForElement('div.guild-aspect-title', 'Арсенал', 5000);
-            if (arsenalButton) {
-                arsenalButton.closest('.guild-aspect').click();
+            // 2. Нажимаем на Усадьба
+            console.log('2️⃣ Переход в Усадьбу...');
+            const mansionButton = await window.BotUtils.waitForElement('div.location-name', 'Усадьба', 5000);
+            if (mansionButton) {
+                mansionButton.closest('.location-info-header').click();
                 await window.BotUtils.delay(100);
-                console.log('✅ Перешли в Арсенал');
+                console.log('✅ Перешли в Усадьбу');
             } else {
-                console.error('❌ Кнопка "Арсенал" не найдена');
+                console.error('❌ Кнопка "Усадьба" не найдена');
                 return;
             }
 
-            // 3. Анализируем все предметы
-            console.log('3️⃣ Начинаю анализ предметов...');
-            const itemList = document.querySelector('app-item-list');
-            if (!itemList) {
-                console.error('❌ Список предметов не найден');
+            // 3. Нажимаем на Сундук
+            console.log('3️⃣ Переход в Сундук...');
+            const chestButton = await window.BotUtils.waitForElement('div.location-name', 'Сундук', 5000);
+            if (chestButton) {
+                chestButton.closest('.location-content').click();
+                await window.BotUtils.delay(100);
+                console.log('✅ Перешли в Сундук');
+            } else {
+                console.error('❌ Кнопка "Сундук" не найдена');
                 return;
             }
 
-            const itemCards = itemList.querySelectorAll('app-item-card');
+            // 4. Анализируем все предметы в сундуке
+            console.log('4️⃣ Начинаю анализ предметов в сундуке...');
+            const itemsGroupBody = document.querySelector('div.items-group-body');
+            if (!itemsGroupBody) {
+                console.error('❌ Группа предметов не найдена');
+                return;
+            }
+
+            const itemCards = itemsGroupBody.querySelectorAll('app-item-card');
             console.log(`🔍 Найдено ${itemCards.length} предметов для анализа`);
 
             let analyzedCount = 0;
@@ -835,13 +927,13 @@ window.BotGameLogic = {
             console.log(`\n🎉 === АНАЛИЗ ЗАВЕРШЕН ===`);
             console.log(`📊 Проанализировано предметов: ${analyzedCount}/${itemCards.length}`);
 
-            // Создаем Google Doc с результатами
+            // Отправляем только в Google Sheets
             if (itemsData.length > 0) {
-                await this.createGoogleDocWithItems(itemsData);
+                await this.sendToGoogleSheets(itemsData);
             }
 
         } catch (error) {
-            console.error('❌ Ошибка при анализе арсенала:', error);
+            console.error('❌ Ошибка при анализе сундука:', error);
         }
     },
 
@@ -1590,5 +1682,12 @@ googleSheetsUrl: 'ВАШ_URL_СЮДА',
         text += `Сгенерировано ботом Ligmar v.${window.BotConfig.SCRIPT_COMMIT}`;
         
         return text;
+    },
+
+    /**
+     * Тестирование функции
+     */
+    testFunction() {
+        console.log('✅ Test completed successfully!');
     }
 };
