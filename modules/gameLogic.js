@@ -722,21 +722,21 @@ window.BotGameLogic = {
                     throw new Error('Кнопка "Сражения" не найдена');
                 }
 
-                // 2. Клик на "Зеленые топи" - используем ту же функцию что и в основном цикле
-                console.log('2️⃣ Клик на "Зеленые топи"...');
-                const swampsSuccess = await window.BotUtils.clickByLocationName('Зеленые топи', 5000);
-                if (swampsSuccess) {
-                    console.log('✅ Клик по "Зеленые топи" выполнен');
+                // 2. Клик на "Старые рудники" - используем ту же функцию что и в основном цикле
+                console.log('2️⃣ Клик на "Старые рудники"...');
+                const minesSuccess = await window.BotUtils.clickByLocationName('Старые рудники', 5000);
+                if (minesSuccess) {
+                    console.log('✅ Клик по "Старые рудники" выполнен');
                     await window.BotUtils.delay(100);
                 } else {
-                    throw new Error('Локация "Зеленые топи" не найдена');
+                    throw new Error('Локация "Старые рудники" не найдена');
                 }
 
                 // 3. Клик на конкретный гексагон
                 console.log('3️⃣ Клик на целевой гексагон...');
                 
-                // Ищем полигон по CSS селектору
-                const polygon = document.querySelector('body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(85) > polygon');
+                // Ищем полигон по точным координатам (первый полигон маршрута ЧТ)
+                const polygon = document.querySelector('polygon.hexagon[points="-1.5,8.25 16.5,-2.25 16.5,-23.25 -1.5,-33.75 -19.5,-23.25 -19.5,-2.25 -1.5,8.25"]');
                 
                 if (polygon) {
                     console.log('✅ Полигон найден, выполняю клик...');
@@ -774,7 +774,7 @@ window.BotGameLogic = {
                 // Первый полигон через 4.5 секунды
                 await window.BotUtils.delay(4500);
                 console.log('🎯 Клик по первому полигону маршрута...');
-                const polygon1 = document.querySelector('body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(86) > polygon');
+                const polygon1 = document.querySelector('polygon.hexagon[points="18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5"]');
                 if (polygon1) {
                     console.log('✅ Полигон 1 найден, выполняю клик...');
                     const rect1 = polygon1.getBoundingClientRect();
@@ -802,7 +802,7 @@ window.BotGameLogic = {
                 // Второй полигон через 4.5 секунды
                 await window.BotUtils.delay(4500);
                 console.log('🎯 Клик по второму полигону маршрута...');
-                const polygon2 = document.querySelector('body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(87) > polygon');
+                const polygon2 = document.querySelector('polygon.hexagon[points="37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25"]');
                 if (polygon2) {
                     console.log('✅ Полигон 2 найден, выполняю клик...');
                     const rect2 = polygon2.getBoundingClientRect();
@@ -830,7 +830,7 @@ window.BotGameLogic = {
                 // Третий полигон через 4.5 секунды
                 await window.BotUtils.delay(4500);
                 console.log('🎯 Клик по третьему полигону маршрута...');
-                const polygon3 = document.querySelector('body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(88) > polygon');
+                const polygon3 = document.querySelector('polygon.hexagon[points="57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"]');
                 if (polygon3) {
                     console.log('✅ Полигон 3 найден, выполняю клик...');
                     const rect3 = polygon3.getBoundingClientRect();
@@ -855,10 +855,10 @@ window.BotGameLogic = {
                     console.log('❌ Полигон 3 не найден');
                 }
 
-                // Четвертый (повторный) клик по пятому полигону через 4.5 секунды
+                // Четвертый (повторный) клик по третьему полигону через 4.5 секунды
                 await window.BotUtils.delay(4500);
-                console.log('🎯 Повторный клик по пятому полигону...');
-                const polygon4 = document.querySelector('body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(78) > polygon');
+                console.log('🎯 Повторный клик по третьему полигону...');
+                const polygon4 = document.querySelector('polygon.hexagon[points="57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"]');
                 if (polygon4) {
                     console.log('✅ Полигон 4 (повторный) найден, выполняю клик...');
                     const rect4 = polygon4.getBoundingClientRect();
@@ -870,34 +870,8 @@ window.BotGameLogic = {
                         clientY: rect4.top + rect4.height / 2
                     });
                     polygon4.dispatchEvent(clickEvent4);
-                    console.log('🖱️ Повторный клик по полигону 5 выполнен через MouseEvent');
+                    console.log('🖱️ Повторный клик по полигону 3 выполнен через MouseEvent');
                     await window.BotUtils.delay(100);
-                    
-                    // Клик "Перейти" после четвертого полигона
-                    const go4Success = await window.BotUtils.clickByTextContent('Перейти', 5000);
-                    if (go4Success) {
-                        console.log('✅ Клик по "Перейти" после полигона 4 выполнен');
-                        await window.BotUtils.delay(100);
-                    }
-                    
-                    // Ждем 4.5 секунды и кликаем на тот же полигон повторно
-                    await window.BotUtils.delay(4500);
-                    console.log('🎯 Финальный клик по пятому полигону...');
-                    const polygon5 = document.querySelector('body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(78) > polygon');
-                    if (polygon5) {
-                        console.log('✅ Полигон 5 (финальный) найден, выполняю клик...');
-                        const rect5 = polygon5.getBoundingClientRect();
-                        const clickEvent5 = new MouseEvent('click', {
-                            bubbles: true,
-                            cancelable: true,
-                            view: window,
-                            clientX: rect5.left + rect5.width / 2,
-                            clientY: rect5.top + rect5.height / 2
-                        });
-                        polygon5.dispatchEvent(clickEvent5);
-                        console.log('🖱️ Финальный клик по полигону 5 выполнен через MouseEvent');
-                        await window.BotUtils.delay(100);
-                    }
                     
                     // НЕ нажимаем "Перейти", а ищем босса
                     console.log('👹 Ищу иконку босса...');
@@ -1064,7 +1038,7 @@ window.BotGameLogic = {
                 try {
                     // Кликаем на предмет
                     item.click();
-                    await window.BotUtils.delay(100);
+                    await window.BotUtils.delay(10);
 
                     // Ждем появления диалога
                     const dialog = await window.BotUtils.waitForElement('app-dialog-container.dialog-container-item', null, 3000);
@@ -1083,7 +1057,7 @@ window.BotGameLogic = {
                     const closeButton = dialog.querySelector('tui-icon.svg-icon[style*="close.svg"]');
                     if (closeButton) {
                         closeButton.click();
-                        await window.BotUtils.delay(100);
+                        await window.BotUtils.delay(10);
                     }
 
                 } catch (error) {
