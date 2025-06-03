@@ -732,13 +732,13 @@ window.BotGameLogic = {
                     throw new Error('Локация "Старые рудники" не найдена');
                 }
 
-                // 3. Последовательность кликов по гексагонам ЧТ
+                // 3. Последовательность кликов по гексагонам ЧТ - используем точные координаты как в ВТ
                 const chtHexagons = [
-                    'body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(85) > polygon',
-                    'body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(86) > polygon',
-                    'body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(87) > polygon',
-                    'body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(88) > polygon',
-                    'body > app-root > div > app-game > tui-root > div > div > app-battle > div.battle-content.ng-tns-c3091494937-9 > div.battle-center.ng-tns-c3091494937-9 > app-battle-middle-panel > div > app-battle-map > svg > g > g:nth-child(78) > polygon'
+                    "57,42 75,31.5 75,10.5 57,0 39,10.5 39,31.5 57,42",
+                    "96,42 114,31.5 114,10.5 96,0 78,10.5 78,31.5 96,42", 
+                    "135,42 153,31.5 153,10.5 135,0 117,10.5 117,31.5 135,42",
+                    "174,42 192,31.5 192,10.5 174,0 156,10.5 156,31.5 174,42",
+                    "193.5,8.25 211.5,-2.25 211.5,-23.25 193.5,-33.75 175.5,-23.25 175.5,-2.25 193.5,8.25"
                 ];
                 
                 for (let i = 0; i < chtHexagons.length; i++) {
@@ -746,7 +746,8 @@ window.BotGameLogic = {
                     
                     console.log(`🎯 Клик по гексагону ${i + 1}/5...`);
                     
-                    const polygon = document.querySelector(chtHexagons[i]);
+                    // Ищем полигон по точным координатам
+                    const polygon = document.querySelector(`polygon.hexagon[points="${chtHexagons[i]}"]`);
                     if (polygon) {
                         console.log(`✅ Гексагон ${i + 1} найден, выполняю клик...`);
                         
@@ -773,7 +774,7 @@ window.BotGameLogic = {
                             await window.BotUtils.delay(4500); // Ожидание 4.5 секунд
                         }
                     } else {
-                        console.log(`❌ Гексагон ${i + 1} не найден`);
+                        console.log(`❌ Гексагон ${i + 1} не найден по координатам: ${chtHexagons[i]}`);
                     }
                 }
                 
@@ -781,7 +782,7 @@ window.BotGameLogic = {
                 console.log('🎯 Повторный клик по последнему гексагону...');
                 await window.BotUtils.delay(4500);
                 
-                const finalPolygon = document.querySelector(chtHexagons[chtHexagons.length - 1]);
+                const finalPolygon = document.querySelector(`polygon.hexagon[points="${chtHexagons[chtHexagons.length - 1]}"]`);
                 if (finalPolygon) {
                     console.log('✅ Последний гексагон (повторно) найден, выполняю клик...');
                     
