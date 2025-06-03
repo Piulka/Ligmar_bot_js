@@ -1086,10 +1086,6 @@ window.BotGameLogic = {
             // Используем переданный spreadsheetId или default
             const targetSpreadsheetId = spreadsheetId || this.SPREADSHEET_ID;
 
-            console.log('📤 Отправка данных в Google Sheets...');
-            console.log('🔗 URL:', gasUrl);
-            console.log('📊 ID таблицы:', targetSpreadsheetId);
-
             // Создаем уникальные идентификаторы для предметов
             const itemsWithIds = itemsData.map(item => ({
                 ...item,
@@ -1104,15 +1100,12 @@ window.BotGameLogic = {
                 spreadsheetId: targetSpreadsheetId
             };
 
-            console.log('📦 Отправляем данных:', itemsWithIds.length, 'предметов');
-
             // Попробуем несколько подходов
             let success = false;
             let lastError = null;
 
             // Подход 1: Прямой POST без CORS проблем - используем content-type: text/plain
             try {
-                console.log('🔄 Попытка 1: text/plain запрос...');
                 const response = await fetch(gasUrl, {
                     method: 'POST',
                     headers: {
@@ -1121,40 +1114,35 @@ window.BotGameLogic = {
                     body: JSON.stringify(payload)
                 });
                 
-                console.log('📡 Статус ответа:', response.status, response.statusText);
-                
                 if (response.ok) {
                     try {
                         const result = await response.text();
-                        console.log('✅ Успешная отправка! Ответ от сервера:', result);
+                        console.log('✅ Данные успешно отправлены в Google Sheets');
                         
                         // Пытаемся парсить как JSON
                         try {
                             const jsonResult = JSON.parse(result);
-                            console.log(`📊 Добавлено новых предметов: ${jsonResult.addedCount}, пропущено дублей: ${jsonResult.duplicatesCount}`);
-                            if (jsonResult.spreadsheetUrl) {
-                                console.log(`🔗 Ссылка на таблицу: ${jsonResult.spreadsheetUrl}`);
+                            if (jsonResult.addedCount > 0) {
+                                console.log(`📊 Добавлено предметов: ${jsonResult.addedCount}`);
                             }
                         } catch (parseError) {
-                            console.log('📝 Ответ (не JSON):', result);
+                            // Если не JSON, просто игнорируем
                         }
                         success = true;
                     } catch (readError) {
-                        console.log('⚠️ Запрос отправлен, но не удалось прочитать ответ:', readError.message);
+                        console.log('✅ Данные отправлены (ответ не прочитан)');
                         success = true; // считаем успешным, если статус 200
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
-                console.log('⚠️ Попытка 1 не удалась:', error.message);
                 lastError = error;
             }
 
             // Подход 2: Если первый не сработал, попробуем через form data
             if (!success) {
                 try {
-                    console.log('🔄 Попытка 2: form data...');
                     const formData = new FormData();
                     formData.append('data', JSON.stringify(payload));
 
@@ -1163,17 +1151,13 @@ window.BotGameLogic = {
                         body: formData
                     });
                     
-                    console.log('📡 Статус ответа (form):', response.status, response.statusText);
-                    
                     if (response.ok) {
-                        const result = await response.text();
-                        console.log('✅ Успешная отправка через form data! Ответ:', result);
+                        console.log('✅ Данные успешно отправлены в Google Sheets (form data)');
                         success = true;
                     } else {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                 } catch (error) {
-                    console.log('⚠️ Попытка 2 не удалась:', error.message);
                     lastError = error;
                 }
             }
@@ -1181,8 +1165,7 @@ window.BotGameLogic = {
             // Подход 3: No-CORS как крайний случай
             if (!success) {
                 try {
-                    console.log('🔄 Попытка 3: no-cors режим (отправка вслепую)...');
-                    const response = await fetch(gasUrl, {
+                    await fetch(gasUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: {
@@ -1191,18 +1174,10 @@ window.BotGameLogic = {
                         body: JSON.stringify(payload)
                     });
                     
-                    console.log('📡 No-CORS ответ получен (type:', response.type, ')');
-                    console.log('✅ Данные отправлены в no-cors режиме. Проверьте таблицу вручную.');
+                    console.log('✅ Данные отправлены в Google Sheets (no-cors режим)');
                     console.log(`📊 Отправлено ${itemsWithIds.length} предметов.`);
-                    
-                    // Пытаемся построить ссылку на таблицу
-                    const spreadsheetUrl = this.getSpreadsheetUrlFromGasUrl(gasUrl);
-                    if (spreadsheetUrl) {
-                        console.log(`🔗 Примерная ссылка на проект: ${spreadsheetUrl}`);
-                    }
                     success = true;
                 } catch (error) {
-                    console.log('⚠️ Попытка 3 не удалась:', error.message);
                     lastError = error;
                 }
             }
