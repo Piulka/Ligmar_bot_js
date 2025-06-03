@@ -558,6 +558,91 @@ window.BotGameLogic = {
                     throw new Error('Кнопка "Перейти" не найдена');
                 }
 
+                // 5. Последовательность кликов по полигонам через 5 секунд каждый
+                console.log('5️⃣ Начинаю последовательность кликов по полигонам...');
+                
+                // Первый полигон через 5 секунд
+                await window.BotUtils.delay(5000);
+                console.log('🎯 Клик по первому полигону маршрута...');
+                const polygon1 = document.querySelector('polygon.hexagon[points="18,-25.5 36,-36 36,-57 18,-67.5 0,-57 0,-36 18,-25.5"]');
+                if (polygon1) {
+                    console.log('✅ Полигон 1 найден, выполняю клик...');
+                    const rect1 = polygon1.getBoundingClientRect();
+                    const clickEvent1 = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect1.left + rect1.width / 2,
+                        clientY: rect1.top + rect1.height / 2
+                    });
+                    polygon1.dispatchEvent(clickEvent1);
+                    console.log('🖱️ Клик по полигону 1 выполнен через MouseEvent');
+                } else {
+                    console.log('❌ Полигон 1 не найден');
+                }
+
+                // Второй полигон через 5 секунд
+                await window.BotUtils.delay(5000);
+                console.log('🎯 Клик по второму полигону маршрута...');
+                const polygon2 = document.querySelector('polygon.hexagon[points="37.5,-59.25 55.5,-69.75 55.5,-90.75 37.5,-101.25 19.5,-90.75 19.5,-69.75 37.5,-59.25"]');
+                if (polygon2) {
+                    console.log('✅ Полигон 2 найден, выполняю клик...');
+                    const rect2 = polygon2.getBoundingClientRect();
+                    const clickEvent2 = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect2.left + rect2.width / 2,
+                        clientY: rect2.top + rect2.height / 2
+                    });
+                    polygon2.dispatchEvent(clickEvent2);
+                    console.log('🖱️ Клик по полигону 2 выполнен через MouseEvent');
+                } else {
+                    console.log('❌ Полигон 2 не найден');
+                }
+
+                // Третий полигон через 5 секунд
+                await window.BotUtils.delay(5000);
+                console.log('🎯 Клик по третьему полигону маршрута...');
+                const polygon3 = document.querySelector('polygon.hexagon[points="57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"]');
+                if (polygon3) {
+                    console.log('✅ Полигон 3 найден, выполняю клик...');
+                    const rect3 = polygon3.getBoundingClientRect();
+                    const clickEvent3 = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect3.left + rect3.width / 2,
+                        clientY: rect3.top + rect3.height / 2
+                    });
+                    polygon3.dispatchEvent(clickEvent3);
+                    console.log('🖱️ Клик по полигону 3 выполнен через MouseEvent');
+                } else {
+                    console.log('❌ Полигон 3 не найден');
+                }
+
+                // Четвертый (повторный) клик по третьему полигону через 5 секунд
+                await window.BotUtils.delay(5000);
+                console.log('🎯 Повторный клик по третьему полигону...');
+                const polygon4 = document.querySelector('polygon.hexagon[points="57,-93 75,-103.5 75,-124.5 57,-135 39,-124.5 39,-103.5 57,-93"]');
+                if (polygon4) {
+                    console.log('✅ Полигон 4 (повторный) найден, выполняю клик...');
+                    const rect4 = polygon4.getBoundingClientRect();
+                    const clickEvent4 = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window,
+                        clientX: rect4.left + rect4.width / 2,
+                        clientY: rect4.top + rect4.height / 2
+                    });
+                    polygon4.dispatchEvent(clickEvent4);
+                    console.log('🖱️ Повторный клик по полигону 3 выполнен через MouseEvent');
+                } else {
+                    console.log('❌ Полигон 4 (повторный) не найден');
+                }
+
+                console.log('✅ Последовательность кликов по полигонам завершена');
+
                 console.log('🔥 Начинаю бой с боссом ВТ...');
                 await this.bossFightLoop(abortSignal);
                 
