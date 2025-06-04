@@ -1,5 +1,9 @@
 // IDs таблиц Google Sheets
 // Ссылка на проект: https://script.google.com/home/projects/1VY0jgyn0rHpe6DWqVm3RRFOxTxjaBTyDxlDz6UZymG4c5O7buewNeGNC/edit
+// 
+// ИСПРАВЛЕНИЕ v.4.0.8: Исправлена проблема с батчированием - теперь предметы помечаются как "Отдано" 
+// только после обработки последнего батча, а не после каждого отдельного батча
+//
 const SPREADSHEET_ID = '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ'; // Таблица для "Вещи Г" (гильдийские вещи)
 const GUILD_SPREADSHEET_ID = '1Ygi2GzE6MB0_9im_npM6N1Im-jHiXVbpIQ_V4CkxeaQ'; // Таблица для "Вещи ТОП"
 const BASE_IMAGE_URL = 'https://ligmar.io/game'; // Базовый URL для изображений Ligmar
@@ -14,7 +18,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.4.0.7-batching - ИСПРАВЛЕНО: батчирование для больших объемов данных')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.8-batching-fix - ИСПРАВЛЕНО: проблема с преждевременным помечанием предметов как "Отдано" в батчах')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -48,7 +52,7 @@ function doPost(e) {
     Logger.log('Получены данные:', data);
     
     if (data.action === 'addItems') {
-      return addItemsToSheet(data.items, data.spreadsheetId);
+      return addItemsToSheet(data.items, data.spreadsheetId, data.isLastBatch);
     }
     
     return createSuccessResponse({error: 'Неизвестное действие'});
@@ -72,7 +76,7 @@ function createSuccessResponse(data) {
 }
 
 // Добавление предметов в таблицу
-function addItemsToSheet(items, targetSpreadsheetId = null) {
+function addItemsToSheet(items, targetSpreadsheetId = null, isLastBatch = false) {
   try {
     // Определяем, какую таблицу использовать
     var spreadsheetId = targetSpreadsheetId || SPREADSHEET_ID;
@@ -148,27 +152,32 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     });
     
     // Находим предметы которые были в таблице, но отсутствуют в текущем анализе (отданные)
+    // ИСПРАВЛЕНИЕ: Проверяем отданные предметы только если это последний батч
     var givenAwayCount = 0;
-    for (var itemId in existingRowData) {
-      var rowIndex = existingRowData[itemId].row;
-      
-      if (!currentItemIds[itemId]) {
-        // Предмет отсутствует в текущем анализе - помечаем как "Отдано"
-        sheet.getRange(rowIndex, 11).setValue('Отдано'); // ИСПРАВЛЕНО: Столбец "Статус" (11, а не 10)
+    if (isLastBatch) {
+      Logger.log('🔍 Это последний батч, проверяем отданные предметы...');
+      for (var itemId in existingRowData) {
+        var rowIndex = existingRowData[itemId].row;
         
-        // Применяем красный фон для отданных предметов
-        var statusCell = sheet.getRange(rowIndex, 11); // ИСПРАВЛЕНО: колонка 11
-        statusCell.setBackground('#ffcdd2');
-        statusCell.setFontColor('#c62828');
-        statusCell.setFontWeight('bold');
-        statusCell.setHorizontalAlignment('center');
-        statusCell.setVerticalAlignment('middle');
-        
-        givenAwayCount++;
+        if (!currentItemIds[itemId]) {
+          // Предмет отсутствует в текущем анализе - помечаем как "Отдано"
+          sheet.getRange(rowIndex, 11).setValue('Отдано'); // ИСПРАВЛЕНО: Столбец "Статус" (11, а не 10)
+          
+          // Применяем красный фон для отданных предметов
+          var statusCell = sheet.getRange(rowIndex, 11); // ИСПРАВЛЕНО: колонка 11
+          statusCell.setBackground('#ffcdd2');
+          statusCell.setFontColor('#c62828');
+          statusCell.setFontWeight('bold');
+          statusCell.setHorizontalAlignment('center');
+          statusCell.setVerticalAlignment('middle');
+          
+          givenAwayCount++;
+        }
       }
+      Logger.log('Найдено отданных предметов: ' + givenAwayCount);
+    } else {
+      Logger.log('⏳ Это промежуточный батч, пропускаем проверку отданных предметов');
     }
-    
-    Logger.log('Найдено отданных предметов: ' + givenAwayCount);
     
     // Обрабатываем предметы батчами для больших объемов
     var batchSize = 100; // Обрабатываем по 100 предметов за раз
@@ -841,11 +850,11 @@ function testFunction() {
     
     // Тестируем основную таблицу (Вещи Г)
     Logger.log('Testing GUILD table...');
-    var result1 = addItemsToSheet(testItems, SPREADSHEET_ID);
+    var result1 = addItemsToSheet(testItems, SPREADSHEET_ID, true);
     
     // Тестируем таблицу ТОП
     Logger.log('Testing TOP table...');
-    var result2 = addItemsToSheet(testItems, GUILD_SPREADSHEET_ID);
+    var result2 = addItemsToSheet(testItems, GUILD_SPREADSHEET_ID, true);
     
     Logger.log('✅ Test completed successfully');
     Logger.log('🔗 Guild table: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID);
