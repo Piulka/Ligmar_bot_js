@@ -13,7 +13,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.4.0.1 - Поддержка столбцов "Статус" и "Отдал"')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.3 - Поддержка столбцов "Статус" и "Отдал", высота строк 65px, ID в конце, отслеживание отданных предметов')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -130,11 +130,37 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     Logger.log('Обработка: ' + items.length + ' предметов');
     Logger.log('Максимальный порядковый номер: ' + maxOrderNumber);
     
-    // Сначала обновляем статус всех существующих предметов на "Старая"
+    // Создаем набор ID из текущего анализа
+    var currentItemIds = {};
+    items.forEach(function(item) {
+      currentItemIds[item.uniqueId] = true;
+    });
+    
+    // Находим предметы которые были в таблице, но отсутствуют в текущем анализе (отданные)
+    var givenAwayCount = 0;
     for (var itemId in existingRowData) {
       var rowIndex = existingRowData[itemId].row;
-      sheet.getRange(rowIndex, 11).setValue('Старая'); // Столбец "Статус" (индекс 10, колонка 11)
+      
+      if (!currentItemIds[itemId]) {
+        // Предмет отсутствует в текущем анализе - помечаем как "Отдано"
+        sheet.getRange(rowIndex, 11).setValue('Отдано'); // Столбец "Статус"
+        
+        // Применяем красный фон для отданных предметов
+        var statusCell = sheet.getRange(rowIndex, 11);
+        statusCell.setBackground('#ffcdd2'); // тускло красный фон
+        statusCell.setFontColor('#c62828'); // темно-красный текст
+        statusCell.setFontWeight('bold');
+        statusCell.setHorizontalAlignment('center');
+        statusCell.setVerticalAlignment('middle');
+        
+        givenAwayCount++;
+      } else {
+        // Предмет найден в текущем анализе - помечаем как "Старая" (будет обновлено ниже если нужно)
+        sheet.getRange(rowIndex, 11).setValue('Старая');
+      }
     }
+    
+    Logger.log('Найдено отданных предметов: ' + givenAwayCount);
     
     // Обрабатываем каждый предмет
     items.forEach(function(item) {
@@ -206,6 +232,7 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       success: true,
       addedCount: newItemsCount,
       updatedCount: updatedItemsCount,
+      givenAwayCount: givenAwayCount,
       duplicatesCount: 0,
       totalItems: sheet.getLastRow() - 1,
       spreadsheetUrl: spreadsheet.getUrl(),
@@ -371,6 +398,9 @@ function formatItemRow(sheet, row, item, status) {
   if (status === 'Новая') {
     statusCell.setBackground('#d4edda'); // зеленый фон для новых
     statusCell.setFontColor('#155724');
+  } else if (status === 'Отдано') {
+    statusCell.setBackground('#ffcdd2'); // тускло красный фон для отданных
+    statusCell.setFontColor('#c62828'); // темно-красный текст
   } else {
     statusCell.setBackground('#fff3cd'); // желтый фон для старых
     statusCell.setFontColor('#856404');
