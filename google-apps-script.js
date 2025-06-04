@@ -13,7 +13,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.4.0.3 - Поддержка столбцов "Статус" и "Отдал", высота строк 65px, ID в конце, отслеживание отданных предметов')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.4 - Оптимизированная логика: только статус для существующих предметов, полное отслеживание отданных вещей')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -155,8 +155,8 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
         
         givenAwayCount++;
       } else {
-        // Предмет найден в текущем анализе - помечаем как "Старая" (будет обновлено ниже если нужно)
-        sheet.getRange(rowIndex, 11).setValue('Старая');
+        // Предмет найден в текущем анализе - статус будет обновлен в основном цикле ниже
+        // Здесь ничего не делаем
       }
     }
     
@@ -209,20 +209,22 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
         
         newItemsCount++;
       } else {
-        // Обновляем существующий предмет (только данные, кроме столбца "Отдал")
+        // Существующий предмет - обновляем только статус на "Старая"
         var existingRowIndex = existingItemsMap[itemId];
-        // Обновляем все столбцы кроме "Отдал" (столбец 12)
-        var updateRow = newRow.slice();
-        updateRow[11] = gaveAway; // Сохраняем старое значение "Отдал"
-        sheet.getRange(existingRowIndex, 1, 1, 12).setValues([updateRow.slice(0, 12)]);
-        // Обновляем ID отдельно
-        sheet.getRange(existingRowIndex, 13).setValue(item.uniqueId);
         
-        // Устанавливаем высоту строки 65 пикселей
+        // Обновляем только столбец "Статус" (колонка 11)
+        sheet.getRange(existingRowIndex, 11).setValue('Старая');
+        
+        // Устанавливаем высоту строки 65 пикселей (на случай если не была установлена)
         sheet.setRowHeight(existingRowIndex, 65);
         
-        // Применяем форматирование для обновленной строки
-        formatItemRow(sheet, existingRowIndex, item, status);
+        // Применяем форматирование только для столбца статуса
+        var statusCell = sheet.getRange(existingRowIndex, 11);
+        statusCell.setFontWeight('bold');
+        statusCell.setHorizontalAlignment('center');
+        statusCell.setVerticalAlignment('middle');
+        statusCell.setBackground('#fff3cd'); // желтый фон для старых
+        statusCell.setFontColor('#856404');
         
         updatedItemsCount++;
       }
