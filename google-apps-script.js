@@ -14,7 +14,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.4.1.0 - ИСПРАВЛЕНО: дублирование предметов в одной итерации')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.7-batching - ИСПРАВЛЕНО: батчирование для больших объемов данных')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -77,13 +77,21 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     // Определяем, какую таблицу использовать
     var spreadsheetId = targetSpreadsheetId || SPREADSHEET_ID;
     
+    Logger.log('=== НАЧАЛО ОБРАБОТКИ БАТЧА ===');
     Logger.log('Используем таблицу ID: ' + spreadsheetId);
     Logger.log('Получено предметов для обработки: ' + items.length);
+    
+    // Если есть информация о батче, логируем её
+    if (items.length > 0 && items[0].batchInfo) {
+      var batchInfo = items[0].batchInfo;
+      Logger.log('📦 Информация о батче: ' + batchInfo.currentBatch + '/' + batchInfo.totalBatches + ' (размер: ' + batchInfo.batchSize + ')');
+    }
     
     // Создаем или получаем таблицу
     var spreadsheet;
     try {
       spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+      Logger.log('✅ Таблица успешно открыта');
     } catch (e) {
       Logger.log('Ошибка открытия таблицы ' + spreadsheetId + ': ' + e.toString());
       // Если не удалось открыть конкретную таблицу, создаем новую
@@ -275,7 +283,14 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       sheetId: spreadsheet.getId()
     };
     
-    Logger.log('Результат:', result);
+    Logger.log('=== РЕЗУЛЬТАТЫ ОБРАБОТКИ БАТЧА ===');
+    Logger.log('✅ Новых предметов добавлено: ' + newItemsCount);
+    Logger.log('🔄 Существующих предметов обновлено: ' + updatedItemsCount);
+    Logger.log('📤 Предметов помечено как отданные: ' + givenAwayCount);
+    Logger.log('📋 Общее количество предметов в таблице: ' + (sheet.getLastRow() - 1));
+    Logger.log('🔗 Ссылка на таблицу: ' + spreadsheet.getUrl());
+    Logger.log('=== КОНЕЦ ОБРАБОТКИ БАТЧА ===');
+    
     return createSuccessResponse(result);
     
   } catch (error) {

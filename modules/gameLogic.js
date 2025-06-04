@@ -1266,18 +1266,79 @@ window.BotGameLogic = {
                 botVersion: window.BotConfig.SCRIPT_COMMIT
             }));
 
-            const payload = {
-                action: 'addItems',
-                items: itemsWithIds,
-                spreadsheetId: targetSpreadsheetId
-            };
+            // 🔥 БАТЧИРОВАНИЕ: Разделяем большие объемы на более мелкие части
+            const batchSize = 100; // 100 предметов за раз
+            const totalBatches = Math.ceil(itemsWithIds.length / batchSize);
+            
+            console.log(`📦 Отправка ${itemsWithIds.length} предметов в ${totalBatches} батчах по ${batchSize} предметов...`);
+            
+            let totalProcessed = 0;
+            let totalErrors = 0;
 
-            // Попробуем несколько подходов
-            let success = false;
-            let lastError = null;
+            for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                const startIndex = batchIndex * batchSize;
+                const endIndex = Math.min(startIndex + batchSize, itemsWithIds.length);
+                const batch = itemsWithIds.slice(startIndex, endIndex);
+                
+                console.log(`📤 Отправка батча ${batchIndex + 1}/${totalBatches} (предметы ${startIndex + 1}-${endIndex})...`);
+                
+                const payload = {
+                    action: 'addItems',
+                    items: batch,
+                    spreadsheetId: targetSpreadsheetId,
+                    batchInfo: {
+                        currentBatch: batchIndex + 1,
+                        totalBatches: totalBatches,
+                        batchSize: batch.length
+                    }
+                };
 
-            // Подход 1: Прямой POST без CORS проблем - используем content-type: text/plain
+                // Отправляем батч с повторными попытками
+                const batchSuccess = await this.sendBatchWithRetry(gasUrl, payload, batchIndex + 1, totalBatches);
+                
+                if (batchSuccess) {
+                    totalProcessed += batch.length;
+                    console.log(`✅ Батч ${batchIndex + 1}/${totalBatches} успешно отправлен (${batch.length} предметов)`);
+                } else {
+                    totalErrors += batch.length;
+                    console.error(`❌ Ошибка отправки батча ${batchIndex + 1}/${totalBatches} (${batch.length} предметов)`);
+                }
+                
+                // Пауза между батчами для предотвращения перегрузки
+                if (batchIndex < totalBatches - 1) {
+                    console.log(`⏳ Пауза 2 секунды перед следующим батчем...`);
+                    await window.BotUtils.delay(2000);
+                }
+            }
+            
+            // Итоговый отчет
+            console.log('\n🎉 === ОТПРАВКА ЗАВЕРШЕНА ===');
+            console.log(`✅ Успешно обработано: ${totalProcessed}/${itemsWithIds.length} предметов`);
+            if (totalErrors > 0) {
+                console.log(`❌ Ошибки: ${totalErrors}/${itemsWithIds.length} предметов`);
+            }
+            console.log(`📊 Успешность: ${Math.round((totalProcessed / itemsWithIds.length) * 100)}%`);
+
+        } catch (error) {
+            console.error('❌ Общая ошибка отправки в Google Sheets:', error);
+            this.showGoogleSheetsSetupInstructions();
+        }
+    },
+
+    /**
+     * Отправка одного батча с повторными попытками
+     * @param {string} gasUrl - URL Google Apps Script
+     * @param {Object} payload - данные для отправки  
+     * @param {number} batchNumber - номер батча
+     * @param {number} totalBatches - общее количество батчей
+     */
+    async sendBatchWithRetry(gasUrl, payload, batchNumber, totalBatches) {
+        const maxRetries = 3;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
+                // Подход 1: text/plain
                 const response = await fetch(gasUrl, {
                     method: 'POST',
                     headers: {
@@ -1289,111 +1350,73 @@ window.BotGameLogic = {
                 if (response.ok) {
                     try {
                         const result = await response.text();
-                        console.log('✅ Данные успешно отправлены в Google Sheets');
-                        
-                        // Пытаемся парсить как JSON
+                        // Попробуем парсить результат
                         try {
                             const jsonResult = JSON.parse(result);
-                            if (jsonResult.addedCount > 0) {
-                                console.log(`📊 Добавлено предметов: ${jsonResult.addedCount}`);
-                            }
-                            if (jsonResult.spreadsheetUrl) {
-                                console.log(`🔗 Ссылка на таблицу: ${jsonResult.spreadsheetUrl}`);
+                            if (jsonResult.addedCount !== undefined) {
+                                console.log(`📊 Батч ${batchNumber}/${totalBatches} - добавлено: ${jsonResult.addedCount}`);
                             }
                         } catch (parseError) {
-                            // Если не JSON, просто игнорируем
+                            // Не JSON - это нормально
                         }
-                        success = true;
+                        return true;
                     } catch (readError) {
-                        console.log('✅ Данные отправлены (ответ не прочитан)');
-                        success = true; // считаем успешным, если статус 200
+                        console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен (ответ не прочитан)`);
+                        return true;
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
                 lastError = error;
-            }
-
-            // Подход 2: Если первый не сработал, попробуем через form data
-            if (!success) {
-                try {
-                    const formData = new FormData();
-                    formData.append('data', JSON.stringify(payload));
-
-                    const response = await fetch(gasUrl, {
-                        method: 'POST',
-                        body: formData
-                    });
+                
+                if (attempt < maxRetries) {
+                    console.log(`⚠️ Батч ${batchNumber}/${totalBatches} - попытка ${attempt} не удалась, повторяю через 3 сек...`);
+                    await window.BotUtils.delay(3000);
+                } else {
+                    // Попробуем альтернативные методы на последней попытке
+                    console.log(`🔄 Батч ${batchNumber}/${totalBatches} - пробую альтернативные методы...`);
                     
-                    if (response.ok) {
-                        console.log('✅ Данные успешно отправлены в Google Sheets (form data)');
-                        success = true;
-                    } else {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    // Подход 2: form-data
+                    try {
+                        const formData = new FormData();
+                        formData.append('data', JSON.stringify(payload));
+
+                        const response2 = await fetch(gasUrl, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (response2.ok) {
+                            console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен через form-data`);
+                            return true;
+                        }
+                    } catch (formError) {
+                        // Игнорируем, пробуем следующий метод
                     }
-                } catch (error) {
-                    lastError = error;
+
+                    // Подход 3: no-cors как крайний случай
+                    try {
+                        await fetch(gasUrl, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: {
+                                'Content-Type': 'text/plain',
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен через no-cors`);
+                        return true;
+                    } catch (noCorsError) {
+                        // Последняя попытка не удалась
+                    }
                 }
             }
-
-            // Подход 3: No-CORS как крайний случай
-            if (!success) {
-                try {
-                    await fetch(gasUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'text/plain',
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    console.log('✅ Данные отправлены в Google Sheets (no-cors режим)');
-                    console.log(`📊 Отправлено ${itemsWithIds.length} предметов.`);
-                    success = true;
-                } catch (error) {
-                    lastError = error;
-                }
-            }
-
-            if (!success) {
-                throw lastError || new Error('Все попытки отправки завершились неудачей');
-            }
-
-        } catch (error) {
-            console.error('❌ Ошибка отправки в Google Sheets:', error);
-            console.log('');
-            console.log('🔧 === ДИАГНОСТИКА ПРОБЛЕМЫ ===');
-            console.log('');
-            
-            if (error.message.includes('401')) {
-                console.log('🚨 ОШИБКА 401 (Unauthorized):');
-                console.log('   1. Проверьте настройки деплоя в Google Apps Script:');
-                console.log('      • "Execute as" (Выполнить как): Me (Я)');
-                console.log('      • "Who has access" (Кто имеет доступ): Anyone (Все)');
-                console.log('   2. Убедитесь что скрипт развернут правильно');
-                console.log('   3. Попробуйте создать новый деплой');
-            } else if (error.message.includes('CORS')) {
-                console.log('🚨 ОШИБКА CORS:');
-                console.log('   1. Убедитесь что в Google Apps Script есть функция doOptions()');
-                console.log('   2. Проверьте что возвращаются правильные CORS заголовки');
-            } else {
-                console.log('🚨 ОБЩАЯ ОШИБКА:');
-                console.log('   1. Проверьте что URL правильный и заканчивается на /exec');
-                console.log('   2. Убедитесь что Google Apps Script работает');
-                console.log('   3. Попробуйте протестировать скрипт отдельно');
-            }
-            
-            console.log('');
-            console.log('💡 РЕШЕНИЯ:');
-            console.log('   • Данные всё равно сохранены локально');
-            console.log('   • Попробуйте перездеплоить Google Apps Script');
-            console.log('   • Проверьте код Google Apps Script (ниже)');
-            
-            // Показываем инструкции
-            this.showGoogleSheetsSetupInstructions();
         }
+        
+        console.error(`❌ Батч ${batchNumber}/${totalBatches} - все ${maxRetries} попытки не удались:`, lastError?.message || 'Неизвестная ошибка');
+        return false;
     },
 
     /**
