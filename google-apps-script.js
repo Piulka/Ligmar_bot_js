@@ -13,7 +13,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.4.0.0 - Поддержка столбцов "Статус" и "Отдал"')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.1 - Поддержка столбцов "Статус" и "Отдал"')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -102,16 +102,25 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     var existingData = sheet.getDataRange().getValues();
     var existingItemsMap = {};
     var existingRowData = {};
+    var maxOrderNumber = 0; // Для отслеживания максимального порядкового номера
     
     // Создаем карту существующих предметов с сохранением данных столбца "Отдал"
     for (var i = 1; i < existingData.length; i++) {
-      if (existingData[i][0]) { // Если есть ID
+      if (existingData[i][0]) { // Если есть ID (столбец 1)
         var itemId = existingData[i][0];
+        var orderNumber = parseInt(existingData[i][1]) || 0; // Столбец 2 - порядковый номер
+        
         existingItemsMap[itemId] = i + 1; // номер строки (1-based)
         existingRowData[itemId] = {
           row: i + 1,
+          orderNumber: orderNumber,
           gaveAway: existingData[i][12] || '-' // столбец "Отдал" (индекс 12)
         };
+        
+        // Отслеживаем максимальный порядковый номер
+        if (orderNumber > maxOrderNumber) {
+          maxOrderNumber = orderNumber;
+        }
       }
     }
     
@@ -119,6 +128,13 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     var updatedItemsCount = 0;
     
     Logger.log('Обработка: ' + items.length + ' предметов');
+    Logger.log('Максимальный порядковый номер: ' + maxOrderNumber);
+    
+    // Сначала обновляем статус всех существующих предметов на "Старая"
+    for (var itemId in existingRowData) {
+      var rowIndex = existingRowData[itemId].row;
+      sheet.getRange(rowIndex, 12).setValue('Старая'); // Столбец "Статус"
+    }
     
     // Обрабатываем каждый предмет
     items.forEach(function(item) {
@@ -126,26 +142,32 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       var isNewItem = !existingItemsMap.hasOwnProperty(itemId);
       var status = isNewItem ? 'Новая' : 'Старая';
       var gaveAway = '-'; // по умолчанию
+      var orderNumber;
       
-      // Если предмет уже существует, сохраняем данные столбца "Отдал"
-      if (!isNewItem && existingRowData[itemId]) {
+      if (isNewItem) {
+        // Для новых предметов увеличиваем порядковый номер
+        maxOrderNumber++;
+        orderNumber = maxOrderNumber;
+      } else {
+        // Для существующих предметов сохраняем старый порядковый номер
+        orderNumber = existingRowData[itemId].orderNumber;
         gaveAway = existingRowData[itemId].gaveAway;
       }
       
       var newRow = [
-        item.uniqueId,
-        new Date(item.analysisDate),
-        item.botVersion,
-        item.name || '',
-        item.type || '',
-        item.quality || '',
-        item.tier || '',
-        item.gearScore || 0,
-        item.stats.map(function(s) { return s.name + ': ' + s.value; }).join(', '),
-        item.magicProps.map(function(p) { return p.name + ': ' + p.value + ' ' + p.percent; }).join(', '),
-        item.requirements.map(function(r) { return r.key + ' ' + r.value; }).join(', '),
-        status,
-        gaveAway
+        item.uniqueId,                    // 1. ID
+        orderNumber,                      // 2. Порядковый номер  
+        item.imageUrl || '',              // 3. Изображение
+        item.name || '',                  // 4. Название
+        item.type || '',                  // 5. Тип
+        item.quality || '',               // 6. Качество
+        cleanTierName(item.tier || ''),   // 7. Уровень (без слова "уровень")
+        item.gearScore || 0,              // 8. ГС
+        formatStatsForCell(item.stats || []),                     // 9. Основные характеристики
+        formatMagicPropsForCell(item.magicProps || []),          // 10. Магические свойства
+        formatRequirementsForCell(item.requirements || []),      // 11. Требования
+        status,                           // 12. Статус
+        gaveAway                          // 13. Отдал
       ];
       
       if (isNewItem) {
@@ -169,11 +191,6 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
         updatedItemsCount++;
       }
     });
-    
-    // Автоматическая ширина колонок (только при первом создании)
-    if (sheet.getLastRow() === items.length + 1) {
-      sheet.autoResizeColumns(1, 13);
-    }
     
     var result = {
       success: true,
@@ -200,7 +217,7 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
 // Настройка заголовков таблицы
 function setupSheetHeaders(sheet) {
   var headers = [
-    'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', 
+    'ID', 'Порядковый номер', 'Изображение', 'Название', 'Тип', 'Качество', 
     'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования', 'Статус', 'Отдал'
   ];
   
@@ -226,11 +243,86 @@ function formatItemRow(sheet, row, item, status) {
   range.setBorder(true, true, true, true, true, true);
   range.setVerticalAlignment('top');
   
+  // Порядковый номер (колонка 2) - по центру
+  var orderCell = sheet.getRange(row, 2);
+  orderCell.setHorizontalAlignment('center');
+  orderCell.setFontWeight('bold');
+  
+  // Изображение (колонка 3)
+  var imageCell = sheet.getRange(row, 3);
+  if (item.imageUrl) {
+    var imageUrl = convertImagePath(item.imageUrl, BASE_IMAGE_URL);
+    var sanitizedUrl = sanitizeImageUrl(imageUrl);
+    
+    if (sanitizedUrl && isValidImageUrl(sanitizedUrl)) {
+      try {
+        // Пробуем работающие формулы
+        var imageFormulas = [
+          '=IMAGE("' + sanitizedUrl + '"; 1)',  // Формула с точкой с запятой
+          '=IMAGE("' + sanitizedUrl + '")'      // Формула без второго параметра
+        ];
+        
+        var formulaWorked = false;
+        for (var i = 0; i < imageFormulas.length; i++) {
+          try {
+            imageCell.setValue(imageFormulas[i]);
+            imageCell.setHorizontalAlignment('center');
+            imageCell.setVerticalAlignment('middle');
+            Logger.log('✅ Формула изображения работает: ' + imageFormulas[i]);
+            formulaWorked = true;
+            break;
+          } catch (formulaError) {
+            Logger.log('⚠️ Формула не работает: ' + imageFormulas[i]);
+          }
+        }
+        
+        if (!formulaWorked) {
+          throw new Error('Формулы IMAGE не работают');
+        }
+        
+      } catch (error) {
+        Logger.log('⚠️ Ошибка с IMAGE функцией: ' + error.toString());
+        // Альтернативный метод - ссылка
+        imageCell.setValue('=HYPERLINK("' + sanitizedUrl + '"; "🖼️")');
+        imageCell.setFontColor('#2196F3');
+        imageCell.setFontWeight('bold');
+        imageCell.setHorizontalAlignment('center');
+      }
+    } else {
+      imageCell.setValue('❌');
+      imageCell.setFontColor('#FF9800');
+      imageCell.setFontWeight('bold');
+      imageCell.setHorizontalAlignment('center');
+    }
+  } else {
+    imageCell.setValue('-');
+    imageCell.setFontColor('#999999');
+    imageCell.setHorizontalAlignment('center');
+  }
+  
+  // Проверяем есть ли магические свойства > 101%
+  var hasOver101Percent = checkMagicPropsOver101(item.magicProps || []);
+  
   // Форматирование качества предмета (колонка 6)
   var qualityCell = sheet.getRange(row, 6);
-  var qualityColor = getQualityColor(item.quality);
-  qualityCell.setFontColor(qualityColor);
   qualityCell.setFontWeight('bold');
+  qualityCell.setHorizontalAlignment('center');
+  
+  if (hasOver101Percent) {
+    // Если есть магическое свойство > 101%, то оранжевый фон
+    qualityCell.setBackground('#FFA500');
+    qualityCell.setFontColor('#FFFFFF');
+  } else {
+    // Обычная цветовая схема для качества
+    var qualityBgColor = getQualityBackgroundColor(item.quality);
+    qualityCell.setBackground(qualityBgColor);
+    qualityCell.setFontColor('#FFFFFF');
+  }
+  
+  // Форматирование уровня (колонка 7)
+  var tierCell = sheet.getRange(row, 7);
+  tierCell.setHorizontalAlignment('center');
+  tierCell.setFontWeight('bold');
   
   // Форматирование ГС (колонка 8)
   var gsCell = sheet.getRange(row, 8);
@@ -239,9 +331,17 @@ function formatItemRow(sheet, row, item, status) {
   gsCell.setFontWeight('bold');
   gsCell.setHorizontalAlignment('center');
   
+  // Форматирование основных характеристик (колонка 9)
+  var statsCell = sheet.getRange(row, 9);
+  formatMultilineCell(statsCell, item.stats || [], formatStat);
+  
   // Форматирование магических свойств (колонка 10)
   var magicCell = sheet.getRange(row, 10);
   formatMagicPropsCell(magicCell, item.magicProps || []);
+  
+  // Форматирование требований (колонка 11)
+  var reqCell = sheet.getRange(row, 11);
+  formatMultilineCell(reqCell, item.requirements || [], formatRequirement);
   
   // Форматирование столбца "Статус" (колонка 12)
   var statusCell = sheet.getRange(row, 12);
@@ -259,7 +359,6 @@ function formatItemRow(sheet, row, item, status) {
   
   // Форматирование столбца "Отдал" (колонка 13)
   var gaveAwayCell = sheet.getRange(row, 13);
-  // Значение уже установлено в основной функции, просто форматируем
   gaveAwayCell.setHorizontalAlignment('center');
   if (gaveAwayCell.getValue() === '-') {
     gaveAwayCell.setFontColor('#999999');
@@ -268,6 +367,92 @@ function formatItemRow(sheet, row, item, status) {
     gaveAwayCell.setFontColor('#000000');
     gaveAwayCell.setFontWeight('bold');
   }
+}
+
+// Очистка названия уровня (убираем слово "уровень")
+function cleanTierName(tier) {
+  if (!tier) return '';
+  return tier.replace(/уровень\s*/i, '').trim();
+}
+
+// Проверка есть ли магические свойства > 101%
+function checkMagicPropsOver101(magicProps) {
+  for (var i = 0; i < magicProps.length; i++) {
+    var prop = magicProps[i];
+    if (prop.percent) {
+      var numPercent = parseFloat(prop.percent.replace('%', '').replace('(', '').replace(')', '')) || 0;
+      if (numPercent > 101) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Получение фонового цвета для качества предмета
+function getQualityBackgroundColor(quality) {
+  if (!quality) return '#A0A0A0'; // тускло серый для неизвестного
+  
+  if (quality.includes('Эпическ')) {
+    return '#8A2BE2'; // тускло фиолетовый для эпического
+  } else if (quality.includes('Редк')) {
+    return '#4682B4'; // тускло синий для редкого
+  } else {
+    return '#A0A0A0'; // тускло серый для обычного
+  }
+}
+
+// Форматирование одной характеристики
+function formatStat(stat) {
+  return '• ' + stat.name + ': ' + stat.value;
+}
+
+// Форматирование одного требования
+function formatRequirement(req) {
+  return '• ' + req.key + ': ' + req.value;
+}
+
+// Форматирование ячейки с множественными строками
+function formatMultilineCell(cell, items, formatter) {
+  if (!items || items.length === 0) {
+    cell.setValue('-');
+    cell.setFontColor('#999999');
+    cell.setFontStyle('italic');
+    return;
+  }
+  
+  var text = items.map(formatter).join('\n');
+  cell.setValue(text);
+  cell.setFontWeight('normal');
+  cell.setFontColor('#000000');
+}
+
+// Форматирование основных характеристик для ячейки
+function formatStatsForCell(stats) {
+  if (!stats || stats.length === 0) return '';
+  return stats.map(function(stat) {
+    return '• ' + stat.name + ': ' + stat.value;
+  }).join('\n');
+}
+
+// Форматирование магических свойств для ячейки
+function formatMagicPropsForCell(magicProps) {
+  if (!magicProps || magicProps.length === 0) return '';
+  return magicProps.map(function(prop) {
+    var text = '• ' + prop.value + ' ' + prop.name;
+    if (prop.percent) {
+      text += ' (' + prop.percent + ')';
+    }
+    return text;
+  }).join('\n');
+}
+
+// Форматирование требований для ячейки
+function formatRequirementsForCell(requirements) {
+  if (!requirements || requirements.length === 0) return '';
+  return requirements.map(function(req) {
+    return '• ' + req.key + ': ' + req.value;
+  }).join('\n');
 }
 
 // Получение цвета для качества предмета

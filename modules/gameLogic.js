@@ -1445,199 +1445,68 @@ window.BotGameLogic = {
      * Показ инструкций по настройке Google Sheets
      */
     showGoogleSheetsSetupInstructions() {
-        const googleAppsScriptCode = "// Обработка POST запросов\n" +
-"function doPost(e) {\n" +
-"  try {\n" +
-"    var data;\n" +
-"    \n" +
-"    // Пытаемся получить данные из разных источников\n" +
-"    if (e.postData) {\n" +
-"      if (e.postData.type === 'application/json') {\n" +
-"        data = JSON.parse(e.postData.contents);\n" +
-"      } else if (e.postData.type === 'text/plain') {\n" +
-"        data = JSON.parse(e.postData.contents);\n" +
-"      } else {\n" +
-"        // Form data\n" +
-"        data = JSON.parse(e.parameter.data);\n" +
-"      }\n" +
-"    } else if (e.parameter && e.parameter.data) {\n" +
-"      data = JSON.parse(e.parameter.data);\n" +
-"    } else {\n" +
-"      throw new Error('Нет данных в запросе');\n" +
-"    }\n" +
-"    \n" +
-"    console.log('Получены данные:', data);\n" +
-"    \n" +
-"    if (data.action === 'addItems') {\n" +
-"      return addItemsToSheet(data.items, data.spreadsheetId);\n" +
-"    }\n" +
-"    \n" +
-"    return createSuccessResponse({error: 'Неизвестное действие'});\n" +
-"      \n" +
-"  } catch (error) {\n" +
-"    console.error('Ошибка в doPost:', error);\n" +
-"    return createSuccessResponse({error: error.toString()});\n" +
-"  }\n" +
-"}\n" +
-"\n" +
-"// Обработка OPTIONS запросов для CORS\n" +
-"function doOptions() {\n" +
-"  return createSuccessResponse('');\n" +
-"}\n" +
-"\n" +
-"// Создание ответа с правильными заголовками\n" +
-"function createSuccessResponse(data) {\n" +
-"  return ContentService\n" +
-"    .createTextOutput(typeof data === 'string' ? data : JSON.stringify(data))\n" +
-"    .setMimeType(ContentService.MimeType.JSON)\n" +
-"    .setHeaders({\n" +
-"      'Access-Control-Allow-Origin': '*',\n" +
-"      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',\n" +
-"      'Access-Control-Allow-Headers': 'Content-Type, Authorization'\n" +
-"    });\n" +
-"}\n" +
-"\n" +
-"// Добавление предметов в таблицу\n" +
-"function addItemsToSheet(items, targetSpreadsheetId = null) {\n" +
-"  try {\n" +
-"    // Создаем или получаем таблицу\n" +
-"    var spreadsheet;\n" +
-"    try {\n" +
-"      spreadsheet = SpreadsheetApp.getActiveSpreadsheet();\n" +
-"    } catch (e) {\n" +
-"      // Если нет привязанной таблицы, создаем новую\n" +
-"      spreadsheet = SpreadsheetApp.create('Арсенал Гильдии Ligmar');\n" +
-"      console.log('Создана новая таблица:', spreadsheet.getUrl());\n" +
-"    }\n" +
-"    \n" +
-"    var sheet = spreadsheet.getSheetByName('Арсенал');\n" +
-"    \n" +
-"    // Создаем лист если не существует\n" +
-"    if (!sheet) {\n" +
-"      sheet = spreadsheet.insertSheet('Арсенал');\n" +
-"      // Добавляем заголовки с новыми столбцами\n" +
-"      var headers = [\n" +
-"        'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', \n" +
-"        'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования', 'Статус', 'Отдал'\n" +
-"      ];\n" +
-"      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);\n" +
-"      \n" +
-"      // Форматирование заголовков\n" +
-"      var headerRange = sheet.getRange(1, 1, 1, headers.length);\n" +
-"      headerRange.setFontWeight('bold');\n" +
-"      headerRange.setBackground('#4285f4');\n" +
-"      headerRange.setFontColor('white');\n" +
-"      headerRange.setBorder(true, true, true, true, true, true);\n" +
-"    }\n" +
-"    \n" +
-"    // Получаем существующие данные\n" +
-"    var existingData = sheet.getDataRange().getValues();\n" +
-"    var existingItemsMap = {};\n" +
-"    var existingRowData = {};\n" +
-"    \n" +
-"    // Создаем карту существующих предметов с сохранением данных столбца \"Отдал\"\n" +
-"    for (var i = 1; i < existingData.length; i++) {\n" +
-"      if (existingData[i][0]) { // Если есть ID\n" +
-"        var itemId = existingData[i][0];\n" +
-"        existingItemsMap[itemId] = i + 1; // номер строки (1-based)\n" +
-"        existingRowData[itemId] = {\n" +
-"          row: i + 1,\n" +
-"          gaveAway: existingData[i][12] || '-' // столбец \"Отдал\" (индекс 12)\n" +
-"        };\n" +
-"      }\n" +
-"    }\n" +
-"    \n" +
-"    var newItemsCount = 0;\n" +
-"    var updatedItemsCount = 0;\n" +
-"    \n" +
-"    console.log('Обработка: ' + items.length + ' предметов');\n" +
-"    \n" +
-"    // Обрабатываем каждый предмет\n" +
-"    items.forEach(function(item) {\n" +
-"      var itemId = item.uniqueId;\n" +
-"      var isNewItem = !existingItemsMap.hasOwnProperty(itemId);\n" +
-"      var status = isNewItem ? 'Новая' : 'Старая';\n" +
-"      var gaveAway = '-'; // по умолчанию\n" +
-"      \n" +
-"      // Если предмет уже существует, сохраняем данные столбца \"Отдал\"\n" +
-"      if (!isNewItem && existingRowData[itemId]) {\n" +
-"        gaveAway = existingRowData[itemId].gaveAway;\n" +
-"      }\n" +
-"      \n" +
-"      var newRow = [\n" +
-"        item.uniqueId,\n" +
-"        new Date(item.analysisDate),\n" +
-"        item.botVersion,\n" +
-"        item.name || '',\n" +
-"        item.type || '',\n" +
-"        item.quality || '',\n" +
-"        item.tier || '',\n" +
-"        item.gearScore || 0,\n" +
-"        item.stats.map(function(s) { return s.name + ': ' + s.value; }).join(', '),\n" +
-"        item.magicProps.map(function(p) { return p.name + ': ' + p.value + ' ' + p.percent; }).join(', '),\n" +
-"        item.requirements.map(function(r) { return r.key + ' ' + r.value; }).join(', '),\n" +
-"        status,\n" +
-"        gaveAway\n" +
-"      ];\n" +
-"      \n" +
-"      if (isNewItem) {\n" +
-"        // Добавляем новый предмет в конец таблицы\n" +
-"        var newRowIndex = sheet.getLastRow() + 1;\n" +
-"        sheet.getRange(newRowIndex, 1, 1, newRow.length).setValues([newRow]);\n" +
-"        \n" +
-"        // Применяем форматирование для новой строки\n" +
-"        var dataRange = sheet.getRange(newRowIndex, 1, 1, newRow.length);\n" +
-"        dataRange.setBorder(true, true, true, true, true, true);\n" +
-"        \n" +
-"        // Выделяем новые предметы зеленым фоном\n" +
-"        sheet.getRange(newRowIndex, 12).setBackground('#d4edda'); // столбец \"Статус\"\n" +
-"        \n" +
-"        newItemsCount++;\n" +
-"      } else {\n" +
-"        // Обновляем существующий предмет (только данные, кроме столбца \"Отдал\")\n" +
-"        var existingRowIndex = existingItemsMap[itemId];\n" +
-"        // Обновляем все столбцы кроме \"Отдал\" (столбец 13)\n" +
-"        sheet.getRange(existingRowIndex, 1, 1, 12).setValues([newRow.slice(0, 12)]);\n" +
-"        \n" +
-"        // Выделяем старые предметы желтым фоном\n" +
-"        sheet.getRange(existingRowIndex, 12).setBackground('#fff3cd'); // столбец \"Статус\"\n" +
-"        \n" +
-"        updatedItemsCount++;\n" +
-"      }\n" +
-"    });\n" +
-"    \n" +
-"    // Автоматическая ширина колонок (только при первом создании)\n" +
-"    if (sheet.getLastRow() === items.length + 1) {\n" +
-"      sheet.autoResizeColumns(1, 13);\n" +
-"    }\n" +
-"    \n" +
-"    var result = {\n" +
-"      success: true,\n" +
-"      addedCount: newItemsCount,\n" +
-"      updatedCount: updatedItemsCount,\n" +
-"      duplicatesCount: 0,\n" +
-"      totalItems: sheet.getLastRow() - 1,\n" +
-"      spreadsheetUrl: spreadsheet.getUrl(),\n" +
-"      sheetId: spreadsheet.getId()\n" +
-"    };\n" +
-"    \n" +
-"    console.log('Результат:', result);\n" +
-"    return createSuccessResponse(result);\n" +
-"    \n" +
-"  } catch (error) {\n" +
-"    console.error('Ошибка в addItemsToSheet:', error);\n" +
-"    return createSuccessResponse({\n" +
-"      success: false,\n" +
-"      error: error.toString()\n" +
-"    });\n" +
-"  }\n" +
-"}\n" +
-"\n" +
-"// Тестовая функция для проверки работы\n" +
-"function testFunction() {\n" +
-"  console.log('Тест успешен! Скрипт работает.');\n" +
-"  return 'OK';\n" +
-"}";
+        const googleAppsScriptCode = `// IDs таблиц Google Sheets
+const SPREADSHEET_ID = '1N2SdlN86wDzEsuzQ7Hlnv-91IAXhNmNMeRuSVtwD-zQ';
+const GUILD_SPREADSHEET_ID = '1Ygi2GzE6MB0_9im_npM6N1Im-jHiXVbpIQ_V4CkxeaQ';
+const BASE_IMAGE_URL = 'https://ligmar.io/game';
+
+// Обработка GET запросов
+function doGet(e) {
+  try {
+    return ContentService
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.0 - Поддержка столбцов "Статус" и "Отдал"')
+      .setMimeType(ContentService.MimeType.TEXT);
+  } catch (error) {
+    Logger.log('Ошибка в doGet:', error);
+    return ContentService.createTextOutput('Ошибка: ' + error.toString()).setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+// Обработка POST запросов
+function doPost(e) {
+  try {
+    var data;
+    
+    if (e.postData) {
+      if (e.postData.type === 'application/json') {
+        data = JSON.parse(e.postData.contents);
+      } else if (e.postData.type === 'text/plain') {
+        data = JSON.parse(e.postData.contents);
+      } else {
+        data = JSON.parse(e.parameter.data);
+      }
+    } else if (e.parameter && e.parameter.data) {
+      data = JSON.parse(e.parameter.data);
+    } else {
+      throw new Error('Нет данных в запросе');
+    }
+    
+    Logger.log('Получены данные:', data);
+    
+    if (data.action === 'addItems') {
+      return addItemsToSheet(data.items, data.spreadsheetId);
+    }
+    
+    return createSuccessResponse({error: 'Неизвестное действие'});
+      
+  } catch (error) {
+    Logger.log('Ошибка в doPost:', error);
+    return createSuccessResponse({error: error.toString()});
+  }
+}
+
+function doOptions() {
+  return createSuccessResponse('OK');
+}
+
+function createSuccessResponse(data) {
+  return ContentService
+    .createTextOutput(typeof data === 'string' ? data : JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Основная функция для скопирования в Google Apps Script
+`;
 
         console.log(`
 📊 === ИНСТРУКЦИЯ ПО НАСТРОЙКЕ GOOGLE SHEETS ===
@@ -1645,8 +1514,9 @@ window.BotGameLogic = {
 🔧 Шаг 1: Создайте Google Apps Script
 1. Перейдите на https://script.google.com
 2. Создайте новый проект
-3. Вставьте код Google Apps Script (см. ниже)
-4. Сохраните проект (Ctrl+S)
+3. Скопируйте КОД из файла google-apps-script.js (весь файл целиком)
+4. Вставьте его в Google Apps Script
+5. Сохраните проект (Ctrl+S)
 
 🔧 Шаг 2: Разверните как веб-приложение
 1. Нажмите "Deploy" (Развернуть) > "New deployment" (Новый деплой)
@@ -1658,10 +1528,10 @@ window.BotGameLogic = {
 5. Скопируйте URL веб-приложения (заканчивается на /exec)
 
 🔧 Шаг 3: Добавьте URL в конфиг
-Добавьте строку в modules/config.js:
-googleSheetsUrl: 'ВАШ_URL_СЮДА',
+URL уже добавлен в modules/config.js:
+googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbypMl29QsrVtMsagoiX113GHEFpFSBxUxwAJy2EzlFrbTLEBC6ZplakEBsEcnaLuCoe/exec'
 
-📝 КОД ДЛЯ GOOGLE APPS SCRIPT:
+📝 ПОЛНЫЙ КОД НАХОДИТСЯ В ФАЙЛЕ google-apps-script.js
 ========================================`);
         
         console.log(googleAppsScriptCode);
@@ -1673,18 +1543,34 @@ googleSheetsUrl: 'ВАШ_URL_СЮДА',
 2. Проверьте что нет ошибок
 3. Попробуйте анализ арсенала в боте
 
+📊 НОВАЯ СТРУКТУРА ТАБЛИЦЫ (13 столбцов):
+1. ID - уникальный идентификатор предмета
+2. Порядковый номер - автоматическая нумерация без дублей
+3. Изображение - картинка предмета (восстановлено)
+4. Название - название предмета
+5. Тип - тип предмета
+6. Качество - с фоновыми цветами (эпическое=фиолетовый, редкое=синий, обычное=серый)
+7. Уровень - римские цифры (если магические >101%, то оранжевый фон качества)
+8. ГС - как было
+9. Основные характеристики - по пунктам (как магические свойства)
+10. Магические свойства - как было
+11. Требования - по пунктам (как магические свойства)  
+12. Статус - Новая/Старая (логика изменена)
+13. Отдал - ручное заполнение
+
+🆕 ОСОБЕННОСТИ ВЕРСИИ v.4.0.0:
+• Порядковый номер продолжается, не дублируется
+• Статус "Новая" только при добавлении, потом "Старая"
+• Оранжевый фон качества если магическое свойство > 101%
+• Ширина столбцов не изменяется автоматически
+• Сохранение данных столбца "Отдал"
+
 ⚠️ ВАЖНО:
+• Скопируйте ВЕСЬ код из файла google-apps-script.js
 • URL должен заканчиваться на /exec (НЕ /dev)
 • Настройки доступа должны быть "Anyone" (Все)
-• Если не работает, попробуйте создать новый деплой
 
-🆕 НОВЫЕ ВОЗМОЖНОСТИ:
-• Столбец "Статус": показывает новая это вещь (Новая) или уже была в таблице (Старая)
-• Столбец "Отдал": для ручного заполнения информации о передаче вещей
-• Цветовое выделение: зеленый для новых вещей, желтый для старых
-• Сохранение данных: столбец "Отдал" не затирается при обновлениях
-
-✅ После настройки ваши данные будут автоматически сохраняться в Google Sheets!
+✅ После настройки таблица будет работать с новой структурой!
         `);
     },
 
