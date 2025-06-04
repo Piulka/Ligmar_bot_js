@@ -106,15 +106,15 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     
     // Создаем карту существующих предметов с сохранением данных столбца "Отдал"
     for (var i = 1; i < existingData.length; i++) {
-      if (existingData[i][0]) { // Если есть ID (столбец 1)
-        var itemId = existingData[i][0];
-        var orderNumber = parseInt(existingData[i][1]) || 0; // Столбец 2 - порядковый номер
+      if (existingData[i][12]) { // Если есть ID (столбец 13, индекс 12)
+        var itemId = existingData[i][12];
+        var orderNumber = parseInt(existingData[i][0]) || 0; // Столбец 1 - порядковый номер (индекс 0)
         
         existingItemsMap[itemId] = i + 1; // номер строки (1-based)
         existingRowData[itemId] = {
           row: i + 1,
           orderNumber: orderNumber,
-          gaveAway: existingData[i][12] || '-' // столбец "Отдал" (индекс 12)
+          gaveAway: existingData[i][11] || '-' // столбец "Отдал" (индекс 11)
         };
         
         // Отслеживаем максимальный порядковый номер
@@ -133,7 +133,7 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     // Сначала обновляем статус всех существующих предметов на "Старая"
     for (var itemId in existingRowData) {
       var rowIndex = existingRowData[itemId].row;
-      sheet.getRange(rowIndex, 12).setValue('Старая'); // Столбец "Статус"
+      sheet.getRange(rowIndex, 11).setValue('Старая'); // Столбец "Статус" (индекс 10, колонка 11)
     }
     
     // Обрабатываем каждый предмет
@@ -155,25 +155,28 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       }
       
       var newRow = [
-        item.uniqueId,                    // 1. ID
-        orderNumber,                      // 2. Порядковый номер  
-        item.imageUrl || '',              // 3. Изображение
-        item.name || '',                  // 4. Название
-        item.type || '',                  // 5. Тип
-        item.quality || '',               // 6. Качество
-        cleanTierName(item.tier || ''),   // 7. Уровень (без слова "уровень")
-        item.gearScore || 0,              // 8. ГС
-        formatStatsForCell(item.stats || []),                     // 9. Основные характеристики
-        formatMagicPropsForCell(item.magicProps || []),          // 10. Магические свойства
-        formatRequirementsForCell(item.requirements || []),      // 11. Требования
-        status,                           // 12. Статус
-        gaveAway                          // 13. Отдал
+        orderNumber,                      // 1. Порядковый номер
+        item.imageUrl || '',              // 2. Изображение  
+        item.name || '',                  // 3. Название
+        item.type || '',                  // 4. Тип
+        item.quality || '',               // 5. Качество
+        cleanTierName(item.tier || ''),   // 6. Уровень (без слова "уровень")
+        item.gearScore || 0,              // 7. ГС
+        formatStatsForCell(item.stats || []),                     // 8. Основные характеристики
+        formatMagicPropsForCell(item.magicProps || []),          // 9. Магические свойства
+        formatRequirementsForCell(item.requirements || []),      // 10. Требования
+        status,                           // 11. Статус
+        gaveAway,                         // 12. Отдал
+        item.uniqueId                     // 13. ID (в конце)
       ];
       
       if (isNewItem) {
         // Добавляем новый предмет в конец таблицы
         var newRowIndex = sheet.getLastRow() + 1;
         sheet.getRange(newRowIndex, 1, 1, newRow.length).setValues([newRow]);
+        
+        // Устанавливаем высоту строки 65 пикселей
+        sheet.setRowHeight(newRowIndex, 65);
         
         // Применяем форматирование для новой строки
         formatItemRow(sheet, newRowIndex, item, status);
@@ -182,8 +185,15 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       } else {
         // Обновляем существующий предмет (только данные, кроме столбца "Отдал")
         var existingRowIndex = existingItemsMap[itemId];
-        // Обновляем все столбцы кроме "Отдал" (столбец 13)
-        sheet.getRange(existingRowIndex, 1, 1, 12).setValues([newRow.slice(0, 12)]);
+        // Обновляем все столбцы кроме "Отдал" (столбец 12)
+        var updateRow = newRow.slice();
+        updateRow[11] = gaveAway; // Сохраняем старое значение "Отдал"
+        sheet.getRange(existingRowIndex, 1, 1, 12).setValues([updateRow.slice(0, 12)]);
+        // Обновляем ID отдельно
+        sheet.getRange(existingRowIndex, 13).setValue(item.uniqueId);
+        
+        // Устанавливаем высоту строки 65 пикселей
+        sheet.setRowHeight(existingRowIndex, 65);
         
         // Применяем форматирование для обновленной строки
         formatItemRow(sheet, existingRowIndex, item, status);
@@ -217,12 +227,15 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
 // Настройка заголовков таблицы
 function setupSheetHeaders(sheet) {
   var headers = [
-    'ID', 'Порядковый номер', 'Изображение', 'Название', 'Тип', 'Качество', 
-    'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования', 'Статус', 'Отдал'
+    'Порядковый номер', 'Изображение', 'Название', 'Тип', 'Качество', 'Уровень', 
+    'ГС', 'Основные характеристики', 'Магические свойства', 'Требования', 'Статус', 'Отдал', 'ID'
   ];
   
   // Устанавливаем заголовки
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  // Устанавливаем высоту строки заголовков 65 пикселей
+  sheet.setRowHeight(1, 65);
   
   // Форматирование заголовков
   var headerRange = sheet.getRange(1, 1, 1, headers.length);
@@ -231,6 +244,7 @@ function setupSheetHeaders(sheet) {
   headerRange.setFontColor('white');
   headerRange.setBorder(true, true, true, true, true, true);
   headerRange.setHorizontalAlignment('center');
+  headerRange.setVerticalAlignment('middle');
   
   // Замораживаем заголовки
   sheet.setFrozenRows(1);
@@ -243,13 +257,14 @@ function formatItemRow(sheet, row, item, status) {
   range.setBorder(true, true, true, true, true, true);
   range.setVerticalAlignment('top');
   
-  // Порядковый номер (колонка 2) - по центру
-  var orderCell = sheet.getRange(row, 2);
+  // Порядковый номер (колонка 1) - по центру
+  var orderCell = sheet.getRange(row, 1);
   orderCell.setHorizontalAlignment('center');
   orderCell.setFontWeight('bold');
+  orderCell.setVerticalAlignment('middle');
   
-  // Изображение (колонка 3)
-  var imageCell = sheet.getRange(row, 3);
+  // Изображение (колонка 2)
+  var imageCell = sheet.getRange(row, 2);
   if (item.imageUrl) {
     var imageUrl = convertImagePath(item.imageUrl, BASE_IMAGE_URL);
     var sanitizedUrl = sanitizeImageUrl(imageUrl);
@@ -303,10 +318,11 @@ function formatItemRow(sheet, row, item, status) {
   // Проверяем есть ли магические свойства > 101%
   var hasOver101Percent = checkMagicPropsOver101(item.magicProps || []);
   
-  // Форматирование качества предмета (колонка 6)
-  var qualityCell = sheet.getRange(row, 6);
+  // Форматирование качества предмета (колонка 5)
+  var qualityCell = sheet.getRange(row, 5);
   qualityCell.setFontWeight('bold');
   qualityCell.setHorizontalAlignment('center');
+  qualityCell.setVerticalAlignment('middle');
   
   if (hasOver101Percent) {
     // Если есть магическое свойство > 101%, то оранжевый фон
@@ -319,35 +335,38 @@ function formatItemRow(sheet, row, item, status) {
     qualityCell.setFontColor('#FFFFFF');
   }
   
-  // Форматирование уровня (колонка 7)
-  var tierCell = sheet.getRange(row, 7);
+  // Форматирование уровня (колонка 6)
+  var tierCell = sheet.getRange(row, 6);
   tierCell.setHorizontalAlignment('center');
   tierCell.setFontWeight('bold');
+  tierCell.setVerticalAlignment('middle');
   
-  // Форматирование ГС (колонка 8)
-  var gsCell = sheet.getRange(row, 8);
+  // Форматирование ГС (колонка 7)
+  var gsCell = sheet.getRange(row, 7);
   var gsColor = getBMColor(item.gearScore || 0);
   gsCell.setFontColor(gsColor);
   gsCell.setFontWeight('bold');
   gsCell.setHorizontalAlignment('center');
+  gsCell.setVerticalAlignment('middle');
   
-  // Форматирование основных характеристик (колонка 9)
-  var statsCell = sheet.getRange(row, 9);
+  // Форматирование основных характеристик (колонка 8)
+  var statsCell = sheet.getRange(row, 8);
   formatMultilineCell(statsCell, item.stats || [], formatStat);
   
-  // Форматирование магических свойств (колонка 10)
-  var magicCell = sheet.getRange(row, 10);
+  // Форматирование магических свойств (колонка 9)
+  var magicCell = sheet.getRange(row, 9);
   formatMagicPropsCell(magicCell, item.magicProps || []);
   
-  // Форматирование требований (колонка 11)
-  var reqCell = sheet.getRange(row, 11);
+  // Форматирование требований (колонка 10)
+  var reqCell = sheet.getRange(row, 10);
   formatMultilineCell(reqCell, item.requirements || [], formatRequirement);
   
-  // Форматирование столбца "Статус" (колонка 12)
-  var statusCell = sheet.getRange(row, 12);
+  // Форматирование столбца "Статус" (колонка 11)
+  var statusCell = sheet.getRange(row, 11);
   statusCell.setValue(status);
   statusCell.setFontWeight('bold');
   statusCell.setHorizontalAlignment('center');
+  statusCell.setVerticalAlignment('middle');
   
   if (status === 'Новая') {
     statusCell.setBackground('#d4edda'); // зеленый фон для новых
@@ -357,9 +376,10 @@ function formatItemRow(sheet, row, item, status) {
     statusCell.setFontColor('#856404');
   }
   
-  // Форматирование столбца "Отдал" (колонка 13)
-  var gaveAwayCell = sheet.getRange(row, 13);
+  // Форматирование столбца "Отдал" (колонка 12)
+  var gaveAwayCell = sheet.getRange(row, 12);
   gaveAwayCell.setHorizontalAlignment('center');
+  gaveAwayCell.setVerticalAlignment('middle');
   if (gaveAwayCell.getValue() === '-') {
     gaveAwayCell.setFontColor('#999999');
     gaveAwayCell.setFontStyle('italic');
@@ -367,6 +387,13 @@ function formatItemRow(sheet, row, item, status) {
     gaveAwayCell.setFontColor('#000000');
     gaveAwayCell.setFontWeight('bold');
   }
+  
+  // Форматирование ID (колонка 13) - скрываем или делаем мелким
+  var idCell = sheet.getRange(row, 13);
+  idCell.setHorizontalAlignment('center');
+  idCell.setVerticalAlignment('middle');
+  idCell.setFontSize(8);
+  idCell.setFontColor('#999999');
 }
 
 // Очистка названия уровня (убираем слово "уровень")
