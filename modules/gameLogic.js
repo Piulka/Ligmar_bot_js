@@ -980,6 +980,16 @@ window.BotGameLogic = {
     async analyzeArsenal(spreadsheetId = null) {
         try {
             console.log('🏛️ Начинаю анализ сундука...');
+            console.log(`🔧 Используемый spreadsheetId: ${spreadsheetId || 'default'}`);
+            console.log(`🔧 Google Sheets URL: ${window.BotConfig.googleSheetsUrl}`);
+            console.log(`🔧 Версия бота: ${window.BotConfig.SCRIPT_COMMIT}`);
+            
+            // Проверяем наличие необходимых функций
+            if (typeof window.BotUtils?.delay !== 'function') {
+                console.warn('⚠️ window.BotUtils.delay не найден, будет использован стандартный setTimeout');
+            } else {
+                console.log('✅ window.BotUtils.delay доступен');
+            }
             
             // 1. Нажимаем на Строения
             console.log('1️⃣ Переход в Строения...');
@@ -1276,38 +1286,58 @@ window.BotGameLogic = {
             let totalErrors = 0;
 
             for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-                const startIndex = batchIndex * batchSize;
-                const endIndex = Math.min(startIndex + batchSize, itemsWithIds.length);
-                const batch = itemsWithIds.slice(startIndex, endIndex);
-                
-                console.log(`📤 Отправка батча ${batchIndex + 1}/${totalBatches} (предметы ${startIndex + 1}-${endIndex})...`);
-                
-                const payload = {
-                    action: 'addItems',
-                    items: batch,
-                    spreadsheetId: targetSpreadsheetId,
-                    batchInfo: {
-                        currentBatch: batchIndex + 1,
-                        totalBatches: totalBatches,
-                        batchSize: batch.length
-                    }
-                };
+                try {
+                    const startIndex = batchIndex * batchSize;
+                    const endIndex = Math.min(startIndex + batchSize, itemsWithIds.length);
+                    const batch = itemsWithIds.slice(startIndex, endIndex);
+                    
+                    console.log(`📤 Отправка батча ${batchIndex + 1}/${totalBatches} (предметы ${startIndex + 1}-${endIndex})...`);
+                    
+                    const payload = {
+                        action: 'addItems',
+                        items: batch,
+                        spreadsheetId: targetSpreadsheetId,
+                        batchInfo: {
+                            currentBatch: batchIndex + 1,
+                            totalBatches: totalBatches,
+                            batchSize: batch.length
+                        }
+                    };
 
-                // Отправляем батч с повторными попытками
-                const batchSuccess = await this.sendBatchWithRetry(gasUrl, payload, batchIndex + 1, totalBatches);
-                
-                if (batchSuccess) {
-                    totalProcessed += batch.length;
-                    console.log(`✅ Батч ${batchIndex + 1}/${totalBatches} успешно отправлен (${batch.length} предметов)`);
-                } else {
-                    totalErrors += batch.length;
-                    console.error(`❌ Ошибка отправки батча ${batchIndex + 1}/${totalBatches} (${batch.length} предметов)`);
-                }
-                
-                // Пауза между батчами для предотвращения перегрузки
-                if (batchIndex < totalBatches - 1) {
-                    console.log(`⏳ Пауза 2 секунды перед следующим батчем...`);
-                    await window.BotUtils.delay(2000);
+                    // Отправляем батч с повторными попытками
+                    console.log(`🔄 Вызываю sendBatchWithRetry для батча ${batchIndex + 1}...`);
+                    const batchSuccess = await this.sendBatchWithRetry(gasUrl, payload, batchIndex + 1, totalBatches);
+                    console.log(`🔄 sendBatchWithRetry завершился с результатом: ${batchSuccess}`);
+                    
+                    if (batchSuccess) {
+                        totalProcessed += batch.length;
+                        console.log(`✅ Батч ${batchIndex + 1}/${totalBatches} успешно отправлен (${batch.length} предметов)`);
+                    } else {
+                        totalErrors += batch.length;
+                        console.error(`❌ Ошибка отправки батча ${batchIndex + 1}/${totalBatches} (${batch.length} предметов)`);
+                    }
+                    
+                    // Пауза между батчами для предотвращения перегрузки
+                    if (batchIndex < totalBatches - 1) {
+                        console.log(`⏳ Пауза 2 секунды перед следующим батчем...`);
+                        
+                        // Проверяем существование функции delay
+                        if (typeof window.BotUtils?.delay === 'function') {
+                            await window.BotUtils.delay(2000);
+                        } else {
+                            console.log('⚠️ window.BotUtils.delay не найден, использую стандартный setTimeout');
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                        
+                        console.log(`⏳ Пауза завершена, переходим к батчу ${batchIndex + 2}...`);
+                    }
+                    
+                } catch (batchError) {
+                    console.error(`❌ Критическая ошибка в батче ${batchIndex + 1}:`, batchError);
+                    totalErrors += batchSize;
+                    
+                    // Продолжаем работу с другими батчами
+                    console.log(`🔄 Продолжаем обработку следующих батчей...`);
                 }
             }
             
@@ -1321,6 +1351,7 @@ window.BotGameLogic = {
 
         } catch (error) {
             console.error('❌ Общая ошибка отправки в Google Sheets:', error);
+            console.error('Stack trace:', error.stack);
             this.showGoogleSheetsSetupInstructions();
         }
     },
@@ -1336,8 +1367,12 @@ window.BotGameLogic = {
         const maxRetries = 3;
         let lastError = null;
 
+        console.log(`🚀 Начинаю отправку батча ${batchNumber}/${totalBatches} (${payload.items.length} предметов)`);
+
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
+                console.log(`📡 Попытка ${attempt}/${maxRetries} для батча ${batchNumber}/${totalBatches}...`);
+                
                 // Подход 1: text/plain
                 const response = await fetch(gasUrl, {
                     method: 'POST',
@@ -1347,9 +1382,13 @@ window.BotGameLogic = {
                     body: JSON.stringify(payload)
                 });
                 
+                console.log(`📡 Получен ответ: ${response.status} ${response.statusText}`);
+                
                 if (response.ok) {
                     try {
                         const result = await response.text();
+                        console.log(`📡 Данные ответа получены (длина: ${result.length} символов)`);
+                        
                         // Попробуем парсить результат
                         try {
                             const jsonResult = JSON.parse(result);
@@ -1357,11 +1396,13 @@ window.BotGameLogic = {
                                 console.log(`📊 Батч ${batchNumber}/${totalBatches} - добавлено: ${jsonResult.addedCount}`);
                             }
                         } catch (parseError) {
-                            // Не JSON - это нормально
+                            console.log(`📊 Батч ${batchNumber}/${totalBatches} - ответ получен, но не JSON (это нормально)`);
                         }
+                        
+                        console.log(`✅ Батч ${batchNumber}/${totalBatches} успешно отправлен через text/plain`);
                         return true;
                     } catch (readError) {
-                        console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен (ответ не прочитан)`);
+                        console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен (ответ не прочитан, но статус ${response.status})`);
                         return true;
                     }
                 } else {
@@ -1369,16 +1410,24 @@ window.BotGameLogic = {
                 }
             } catch (error) {
                 lastError = error;
+                console.log(`⚠️ Батч ${batchNumber}/${totalBatches} - попытка ${attempt} не удалась: ${error.message}`);
                 
                 if (attempt < maxRetries) {
-                    console.log(`⚠️ Батч ${batchNumber}/${totalBatches} - попытка ${attempt} не удалась, повторяю через 3 сек...`);
-                    await window.BotUtils.delay(3000);
+                    console.log(`⏳ Пауза 3 секунды перед повторной попыткой...`);
+                    
+                    // Безопасная пауза
+                    if (typeof window.BotUtils?.delay === 'function') {
+                        await window.BotUtils.delay(3000);
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                    }
                 } else {
                     // Попробуем альтернативные методы на последней попытке
                     console.log(`🔄 Батч ${batchNumber}/${totalBatches} - пробую альтернативные методы...`);
                     
                     // Подход 2: form-data
                     try {
+                        console.log(`📡 Попытка form-data для батча ${batchNumber}/${totalBatches}...`);
                         const formData = new FormData();
                         formData.append('data', JSON.stringify(payload));
 
@@ -1390,13 +1439,16 @@ window.BotGameLogic = {
                         if (response2.ok) {
                             console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен через form-data`);
                             return true;
+                        } else {
+                            console.log(`⚠️ Form-data не удался: ${response2.status} ${response2.statusText}`);
                         }
                     } catch (formError) {
-                        // Игнорируем, пробуем следующий метод
+                        console.log(`⚠️ Form-data ошибка: ${formError.message}`);
                     }
 
                     // Подход 3: no-cors как крайний случай
                     try {
+                        console.log(`📡 Попытка no-cors для батча ${batchNumber}/${totalBatches}...`);
                         await fetch(gasUrl, {
                             method: 'POST',
                             mode: 'no-cors',
@@ -1409,7 +1461,7 @@ window.BotGameLogic = {
                         console.log(`✅ Батч ${batchNumber}/${totalBatches} отправлен через no-cors`);
                         return true;
                     } catch (noCorsError) {
-                        // Последняя попытка не удалась
+                        console.log(`⚠️ No-cors ошибка: ${noCorsError.message}`);
                     }
                 }
             }
