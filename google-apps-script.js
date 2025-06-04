@@ -14,7 +14,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.4.1.0 - Группировка зелий, улучшенная логика дубликатов, батчевая обработка больших объемов')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.1.0 - ИСПРАВЛЕНО: дублирование предметов в одной итерации')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -100,9 +100,9 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       setupSheetHeaders(sheet);
     }
     
-    // Предварительная группировка зелий
+    // Предварительная группировка всех одинаковых предметов
     var groupedItems = groupPotions(items);
-    Logger.log('После группировки зелий: ' + groupedItems.length + ' предметов');
+    Logger.log('После группировки предметов: ' + groupedItems.length + ' уникальных предметов');
     
     // Получаем существующие данные
     var existingData = sheet.getDataRange().getValues();
@@ -146,10 +146,10 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
       
       if (!currentItemIds[itemId]) {
         // Предмет отсутствует в текущем анализе - помечаем как "Отдано"
-        sheet.getRange(rowIndex, 10).setValue('Отдано'); // Столбец "Статус"
+        sheet.getRange(rowIndex, 11).setValue('Отдано'); // ИСПРАВЛЕНО: Столбец "Статус" (11, а не 10)
         
         // Применяем красный фон для отданных предметов
-        var statusCell = sheet.getRange(rowIndex, 10);
+        var statusCell = sheet.getRange(rowIndex, 11); // ИСПРАВЛЕНО: колонка 11
         statusCell.setBackground('#ffcdd2');
         statusCell.setFontColor('#c62828');
         statusCell.setFontWeight('bold');
@@ -179,6 +179,11 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
         var orderNumber;
         var quantity = item.quantity || 1; // Количество для зелий
         
+        // Логирование для отладки дублирования
+        if (!isNewItem) {
+          Logger.log('Найден существующий предмет: ' + (item.name || 'Без названия') + ' (ID: ' + itemId + ')');
+        }
+        
         if (isNewItem) {
           maxOrderNumber++;
           orderNumber = maxOrderNumber;
@@ -186,10 +191,8 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
           orderNumber = existingRowData[itemId].orderNumber;
           gaveAway = existingRowData[itemId].gaveAway;
           
-          // Для существующих зелий обновляем количество
-          if (item.type === 'Зелье' && item.quantity) {
-            quantity = item.quantity;
-          }
+          // Количество всегда берется из текущего сканирования (не из старых данных)
+          quantity = item.quantity || 1;
         }
         
         var newRow = [
@@ -214,25 +217,35 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
           sheet.getRange(newRowIndex, 1, 1, newRow.length).setValues([newRow]);
           sheet.setRowHeight(newRowIndex, 65);
           formatItemRow(sheet, newRowIndex, item, status);
+          
+          // ИСПРАВЛЕНИЕ: Обновляем existingItemsMap для предотвращения дублирования в той же итерации
+          existingItemsMap[itemId] = newRowIndex;
+          existingRowData[itemId] = {
+            row: newRowIndex,
+            orderNumber: orderNumber,
+            gaveAway: gaveAway,
+            quantity: quantity
+          };
+          
           newItemsCount++;
         } else {
           var existingRowIndex = existingItemsMap[itemId];
           
-          // Обновляем статус и количество
-          sheet.getRange(existingRowIndex, 10).setValue('Старая'); // Статус
-          sheet.getRange(existingRowIndex, 11).setValue(quantity); // Количество
+          // ИСПРАВЛЕНО: Обновляем статус на "Старая" И количество для существующих предметов
+          sheet.getRange(existingRowIndex, 11).setValue('Старая'); // Статус (колонка 11)
+          sheet.getRange(existingRowIndex, 12).setValue(quantity); // Количество (колонка 12)
           
           sheet.setRowHeight(existingRowIndex, 65);
           
           // Форматирование статуса и количества
-          var statusCell = sheet.getRange(existingRowIndex, 10);
+          var statusCell = sheet.getRange(existingRowIndex, 11);
           statusCell.setFontWeight('bold');
           statusCell.setHorizontalAlignment('center');
           statusCell.setVerticalAlignment('middle');
-          statusCell.setBackground('#fff3cd');
+          statusCell.setBackground('#fff3cd'); // желтый фон для старых
           statusCell.setFontColor('#856404');
           
-          var quantityCell = sheet.getRange(existingRowIndex, 11);
+          var quantityCell = sheet.getRange(existingRowIndex, 12);
           quantityCell.setFontWeight('bold');
           quantityCell.setHorizontalAlignment('center');
           quantityCell.setVerticalAlignment('middle');
@@ -274,65 +287,33 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
   }
 }
 
-// Функция для группировки зелий
+// Функция для группировки всех одинаковых предметов (не только зелий)
 function groupPotions(items) {
   var groupedItems = [];
-  var potionGroups = {};
+  var itemGroups = {};
   
   items.forEach(function(item) {
-    if (item.type === 'Зелье') {
-      // Создаем уникальный ключ для группировки зелий
-      var potionKey = createPotionGroupKey(item);
-      
-      if (potionGroups[potionKey]) {
-        // Увеличиваем количество существующего зелья
-        potionGroups[potionKey].quantity++;
-      } else {
-        // Создаем новую группу зелий
-        var groupedPotion = JSON.parse(JSON.stringify(item)); // Глубокое копирование
-        groupedPotion.quantity = 1;
-        groupedPotion.uniqueId = potionKey; // Используем ключ группировки как uniqueId
-        potionGroups[potionKey] = groupedPotion;
-        groupedItems.push(groupedPotion);
-      }
+    // Создаем уникальный ключ для группировки ВСЕХ предметов
+    var itemKey = createItemGroupKey(item);
+    
+    if (itemGroups[itemKey]) {
+      // Увеличиваем количество существующего предмета
+      itemGroups[itemKey].quantity++;
     } else {
-      // Для не-зелий создаем улучшенный uniqueId
-      item.uniqueId = createImprovedUniqueId(item);
-      groupedItems.push(item);
+      // Создаем новую группу предметов
+      var groupedItem = JSON.parse(JSON.stringify(item)); // Глубокое копирование
+      groupedItem.quantity = 1;
+      groupedItem.uniqueId = itemKey; // Используем ключ группировки как uniqueId
+      itemGroups[itemKey] = groupedItem;
+      groupedItems.push(groupedItem);
     }
   });
   
   return groupedItems;
 }
 
-// Создание ключа для группировки зелий
-function createPotionGroupKey(item) {
-  var keyParts = [
-    'potion',
-    item.name || '',
-    item.quality || '',
-    item.tier || ''
-  ];
-  
-  // Добавляем основные характеристики для уникальности
-  if (item.stats && item.stats.length > 0) {
-    item.stats.forEach(function(stat) {
-      keyParts.push(stat.name + ':' + stat.value);
-    });
-  }
-  
-  // Добавляем магические свойства
-  if (item.magicProps && item.magicProps.length > 0) {
-    item.magicProps.forEach(function(prop) {
-      keyParts.push(prop.name + ':' + prop.value);
-    });
-  }
-  
-  return keyParts.join('|').toLowerCase().replace(/\s+/g, '_');
-}
-
-// Создание улучшенного уникального ID для обычных предметов
-function createImprovedUniqueId(item) {
+// Создание ключа для группировки ВСЕХ предметов (не только зелий)
+function createItemGroupKey(item) {
   var keyParts = [
     item.name || '',
     item.type || '',
@@ -341,7 +322,7 @@ function createImprovedUniqueId(item) {
     item.gearScore || '0'
   ];
   
-  // Добавляем характеристики для большей уникальности
+  // Добавляем основные характеристики для уникальности
   if (item.stats && item.stats.length > 0) {
     item.stats.forEach(function(stat) {
       keyParts.push(stat.name + ':' + stat.value);

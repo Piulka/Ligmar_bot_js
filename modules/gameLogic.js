@@ -1529,7 +1529,7 @@ function createSuccessResponse(data) {
 
 🔧 Шаг 3: Добавьте URL в конфиг
 URL уже добавлен в modules/config.js:
-googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbypMl29QsrVtMsagoiX113GHEFpFSBxUxwAJy2EzlFrbTLEBC6ZplakEBsEcnaLuCoe/exec'
+googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbyzS7r6KrWfxxZ5lKcmwtm6HMu1RQbFjBYhlD-4vPvQpCnVHLSQBDKJoOj4BA6MoR7zFw/exec'
 
 📝 ПОЛНЫЙ КОД НАХОДИТСЯ В ФАЙЛЕ google-apps-script.js
 ========================================`);
