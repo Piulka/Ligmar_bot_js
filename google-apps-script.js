@@ -13,7 +13,7 @@ function requestPermissions() {
 function doGet(e) {
   try {
     return ContentService
-      .createTextOutput('Google Apps Script работает! Версия: v.3.9.8')
+      .createTextOutput('Google Apps Script работает! Версия: v.4.0.0 - Поддержка столбцов "Статус" и "Отдал"')
       .setMimeType(ContentService.MimeType.TEXT);
   } catch (error) {
     Logger.log('Ошибка в doGet:', error);
@@ -91,30 +91,95 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
     
     var sheet = spreadsheet.getSheetByName('Арсенал');
     
-    // Создаем лист если не существует, или очищаем существующий
+    // Создаем лист если не существует
     if (!sheet) {
       sheet = spreadsheet.insertSheet('Арсенал');
-    } else {
-      // Очищаем существующие данные (кроме заголовков)
-      var lastRow = sheet.getLastRow();
-      if (lastRow > 1) {
-        sheet.getRange(2, 1, lastRow - 1, 9).clear();
+      // Настраиваем заголовки для нового листа
+      setupSheetHeaders(sheet);
+    }
+    
+    // Получаем существующие данные
+    var existingData = sheet.getDataRange().getValues();
+    var existingItemsMap = {};
+    var existingRowData = {};
+    
+    // Создаем карту существующих предметов с сохранением данных столбца "Отдал"
+    for (var i = 1; i < existingData.length; i++) {
+      if (existingData[i][0]) { // Если есть ID
+        var itemId = existingData[i][0];
+        existingItemsMap[itemId] = i + 1; // номер строки (1-based)
+        existingRowData[itemId] = {
+          row: i + 1,
+          gaveAway: existingData[i][12] || '-' // столбец "Отдал" (индекс 12)
+        };
       }
     }
     
-    // Настраиваем заголовки заново
-    setupSheetHeaders(sheet);
+    var newItemsCount = 0;
+    var updatedItemsCount = 0;
     
     Logger.log('Обработка: ' + items.length + ' предметов');
     
-    if (items.length > 0) {
-      addItemsToTable(sheet, items);
+    // Обрабатываем каждый предмет
+    items.forEach(function(item) {
+      var itemId = item.uniqueId;
+      var isNewItem = !existingItemsMap.hasOwnProperty(itemId);
+      var status = isNewItem ? 'Новая' : 'Старая';
+      var gaveAway = '-'; // по умолчанию
+      
+      // Если предмет уже существует, сохраняем данные столбца "Отдал"
+      if (!isNewItem && existingRowData[itemId]) {
+        gaveAway = existingRowData[itemId].gaveAway;
+      }
+      
+      var newRow = [
+        item.uniqueId,
+        new Date(item.analysisDate),
+        item.botVersion,
+        item.name || '',
+        item.type || '',
+        item.quality || '',
+        item.tier || '',
+        item.gearScore || 0,
+        item.stats.map(function(s) { return s.name + ': ' + s.value; }).join(', '),
+        item.magicProps.map(function(p) { return p.name + ': ' + p.value + ' ' + p.percent; }).join(', '),
+        item.requirements.map(function(r) { return r.key + ' ' + r.value; }).join(', '),
+        status,
+        gaveAway
+      ];
+      
+      if (isNewItem) {
+        // Добавляем новый предмет в конец таблицы
+        var newRowIndex = sheet.getLastRow() + 1;
+        sheet.getRange(newRowIndex, 1, 1, newRow.length).setValues([newRow]);
+        
+        // Применяем форматирование для новой строки
+        formatItemRow(sheet, newRowIndex, item, status);
+        
+        newItemsCount++;
+      } else {
+        // Обновляем существующий предмет (только данные, кроме столбца "Отдал")
+        var existingRowIndex = existingItemsMap[itemId];
+        // Обновляем все столбцы кроме "Отдал" (столбец 13)
+        sheet.getRange(existingRowIndex, 1, 1, 12).setValues([newRow.slice(0, 12)]);
+        
+        // Применяем форматирование для обновленной строки
+        formatItemRow(sheet, existingRowIndex, item, status);
+        
+        updatedItemsCount++;
+      }
+    });
+    
+    // Автоматическая ширина колонок (только при первом создании)
+    if (sheet.getLastRow() === items.length + 1) {
+      sheet.autoResizeColumns(1, 13);
     }
     
     var result = {
       success: true,
-      addedCount: items.length,
-      duplicatesCount: 0, // Теперь дублей нет, так как таблица очищается
+      addedCount: newItemsCount,
+      updatedCount: updatedItemsCount,
+      duplicatesCount: 0,
       totalItems: sheet.getLastRow() - 1,
       spreadsheetUrl: spreadsheet.getUrl(),
       sheetId: spreadsheet.getId()
@@ -135,8 +200,8 @@ function addItemsToSheet(items, targetSpreadsheetId = null) {
 // Настройка заголовков таблицы
 function setupSheetHeaders(sheet) {
   var headers = [
-    '№', 'Изображение', 'Название предмета', 'Тип предмета', 'Качество', 
-    'БМ', 'Основные характеристики', 'Магические свойства', 'Требования'
+    'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', 
+    'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования', 'Статус', 'Отдал'
   ];
   
   // Устанавливаем заголовки
@@ -154,110 +219,54 @@ function setupSheetHeaders(sheet) {
   sheet.setFrozenRows(1);
 }
 
-// Добавление предметов в таблицу
-function addItemsToTable(sheet, items) {
-  var startRow = sheet.getLastRow() + 1;
-  var currentRow = startRow;
-  
-  items.forEach(function(item, index) {
-    // Данные строки
-    var rowData = [
-      index + 1, // Порядковый номер от 1
-      item.imageUrl || '', // URL изображения
-      item.name || 'Неизвестно',
-      item.type || 'Неизвестно',
-      item.quality || 'Обычный',
-      item.gearScore || 0,
-      formatStats(item.stats || []),
-      formatMagicProps(item.magicProps || []),
-      formatRequirements(item.requirements || [])
-    ];
-    
-    // Записываем данные
-    sheet.getRange(currentRow, 1, 1, rowData.length).setValues([rowData]);
-    
-    // Применяем форматирование
-    formatItemRow(sheet, currentRow, item);
-    
-    currentRow++;
-  });
-}
-
 // Форматирование строки предмета
-function formatItemRow(sheet, row, item) {
+function formatItemRow(sheet, row, item, status) {
   // Общее форматирование строки
-  var range = sheet.getRange(row, 1, 1, 9);
+  var range = sheet.getRange(row, 1, 1, 13);
   range.setBorder(true, true, true, true, true, true);
   range.setVerticalAlignment('top');
   
-  // Форматирование качества предмета (колонка 5, была 4)
-  var qualityCell = sheet.getRange(row, 5);
+  // Форматирование качества предмета (колонка 6)
+  var qualityCell = sheet.getRange(row, 6);
   var qualityColor = getQualityColor(item.quality);
   qualityCell.setFontColor(qualityColor);
   qualityCell.setFontWeight('bold');
   
-  // Форматирование БМ (колонка 6, была 5)
-  var bmCell = sheet.getRange(row, 6);
-  var bmColor = getBMColor(item.gearScore || 0);
-  bmCell.setFontColor(bmColor);
-  bmCell.setFontWeight('bold');
-  bmCell.setHorizontalAlignment('center');
+  // Форматирование ГС (колонка 8)
+  var gsCell = sheet.getRange(row, 8);
+  var gsColor = getBMColor(item.gearScore || 0);
+  gsCell.setFontColor(gsColor);
+  gsCell.setFontWeight('bold');
+  gsCell.setHorizontalAlignment('center');
   
-  // Форматирование магических свойств (колонка 8, была 7)
-  var magicCell = sheet.getRange(row, 8);
+  // Форматирование магических свойств (колонка 10)
+  var magicCell = sheet.getRange(row, 10);
   formatMagicPropsCell(magicCell, item.magicProps || []);
   
-  // Форматирование изображения (колонка 2)
-  var imageCell = sheet.getRange(row, 2);
-  if (item.imageUrl) {
-    var imageUrl = convertImagePath(item.imageUrl, BASE_IMAGE_URL);
-    var sanitizedUrl = sanitizeImageUrl(imageUrl);
-    
-    if (sanitizedUrl && isValidImageUrl(sanitizedUrl)) {
-      try {
-        // Пробуем работающие формулы (формула 2 и 3)
-        var imageFormulas = [
-          '=IMAGE("' + sanitizedUrl + '"; 1)',  // Формула 2: с точкой с запятой
-          '=IMAGE("' + sanitizedUrl + '")'      // Формула 3: без второго параметра
-        ];
-        
-        var formulaWorked = false;
-        for (var i = 0; i < imageFormulas.length; i++) {
-          try {
-            imageCell.setValue(imageFormulas[i]);
-            imageCell.setHorizontalAlignment('center');
-            imageCell.setVerticalAlignment('middle');
-            Logger.log('✅ Формула изображения работает: ' + imageFormulas[i]);
-            formulaWorked = true;
-            break;
-          } catch (formulaError) {
-            Logger.log('⚠️ Формула не работает: ' + imageFormulas[i]);
-          }
-        }
-        
-        if (!formulaWorked) {
-          throw new Error('Формулы IMAGE не работают');
-        }
-        
-      } catch (error) {
-        Logger.log('⚠️ Ошибка с IMAGE функцией: ' + error.toString());
-        // Альтернативный метод - ссылка
-        imageCell.setValue('=HYPERLINK("' + sanitizedUrl + '"; "🖼️ Показать изображение")');
-        imageCell.setFontColor('#2196F3');
-        imageCell.setFontWeight('bold');
-        imageCell.setHorizontalAlignment('center');
-      }
-    } else {
-      // URL невалидный
-      imageCell.setValue('Невалидный URL: ' + item.imageUrl);
-      imageCell.setFontColor('#FF9800');
-      imageCell.setFontWeight('bold');
-    }
+  // Форматирование столбца "Статус" (колонка 12)
+  var statusCell = sheet.getRange(row, 12);
+  statusCell.setValue(status);
+  statusCell.setFontWeight('bold');
+  statusCell.setHorizontalAlignment('center');
+  
+  if (status === 'Новая') {
+    statusCell.setBackground('#d4edda'); // зеленый фон для новых
+    statusCell.setFontColor('#155724');
   } else {
-    // Если изображения нет
-    imageCell.setValue('Нет изображения');
-    imageCell.setFontColor('#999999');
-    imageCell.setFontStyle('italic');
+    statusCell.setBackground('#fff3cd'); // желтый фон для старых
+    statusCell.setFontColor('#856404');
+  }
+  
+  // Форматирование столбца "Отдал" (колонка 13)
+  var gaveAwayCell = sheet.getRange(row, 13);
+  // Значение уже установлено в основной функции, просто форматируем
+  gaveAwayCell.setHorizontalAlignment('center');
+  if (gaveAwayCell.getValue() === '-') {
+    gaveAwayCell.setFontColor('#999999');
+    gaveAwayCell.setFontStyle('italic');
+  } else {
+    gaveAwayCell.setFontColor('#000000');
+    gaveAwayCell.setFontWeight('bold');
   }
 }
 

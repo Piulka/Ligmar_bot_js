@@ -1469,7 +1469,7 @@ window.BotGameLogic = {
 "    console.log('Получены данные:', data);\n" +
 "    \n" +
 "    if (data.action === 'addItems') {\n" +
-"      return addItemsToSheet(data.items);\n" +
+"      return addItemsToSheet(data.items, data.spreadsheetId);\n" +
 "    }\n" +
 "    \n" +
 "    return createSuccessResponse({error: 'Неизвестное действие'});\n" +
@@ -1498,7 +1498,7 @@ window.BotGameLogic = {
 "}\n" +
 "\n" +
 "// Добавление предметов в таблицу\n" +
-"function addItemsToSheet(items) {\n" +
+"function addItemsToSheet(items, targetSpreadsheetId = null) {\n" +
 "  try {\n" +
 "    // Создаем или получаем таблицу\n" +
 "    var spreadsheet;\n" +
@@ -1515,10 +1515,10 @@ window.BotGameLogic = {
 "    // Создаем лист если не существует\n" +
 "    if (!sheet) {\n" +
 "      sheet = spreadsheet.insertSheet('Арсенал');\n" +
-"      // Добавляем заголовки\n" +
+"      // Добавляем заголовки с новыми столбцами\n" +
 "      var headers = [\n" +
 "        'ID', 'Дата анализа', 'Версия бота', 'Название', 'Тип', 'Качество', \n" +
-"        'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования'\n" +
+"        'Уровень', 'ГС', 'Основные характеристики', 'Магические свойства', 'Требования', 'Статус', 'Отдал'\n" +
 "      ];\n" +
 "      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);\n" +
 "      \n" +
@@ -1530,55 +1530,92 @@ window.BotGameLogic = {
 "      headerRange.setBorder(true, true, true, true, true, true);\n" +
 "    }\n" +
 "    \n" +
-"    // Получаем существующие ID для избежания дублей\n" +
+"    // Получаем существующие данные\n" +
 "    var existingData = sheet.getDataRange().getValues();\n" +
-"    var existingIds = [];\n" +
+"    var existingItemsMap = {};\n" +
+"    var existingRowData = {};\n" +
+"    \n" +
+"    // Создаем карту существующих предметов с сохранением данных столбца \"Отдал\"\n" +
 "    for (var i = 1; i < existingData.length; i++) {\n" +
-"      if (existingData[i][0]) {\n" +
-"        existingIds.push(existingData[i][0]);\n" +
+"      if (existingData[i][0]) { // Если есть ID\n" +
+"        var itemId = existingData[i][0];\n" +
+"        existingItemsMap[itemId] = i + 1; // номер строки (1-based)\n" +
+"        existingRowData[itemId] = {\n" +
+"          row: i + 1,\n" +
+"          gaveAway: existingData[i][12] || '-' // столбец \"Отдал\" (индекс 12)\n" +
+"        };\n" +
 "      }\n" +
 "    }\n" +
 "    \n" +
-"    // Фильтруем новые предметы\n" +
-"    var newItems = items.filter(function(item) {\n" +
-"      return existingIds.indexOf(item.uniqueId) === -1;\n" +
+"    var newItemsCount = 0;\n" +
+"    var updatedItemsCount = 0;\n" +
+"    \n" +
+"    console.log('Обработка: ' + items.length + ' предметов');\n" +
+"    \n" +
+"    // Обрабатываем каждый предмет\n" +
+"    items.forEach(function(item) {\n" +
+"      var itemId = item.uniqueId;\n" +
+"      var isNewItem = !existingItemsMap.hasOwnProperty(itemId);\n" +
+"      var status = isNewItem ? 'Новая' : 'Старая';\n" +
+"      var gaveAway = '-'; // по умолчанию\n" +
+"      \n" +
+"      // Если предмет уже существует, сохраняем данные столбца \"Отдал\"\n" +
+"      if (!isNewItem && existingRowData[itemId]) {\n" +
+"        gaveAway = existingRowData[itemId].gaveAway;\n" +
+"      }\n" +
+"      \n" +
+"      var newRow = [\n" +
+"        item.uniqueId,\n" +
+"        new Date(item.analysisDate),\n" +
+"        item.botVersion,\n" +
+"        item.name || '',\n" +
+"        item.type || '',\n" +
+"        item.quality || '',\n" +
+"        item.tier || '',\n" +
+"        item.gearScore || 0,\n" +
+"        item.stats.map(function(s) { return s.name + ': ' + s.value; }).join(', '),\n" +
+"        item.magicProps.map(function(p) { return p.name + ': ' + p.value + ' ' + p.percent; }).join(', '),\n" +
+"        item.requirements.map(function(r) { return r.key + ' ' + r.value; }).join(', '),\n" +
+"        status,\n" +
+"        gaveAway\n" +
+"      ];\n" +
+"      \n" +
+"      if (isNewItem) {\n" +
+"        // Добавляем новый предмет в конец таблицы\n" +
+"        var newRowIndex = sheet.getLastRow() + 1;\n" +
+"        sheet.getRange(newRowIndex, 1, 1, newRow.length).setValues([newRow]);\n" +
+"        \n" +
+"        // Применяем форматирование для новой строки\n" +
+"        var dataRange = sheet.getRange(newRowIndex, 1, 1, newRow.length);\n" +
+"        dataRange.setBorder(true, true, true, true, true, true);\n" +
+"        \n" +
+"        // Выделяем новые предметы зеленым фоном\n" +
+"        sheet.getRange(newRowIndex, 12).setBackground('#d4edda'); // столбец \"Статус\"\n" +
+"        \n" +
+"        newItemsCount++;\n" +
+"      } else {\n" +
+"        // Обновляем существующий предмет (только данные, кроме столбца \"Отдал\")\n" +
+"        var existingRowIndex = existingItemsMap[itemId];\n" +
+"        // Обновляем все столбцы кроме \"Отдал\" (столбец 13)\n" +
+"        sheet.getRange(existingRowIndex, 1, 1, 12).setValues([newRow.slice(0, 12)]);\n" +
+"        \n" +
+"        // Выделяем старые предметы желтым фоном\n" +
+"        sheet.getRange(existingRowIndex, 12).setBackground('#fff3cd'); // столбец \"Статус\"\n" +
+"        \n" +
+"        updatedItemsCount++;\n" +
+"      }\n" +
 "    });\n" +
 "    \n" +
-"    console.log('Обработка: ' + items.length + ' предметов, новых: ' + newItems.length);\n" +
-"    \n" +
-"    if (newItems.length > 0) {\n" +
-"      // Добавляем новые предметы\n" +
-"      var newRows = newItems.map(function(item) {\n" +
-"        return [\n" +
-"          item.uniqueId,\n" +
-"          new Date(item.analysisDate),\n" +
-"          item.botVersion,\n" +
-"          item.name || '',\n" +
-"          item.type || '',\n" +
-"          item.quality || '',\n" +
-"          item.tier || '',\n" +
-"          item.gearScore || 0,\n" +
-"          item.stats.map(function(s) { return s.name + ': ' + s.value; }).join(', '),\n" +
-"          item.magicProps.map(function(p) { return p.name + ': ' + p.value + ' ' + p.percent; }).join(', '),\n" +
-"          item.requirements.map(function(r) { return r.key + ' ' + r.value; }).join(', ')\n" +
-"        ];\n" +
-"      });\n" +
-"      \n" +
-"      var startRow = sheet.getLastRow() + 1;\n" +
-"      sheet.getRange(startRow, 1, newRows.length, newRows[0].length).setValues(newRows);\n" +
-"      \n" +
-"      // Применяем форматирование\n" +
-"      var dataRange = sheet.getRange(startRow, 1, newRows.length, newRows[0].length);\n" +
-"      dataRange.setBorder(true, true, true, true, true, true);\n" +
-"      \n" +
-"      // Автоматическая ширина колонок\n" +
-"      sheet.autoResizeColumns(1, newRows[0].length);\n" +
+"    // Автоматическая ширина колонок (только при первом создании)\n" +
+"    if (sheet.getLastRow() === items.length + 1) {\n" +
+"      sheet.autoResizeColumns(1, 13);\n" +
 "    }\n" +
 "    \n" +
 "    var result = {\n" +
 "      success: true,\n" +
-"      addedCount: newItems.length,\n" +
-"      duplicatesCount: items.length - newItems.length,\n" +
+"      addedCount: newItemsCount,\n" +
+"      updatedCount: updatedItemsCount,\n" +
+"      duplicatesCount: 0,\n" +
 "      totalItems: sheet.getLastRow() - 1,\n" +
 "      spreadsheetUrl: spreadsheet.getUrl(),\n" +
 "      sheetId: spreadsheet.getId()\n" +
@@ -1640,6 +1677,12 @@ googleSheetsUrl: 'ВАШ_URL_СЮДА',
 • URL должен заканчиваться на /exec (НЕ /dev)
 • Настройки доступа должны быть "Anyone" (Все)
 • Если не работает, попробуйте создать новый деплой
+
+🆕 НОВЫЕ ВОЗМОЖНОСТИ:
+• Столбец "Статус": показывает новая это вещь (Новая) или уже была в таблице (Старая)
+• Столбец "Отдал": для ручного заполнения информации о передаче вещей
+• Цветовое выделение: зеленый для новых вещей, желтый для старых
+• Сохранение данных: столбец "Отдал" не затирается при обновлениях
 
 ✅ После настройки ваши данные будут автоматически сохраняться в Google Sheets!
         `);
