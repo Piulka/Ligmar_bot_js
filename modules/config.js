@@ -33,7 +33,7 @@ window.BotConfig = {
     SCRIPT_COMMIT: 'v.4.0.4',
 
     // Google Sheets интеграция (оставьте пустым если не используете)
-    googleSheetsUrl: 'https://script.google.com/macros/s/AKfycbx8fHTbqJ5wOK8u93XrcVtd6BlinUIR_kWNNcitIen3c1-1nrERpkewHumoRwZWmzOxhw/exec',
+    googleSheetsUrl: 'https://script.google.com/home/projects/1VY0jgyn0rHpe6DWqVm3RRFOxTxjaBTyDxlDz6UZymG4c5O7buewNeGNC/edit',
 
     // Навыки для каждого класса
     CLASS_SKILLS: {
