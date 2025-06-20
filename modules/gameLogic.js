@@ -1003,17 +1003,6 @@ window.BotGameLogic = {
                 return;
             }
 
-            // 2. Нажимаем на Усадьба
-            console.log('2️⃣ Переход в Усадьбу...');
-            const mansionButton = await window.BotUtils.waitForElement('div.location-name', 'Усадьба', 5000);
-            if (mansionButton) {
-                mansionButton.closest('.location-info-header').click();
-                await window.BotUtils.delay(100);
-                console.log('✅ Перешли в Усадьбу');
-            } else {
-                console.error('❌ Кнопка "Усадьба" не найдена');
-                return;
-            }
 
             // 3. Нажимаем на Сундук
             console.log('3️⃣ Переход в Сундук...');
